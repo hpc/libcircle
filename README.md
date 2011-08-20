@@ -49,15 +49,15 @@ CIRCLE_handle *handle;
 handle = CIRCLE_create();
 
 /*
- * Processing and creating work are done through callbacks. So, we need to let
- * libcircle know about our function to create work.
+ * Processing and creating work is done through callbacks. Here's how we tell
+ * libcircle about our function which creates work.
  */
 void (*create_some_work)(CIRCLE_handle *handle);
 handle->create_work(&create_some_work);
 
 /*
  * After you give libcircle a way to create work, you need to tell it how that
- * work should be processed. Processing work is also done through a callback.
+ * work should be processed.
  */
 void (*process_some_work)(CIRCLE_handle *handle);
 handle->define_process_work(&process_some_work);
