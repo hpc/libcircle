@@ -25,8 +25,9 @@ void process_some_work(CIRCLE_handle *handle)
 {
     /*
      * This is where work should be processed. For example, this is where you
-     * should lstat the files in the directories that were added by your
-     * create_some_work callback.
+     * should lstat one of the files which was placed on the queue by your
+     * create_some_work callback. Again, you should try to keep this short and
+     * block as little as possible.
      */
     (char *)my_data = handle.dequeue();
     ...
