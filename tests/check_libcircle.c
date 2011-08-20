@@ -1,15 +1,15 @@
 #include <check.h>
 #include "../src/libcircle.h"
 
-START_TEST (test_context_create)
+START_TEST (test_context_create_free)
 {
-  CIRCLE_handle *c;
-  c = CIRCLE_handle_create();
+  CIRCLE_handle *h;
 
-  fail_unless (c != NULL, 
-	       "Circle context was null.");
+  h = CIRCLE_create();
+  fail_unless (h != NULL, "Circle context was null after creation.");
 
-  CIRCLE_handle_free(c);
+  CIRCLE_free(c);
+  fail_unless (h == NULL, "Circle context was null after free.");
 }
 END_TEST
 

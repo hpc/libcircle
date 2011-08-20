@@ -46,7 +46,7 @@ void process_some_work(CIRCLE_handle *handle)
  * a reference to the queue data structures.
  */
 CIRCLE_handle *handle;
-handle = CIRCLE_handle_create();
+handle = CIRCLE_create();
 
 /*
  * Processing and creating work are done through callbacks.
@@ -71,5 +71,5 @@ handle->define_process_work(&process_some_work);
 /*
  * Always free the libcircle context with the function provided.
  */
-CIRCLE_handle_free(handle);
+CIRCLE_free(handle);
 ```
