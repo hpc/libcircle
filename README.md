@@ -10,7 +10,7 @@ How does this thing work?
 ```C
 #include <libcircle.h>
 
-void create_some_work(CIRCLE_handle *handle)
+void my_create_some_work(CIRCLE_handle *handle)
 {
     /*
      * This is where you should generate work that needs to be processed.
@@ -26,7 +26,7 @@ void create_some_work(CIRCLE_handle *handle)
     }
 }
 
-void process_some_work(CIRCLE_handle *handle)
+void my_process_some_work(CIRCLE_handle *handle)
 {
     /*
      * This is where work should be processed. For example, this is where you
@@ -42,33 +42,29 @@ void process_some_work(CIRCLE_handle *handle)
 }
 
 /*
- * This handle holds internal state needed by libcircle, such as a reference
- * to the queue data structures.
+ * Initialize state required by libcircle.
  */
-CIRCLE_handle *handle;
-handle = CIRCLE_create();
+CIRCLE_init();
 
 /*
  * Processing and creating work is done through callbacks. Here's how we tell
  * libcircle about our function which creates work.
  */
-void (*create_some_work)(CIRCLE_handle *handle);
-handle->create_work(&create_some_work);
+CIRCLE_cb_create(&my_create_some_work);
 
 /*
  * After you give libcircle a way to create work, you need to tell it how that
  * work should be processed.
  */
-void (*process_some_work)(CIRCLE_handle *handle);
-handle->define_process_work(&process_some_work);
+CIRCLE_cb_process(&my_process_some_work);
 
 /*
- * Now that everything is setup, lets fire it up.
+ * Now that everything is setup, lets execute everything.
  */
-status = CIRCLE_begin(handle);
+CIRCLE_begin();
 
 /*
- * Finally, free the libcircle context with the function provided by the API.
+ * Finally, give libcircle a chance to clean up after itself.
  */
-CIRCLE_free(handle);
+CIRCLE_finalize();
 ```
