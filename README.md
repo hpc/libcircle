@@ -18,7 +18,10 @@ void create_some_work(CIRCLE_handle *handle)
      * This should be a small amount of work. For example, only enqueue the
      * filenames from a single directory.
      */
-    handle.enqueue((void *)my_data);
+    while((data_to_process = readdir(...)) != NULL)
+    {
+        handle->enqueue((void *)data_to_process);
+    }
 }
 
 void process_some_work(CIRCLE_handle *handle)
@@ -29,7 +32,7 @@ void process_some_work(CIRCLE_handle *handle)
      * create_some_work callback. Again, you should try to keep this short and
      * block as little as possible.
      */
-    (char *)my_data = handle.dequeue();
+    (char *)my_data = handle->dequeue();
     ...
     finished_work = lstat(my_data, ...);
     ...
@@ -48,20 +51,20 @@ handle = CIRCLE_handle_create();
  * This is where one sets a callback function to create work for libcircle.
  */
 void (*create_some_work)(CIRCLE_handle *handle);
-handle.create_work(&create_some_work);
+handle->create_work(&create_some_work);
 
 /*
  * Processing and creating work are done through callbacks. 
  * This is where one sets a callback function to create work for libcircle.
  */
 void (*create_some_work)(CIRCLE_handle *handle);
-handle.define_create_work(&create_some_work);
+handle->define_create_work(&create_some_work);
 
 /*
  * To tell libcircle which function to use to process work, add your callback here.
  */
 void (*process_some_work)(CIRCLE_handle *handle);
-handle.define_process_work(&process_some_work);
+handle->define_process_work(&process_some_work);
 
 /*
  * Always free the libcircle context with the function provided.
