@@ -1,10 +1,12 @@
 libcircle 0.0.1
 ===============
 
-NOTE: This file is not a complete API and is subject to rapidly change. Please don't develop any software against it yet. Thanks!
+__NOTE: This is not complete. Please don't develop any software against it yet. Thanks!__
 
 libcircle is an API for distributing embarrassingly parallel workloads using self-stabilization. Local actions work towards a global objective in a finite number of operations. It is not meant for applications where cross-process communication is necessary. The core algorithm used is based on Dijkstra's 1974 token ring proposal.
 
+How does this thing work?
+-------------------------
 ```C
 void create_some_work(CIRCLE_handle *handle)
 {
@@ -65,5 +67,3 @@ handle.define_process_work(&process_some_work);
  *
 CIRCLE_handle_free(c);
 ```
-
-## EOF ##
