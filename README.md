@@ -63,6 +63,11 @@ void (*process_some_work)(CIRCLE_handle *handle);
 handle->define_process_work(&process_some_work);
 
 /*
+ * Now that everything is setup, lets fire it up.
+ */
+status = CIRCLE_begin(handle);
+
+/*
  * Finally, free the libcircle context with the function provided by the API.
  */
 CIRCLE_free(handle);
