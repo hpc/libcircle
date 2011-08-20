@@ -42,34 +42,28 @@ void process_some_work(CIRCLE_handle *handle)
 }
 
 /*
- * This is the handle that holds everything that libcircle needs, such as
- * a reference to the queue data structures.
+ * First, we create a handle. This handle holds internal state needed by
+ * libcircle, such as a reference to the queue data structures.
  */
 CIRCLE_handle *handle;
 handle = CIRCLE_create();
 
 /*
- * Processing and creating work are done through callbacks.
- * This is where one sets a callback function to create work for libcircle.
+ * Processing and creating work are done through callbacks. So, we need to
+ * define callback function to create work.
  */
 void (*create_some_work)(CIRCLE_handle *handle);
 handle->create_work(&create_some_work);
 
 /*
- * Processing and creating work are done through callbacks. 
- * This is where one sets a callback function to create work for libcircle.
- */
-void (*create_some_work)(CIRCLE_handle *handle);
-handle->define_create_work(&create_some_work);
-
-/*
- * To tell libcircle which function to use to process work, add your callback here.
+ * After you give libcircle a way to create work, you need to tell it how that
+ * work should be processed. Processing work is also done through a callback.
  */
 void (*process_some_work)(CIRCLE_handle *handle);
 handle->define_process_work(&process_some_work);
 
 /*
- * Always free the libcircle context with the function provided.
+ * Finally, free the libcircle context with the function provided by the API.
  */
 CIRCLE_free(handle);
 ```
