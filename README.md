@@ -70,6 +70,6 @@ handle->define_process_work(&process_some_work);
 
 /*
  * Always free the libcircle context with the function provided.
- *
+ */
 CIRCLE_handle_free(handle);
 ```
