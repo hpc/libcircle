@@ -8,6 +8,8 @@ libcircle is an API for distributing embarrassingly parallel workloads using sel
 How does this thing work?
 -------------------------
 ```C
+#include <libcircle.h>
+
 void create_some_work(CIRCLE_handle *handle)
 {
     /*
