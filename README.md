@@ -22,7 +22,7 @@ void my_create_some_work(CIRCLE_handle *handle)
      */
     while((data_to_process = readdir(...)) != NULL)
     {
-        handle->enqueue((void *)data_to_process);
+        handle->enqueue(data_to_process);
     }
 }
 
@@ -34,7 +34,7 @@ void my_process_some_work(CIRCLE_handle *handle)
      * create_some_work callback. Again, you should try to keep this short and
      * block as little as possible.
      */
-    (char *)my_data = handle->dequeue();
+    handle->dequeue(&my_data);
     ...
     finished_work = lstat(my_data, ...);
     ...
