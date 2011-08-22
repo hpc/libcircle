@@ -16,7 +16,8 @@ typedef struct {
 typedef void (*CIRCLE_cb)(CIRCLE_handle *handle);
 
 /*
- * Initialize internal state needed by libcircle.
+ * Initialize internal state needed by libcircle. This should be called before
+ * any other libcircle API call.
  */
 void CIRCLE_init(void);
 
@@ -40,7 +41,7 @@ void CIRCLE_begin(void);
 
 /*
  * After your program has executed, give libcircle a chance to clean up after
- * itself by calling this.
+ * itself by calling this. This should be called after all libcircle API calls.
  */
 void CIRCLE_finalize(void);
 
