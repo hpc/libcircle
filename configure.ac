@@ -14,6 +14,9 @@ AC_CONFIG_HEADERS([config.h])
 AC_PROG_CC
 AM_PROG_CC_C_O
 
+# Needed for tests
+AM_PATH_CHECK
+
 LT_INIT
 AC_SUBST(LIBTOOL_DEPS)
 

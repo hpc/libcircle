@@ -13,6 +13,16 @@ typedef struct CIRCLE_queue_t
 } CIRCLE_queue_t;
 
 /*
+ * Initialize a queue.
+ */
+void CIRCLE_queue_init(CIRCLE_queue_t *qp);
+
+/*
+ * Free a queue.
+ */
+void CIRCLE_queue_free(CIRCLE_queue_t *qp);
+
+/*
  * Dump the raw contents of the local queue structure.
  */
 void CIRCLE_queue_dump( CIRCLE_queue_t *qp);

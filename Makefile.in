@@ -115,6 +115,8 @@ AWK = @AWK@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
+CHECK_CFLAGS = @CHECK_CFLAGS@
+CHECK_LIBS = @CHECK_LIBS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CYGPATH_W = @CYGPATH_W@
@@ -736,7 +738,7 @@ mrproper: distclean-local clean
 	-(cd $(top_srcdir) && rm -rf autom4te.cache config.h config.log)
 	-(cd $(top_srcdir) && rm -rf config.status libtool stamp-h1)
 	-(cd $(top_srcdir)/auxdir && rm -rf mkinstalldirs)
-	-find $(top_srcdir)/src -name "Makefile" -exec rm {} \;
+	-find $(top_srcdir)/ -name "Makefile" -exec rm {} \;
 	-find $(top_srcdir) -depth -name ".deps" -exec rm -rf {} \;
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.

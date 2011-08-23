@@ -9,6 +9,20 @@
 #include "queue.h"
 #include "log.h"
 
+void CIRCLE_queue_init(CIRCLE_queue_t *qp)
+{
+    qp = (CIRCLE_queue_t *)malloc(sizeof(CIRCLE_queue_t));
+    qp->base = (char *) malloc(sizeof(char) * MAX_STRING_LEN * INITIAL_QUEUE_SIZE);
+    qp->strings = (char **) malloc(sizeof(char*) * INITIAL_QUEUE_SIZE);
+}
+
+void CIRCLE_queue_free(CIRCLE_queue_t *qp)
+{
+    free(qp->strings);
+    free(qp->base);
+    free(qp);
+}
+
 /*
  * Dump the raw contents of the queue structure.
  */

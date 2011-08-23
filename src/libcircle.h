@@ -1,8 +1,9 @@
 #ifndef LIBCIRCLE_H
 #define LIBCIRCLE_H
 
-/* FIXME: need to calculate this better at some point. */
+/* FIXME: need to calculate these better at some point. */
 #define MAX_STRING_LEN 2048*sizeof(char)
+#define INITIAL_QUEUE_SIZE 400000
 
 /*
  * The interface to the work queue. This can be accessed from within the

@@ -48,13 +48,9 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am_check_libcircle_OBJECTS =  \
-	check_libcircle-check_libcircle.$(OBJEXT)
+am_check_libcircle_OBJECTS = check_libcircle.$(OBJEXT)
 check_libcircle_OBJECTS = $(am_check_libcircle_OBJECTS)
-check_libcircle_DEPENDENCIES = $(top_builddir)/src/libcircle.la
-check_libcircle_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(check_libcircle_CFLAGS) \
-	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+check_libcircle_DEPENDENCIES = $(top_builddir)/src/libcircle-0.0.1.la
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/auxdir/depcomp
 am__depfiles_maybe = depfiles
@@ -85,6 +81,8 @@ AWK = @AWK@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
+CHECK_CFLAGS = @CHECK_CFLAGS@
+CHECK_LIBS = @CHECK_LIBS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CYGPATH_W = @CYGPATH_W@
@@ -193,8 +191,8 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 check_libcircle_SOURCES = check_libcircle.c $(top_builddir)/src/libcircle.h
-check_libcircle_CFLAGS = @CHECK_CFLAGS@
-check_libcircle_LDADD = $(top_builddir)/src/libcircle.la @CHECK_LIBS@
+check_money_CFLAGS = @CHECK_CFLAGS@
+check_libcircle_LDADD = $(top_builddir)/src/libcircle-0.0.1.la @CHECK_LIBS@
 all: all-am
 
 .SUFFIXES:
@@ -240,7 +238,7 @@ clean-checkPROGRAMS:
 	rm -f $$list
 check_libcircle$(EXEEXT): $(check_libcircle_OBJECTS) $(check_libcircle_DEPENDENCIES) 
 	@rm -f check_libcircle$(EXEEXT)
-	$(check_libcircle_LINK) $(check_libcircle_OBJECTS) $(check_libcircle_LDADD) $(LIBS)
+	$(LINK) $(check_libcircle_OBJECTS) $(check_libcircle_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -248,7 +246,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/check_libcircle-check_libcircle.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/check_libcircle.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -270,20 +268,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
-
-check_libcircle-check_libcircle.o: check_libcircle.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_libcircle_CFLAGS) $(CFLAGS) -MT check_libcircle-check_libcircle.o -MD -MP -MF $(DEPDIR)/check_libcircle-check_libcircle.Tpo -c -o check_libcircle-check_libcircle.o `test -f 'check_libcircle.c' || echo '$(srcdir)/'`check_libcircle.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/check_libcircle-check_libcircle.Tpo $(DEPDIR)/check_libcircle-check_libcircle.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='check_libcircle.c' object='check_libcircle-check_libcircle.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_libcircle_CFLAGS) $(CFLAGS) -c -o check_libcircle-check_libcircle.o `test -f 'check_libcircle.c' || echo '$(srcdir)/'`check_libcircle.c
-
-check_libcircle-check_libcircle.obj: check_libcircle.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_libcircle_CFLAGS) $(CFLAGS) -MT check_libcircle-check_libcircle.obj -MD -MP -MF $(DEPDIR)/check_libcircle-check_libcircle.Tpo -c -o check_libcircle-check_libcircle.obj `if test -f 'check_libcircle.c'; then $(CYGPATH_W) 'check_libcircle.c'; else $(CYGPATH_W) '$(srcdir)/check_libcircle.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/check_libcircle-check_libcircle.Tpo $(DEPDIR)/check_libcircle-check_libcircle.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='check_libcircle.c' object='check_libcircle-check_libcircle.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_libcircle_CFLAGS) $(CFLAGS) -c -o check_libcircle-check_libcircle.obj `if test -f 'check_libcircle.c'; then $(CYGPATH_W) 'check_libcircle.c'; else $(CYGPATH_W) '$(srcdir)/check_libcircle.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
