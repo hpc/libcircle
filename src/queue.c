@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 #include "libcircle.h"
 #include "queue.h"
 #include "log.h"
