@@ -14,7 +14,7 @@ START_TEST (test_queue_init_free)
     fail_unless(q != NULL, "Initializing a queue failed.");
 
     free_result = CIRCLE_queue_free(q);
-    fail_unless(free_result, "Circle context was not null after free.");
+    fail_unless(free_result, "Queue was not null after free.");
 }
 END_TEST
 
@@ -23,14 +23,14 @@ START_TEST (test_queue_pop_empty)
     int free_result = -1;
     char * result;
 
-    CIRCLE_queue_t * queue;
+    CIRCLE_queue_t *queue;
     CIRCLE_init();
 
     queue = CIRCLE_queue_init();
     fail_unless(queue != NULL, "Initializing a queue failed.");
 
     CIRCLE_queue_pop(queue, result);
-    free_unless(result == NULL, \
+    fail_unless(result == NULL, \
         "Something other than null was poped from an empty queue.");
 
     free_result = CIRCLE_queue_free(queue);
