@@ -14,12 +14,12 @@ CIRCLE_queue_t * CIRCLE_queue_init(void)
 {
     CIRCLE_queue_t * qp;
 
-    qp = (CIRCLE_queue_t *)malloc(sizeof(CIRCLE_queue_t));
+    qp = (CIRCLE_queue_t *) malloc(sizeof(CIRCLE_queue_t));
     qp->base = (char *) malloc(sizeof(char) * MAX_STRING_LEN * INITIAL_QUEUE_SIZE);
     qp->strings = (char **) malloc(sizeof(char*) * INITIAL_QUEUE_SIZE);
 
-    if(qp && qp->base && qp->strings) {
-        LOG(LOG_DBG, "Allocated a basic queue structure.");
+    if(!qp || !qp->base || !qp->strings) {
+        LOG(LOG_ERR, "Failed to allocate a basic queue structure.");
     }
 
     return qp;
