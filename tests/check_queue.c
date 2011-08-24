@@ -21,7 +21,7 @@ END_TEST
 START_TEST (test_queue_pop_empty)
 {
     int free_result = -1;
-    char *result;
+    char * result;
 
     CIRCLE_queue_t * queue;
     CIRCLE_init();
@@ -29,7 +29,7 @@ START_TEST (test_queue_pop_empty)
     queue = CIRCLE_queue_init();
     fail_unless(queue != NULL, "Initializing a queue failed.");
 
-    result = CIRCLE_queue_pop(queue);
+    CIRCLE_queue_pop(queue, result);
     free_unless(result == NULL, \
         "Something other than null was poped from an empty queue.");
 
@@ -50,13 +50,13 @@ START_TEST (test_queue_single_push_pop)
     queue = CIRCLE_queue_init();
     fail_unless(queue != NULL, "Initializing a queue failed.");
 
-    CIRCLE_queue_push(test_string);
-    fail_unless(queue->size == 1, \
-        "Queue size was not correct after a single push.");
+    CIRCLE_queue_push(queue, test_string);
+    fail_unless(queue->count == 1, \
+        "Queue count was not correct after a single push.");
 
     CIRCLE_queue_pop(queue, pop_result);
-    fail_unless(queue->size == 1, \
-        "Queue size was not correct after poping the last element.");
+    fail_unless(queue->count == 1, \
+        "Queue count was not correct after poping the last element.");
 
     fail_unless(strcmp(test_string, pop_result) == 0, \
         "Result poped from the queue does not match original.");
@@ -69,6 +69,7 @@ END_TEST
 START_TEST (test_queue_multiple_push_pop)
 {
     int free_result = -1;
+/**
     char test_strings[] = {
         "first test string",
         "second test string",
@@ -81,6 +82,7 @@ START_TEST (test_queue_multiple_push_pop)
         "nineth test string",
         "tenth test string"
     };
+**/
 
     CIRCLE_queue_t * queue;
     CIRCLE_init();

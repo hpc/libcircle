@@ -33,8 +33,8 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-TESTS = check_libcircle$(EXEEXT)
-check_PROGRAMS = check_libcircle$(EXEEXT)
+TESTS = check_queue$(EXEEXT)
+check_PROGRAMS = check_queue$(EXEEXT)
 subdir = tests
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -48,12 +48,11 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am_check_libcircle_OBJECTS =  \
-	check_libcircle-check_libcircle.$(OBJEXT)
-check_libcircle_OBJECTS = $(am_check_libcircle_OBJECTS)
-check_libcircle_DEPENDENCIES = $(top_builddir)/src/libcircle-0.0.1.la
-check_libcircle_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(check_libcircle_CFLAGS) \
+am_check_queue_OBJECTS = check_queue-check_queue.$(OBJEXT)
+check_queue_OBJECTS = $(am_check_queue_OBJECTS)
+check_queue_DEPENDENCIES = $(top_builddir)/src/libcircle-0.0.1.la
+check_queue_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(check_queue_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/auxdir/depcomp
@@ -68,8 +67,8 @@ CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(check_libcircle_SOURCES)
-DIST_SOURCES = $(check_libcircle_SOURCES)
+SOURCES = $(check_queue_SOURCES)
+DIST_SOURCES = $(check_queue_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 am__tty_colors = \
@@ -194,9 +193,9 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-check_libcircle_SOURCES = check_libcircle.c $(top_builddir)/src/libcircle.h
-check_libcircle_CFLAGS = -I$(top_builddir)/src/ @CHECK_CFLAGS@
-check_libcircle_LDADD = $(top_builddir)/src/libcircle-0.0.1.la @CHECK_LIBS@
+check_queue_SOURCES = check_queue.c $(top_builddir)/src/libcircle.h
+check_queue_CFLAGS = -I$(top_builddir)/src/ @CHECK_CFLAGS@
+check_queue_LDADD = $(top_builddir)/src/libcircle-0.0.1.la @CHECK_LIBS@
 all: all-am
 
 .SUFFIXES:
@@ -240,9 +239,9 @@ clean-checkPROGRAMS:
 	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
 	echo " rm -f" $$list; \
 	rm -f $$list
-check_libcircle$(EXEEXT): $(check_libcircle_OBJECTS) $(check_libcircle_DEPENDENCIES) 
-	@rm -f check_libcircle$(EXEEXT)
-	$(check_libcircle_LINK) $(check_libcircle_OBJECTS) $(check_libcircle_LDADD) $(LIBS)
+check_queue$(EXEEXT): $(check_queue_OBJECTS) $(check_queue_DEPENDENCIES) 
+	@rm -f check_queue$(EXEEXT)
+	$(check_queue_LINK) $(check_queue_OBJECTS) $(check_queue_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -250,7 +249,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/check_libcircle-check_libcircle.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/check_queue-check_queue.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -273,19 +272,19 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
 
-check_libcircle-check_libcircle.o: check_libcircle.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_libcircle_CFLAGS) $(CFLAGS) -MT check_libcircle-check_libcircle.o -MD -MP -MF $(DEPDIR)/check_libcircle-check_libcircle.Tpo -c -o check_libcircle-check_libcircle.o `test -f 'check_libcircle.c' || echo '$(srcdir)/'`check_libcircle.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/check_libcircle-check_libcircle.Tpo $(DEPDIR)/check_libcircle-check_libcircle.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='check_libcircle.c' object='check_libcircle-check_libcircle.o' libtool=no @AMDEPBACKSLASH@
+check_queue-check_queue.o: check_queue.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_queue_CFLAGS) $(CFLAGS) -MT check_queue-check_queue.o -MD -MP -MF $(DEPDIR)/check_queue-check_queue.Tpo -c -o check_queue-check_queue.o `test -f 'check_queue.c' || echo '$(srcdir)/'`check_queue.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/check_queue-check_queue.Tpo $(DEPDIR)/check_queue-check_queue.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='check_queue.c' object='check_queue-check_queue.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_libcircle_CFLAGS) $(CFLAGS) -c -o check_libcircle-check_libcircle.o `test -f 'check_libcircle.c' || echo '$(srcdir)/'`check_libcircle.c
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_queue_CFLAGS) $(CFLAGS) -c -o check_queue-check_queue.o `test -f 'check_queue.c' || echo '$(srcdir)/'`check_queue.c
 
-check_libcircle-check_libcircle.obj: check_libcircle.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_libcircle_CFLAGS) $(CFLAGS) -MT check_libcircle-check_libcircle.obj -MD -MP -MF $(DEPDIR)/check_libcircle-check_libcircle.Tpo -c -o check_libcircle-check_libcircle.obj `if test -f 'check_libcircle.c'; then $(CYGPATH_W) 'check_libcircle.c'; else $(CYGPATH_W) '$(srcdir)/check_libcircle.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/check_libcircle-check_libcircle.Tpo $(DEPDIR)/check_libcircle-check_libcircle.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='check_libcircle.c' object='check_libcircle-check_libcircle.obj' libtool=no @AMDEPBACKSLASH@
+check_queue-check_queue.obj: check_queue.c
+@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_queue_CFLAGS) $(CFLAGS) -MT check_queue-check_queue.obj -MD -MP -MF $(DEPDIR)/check_queue-check_queue.Tpo -c -o check_queue-check_queue.obj `if test -f 'check_queue.c'; then $(CYGPATH_W) 'check_queue.c'; else $(CYGPATH_W) '$(srcdir)/check_queue.c'; fi`
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/check_queue-check_queue.Tpo $(DEPDIR)/check_queue-check_queue.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='check_queue.c' object='check_queue-check_queue.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_libcircle_CFLAGS) $(CFLAGS) -c -o check_libcircle-check_libcircle.obj `if test -f 'check_libcircle.c'; then $(CYGPATH_W) 'check_libcircle.c'; else $(CYGPATH_W) '$(srcdir)/check_libcircle.c'; fi`
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_queue_CFLAGS) $(CFLAGS) -c -o check_queue-check_queue.obj `if test -f 'check_queue.c'; then $(CYGPATH_W) 'check_queue.c'; else $(CYGPATH_W) '$(srcdir)/check_queue.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
