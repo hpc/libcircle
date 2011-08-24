@@ -15,6 +15,8 @@ START_TEST (test_queue_init_free)
 
     free_result = CIRCLE_queue_free(q);
     fail_unless(free_result, "Queue was not null after free.");
+
+    CIRCLE_finalize();
 }
 END_TEST
 
@@ -30,11 +32,13 @@ START_TEST (test_queue_pop_empty)
     fail_unless(queue != NULL, "Initializing a queue failed.");
 
     CIRCLE_queue_pop(queue, result);
-    fail_unless(result == NULL, \
-        "Something other than null was poped from an empty queue.");
+    fail_unless(!result, \
+        "Something was poped from an empty queue.");
 
     free_result = CIRCLE_queue_free(queue);
     fail_unless(free_result, "Circle context was not null after free.");
+
+    CIRCLE_finalize();
 }
 END_TEST
 
@@ -63,6 +67,8 @@ START_TEST (test_queue_single_push_pop)
 
     free_result = CIRCLE_queue_free(queue);
     fail_unless(free_result, "Circle context was not null after free.");
+
+    CIRCLE_finalize();
 }
 END_TEST
 
@@ -94,6 +100,8 @@ START_TEST (test_queue_multiple_push_pop)
 
     free_result = CIRCLE_queue_free(queue);
     fail_unless(free_result, "Circle context was not null after free.");
+
+    CIRCLE_finalize();
 }
 END_TEST
  
@@ -105,6 +113,7 @@ Suite * check_queue_suite (void)
     tcase_add_test(tc_core, test_queue_init_free);
     tcase_add_test(tc_core, test_queue_pop_empty);
     tcase_add_test(tc_core, test_queue_single_push_pop);
+    // tcase_add_test(tc_core, test_queue_multiple_push_pop);
 
     suite_add_tcase(s, tc_core);
 

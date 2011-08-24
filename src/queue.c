@@ -85,19 +85,33 @@ void CIRCLE_queue_print(CIRCLE_queue_t *qp)
  */
 int CIRCLE_queue_push(CIRCLE_queue_t *qp, char *str)
 {
-    //LOG)"Count: %d, Start: %p, End: %p MAX_STRING_LEN: %d, Diff: %lu\n",qp->count,qp->base,qp->end,MAX_STRING_LEN,qp->end-qp->base);
-    assert(strlen(str) > 0);
+    if(strlen(str) <= 0) {
+        LOG(LOG_ERR, "Attempted to push an empty string onto a queue.");
+        return -1;
+    }
 
-    if(qp->count > 1)
-        assert(qp->strings[qp->count-1] + MAX_STRING_LEN < qp->end);
+    if(qp->count > 1) {
+        if(qp->strings[qp->count-1] + MAX_STRING_LEN >= qp->end) {
+            LOG(LOG_ERR, "Size of queue not large enough to push another value.");
+            return -1;
+        }
+    }
 
+    /* Set our write location to the end of the current strings array. */
     qp->strings[qp->count] = qp->head; 
 
-    /* copy the string */
-    strcpy(qp->head, str);
-    assert(strlen(qp->head) < MAX_STRING_LEN);
+    if(strlen(str) > MAX_STRING_LEN) {
+        LOG(LOG_ERR, "Attempted to push a value that was larger than expected.");
+        return -1;
+    }
 
-    /* Make head point to the character after the string */
+    /* Copy the string. */
+    strcpy(qp->head, str);
+
+    /*
+     * Make head point to the character after the string (strlen doesn't
+     * include a trailing null).
+     */
     qp->head = qp->head + strlen(qp->head) + 1;
     
     /* Make the head point to the next available memory */
@@ -117,6 +131,11 @@ int CIRCLE_queue_pop(CIRCLE_queue_t *qp, char *str)
 {
     if(qp->count == 0)
         return 0;
+
+    if(str == NULL) {
+        LOG(LOG_ERR, "You must allocate a buffer for storing the result.");
+        return -1;
+    }
 
     /* Copy last element into str */
     strcpy(str,qp->strings[qp->count-1]);

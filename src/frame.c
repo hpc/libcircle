@@ -47,7 +47,8 @@ void CIRCLE_begin(void)
  */
 void CIRCLE_finalize(void)
 {
-    /* FIXME */
+    fflush(dbgstream);
+    dbgstream = NULL;
 }
 
 /* EOF */
