@@ -1,23 +1,24 @@
 #include <check.h>
 #include <stdlib.h>
-#include "../src/libcircle.h"
-#include "../src/queue.h"
+#include "libcircle.h"
+#include "queue.h"
 
 START_TEST (test_queue_init_free)
 {
+    int free_result = -1;
+
     CIRCLE_queue_t *q;
     CIRCLE_init();
 
-    CIRCLE_queue_init(q);
-    fail_unless(q == NULL, "Initializing a queue failed.");
+    q = CIRCLE_queue_init();
+    fail_unless(q != NULL, "Initializing a queue failed.");
 
-    CIRCLE_queue_free(q);
-    fail_unless(q != NULL, "Circle context was not null after free.");
+    free_result = CIRCLE_queue_free(q);
+    fail_unless(free_result, "Circle context was not null after free.");
 }
 END_TEST
  
-Suite *
-libcircle_suite (void)
+Suite * libcircle_suite (void)
 {
     Suite *s = suite_create ("libcircle");
     TCase *tc_core = tcase_create ("Core");
@@ -28,10 +29,10 @@ libcircle_suite (void)
     return s;
 }
 
-int
-main (void)
+int main (void)
 {
     int number_failed;
+
     Suite *s = libcircle_suite();
     SRunner *sr = srunner_create(s);
 

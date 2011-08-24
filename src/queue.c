@@ -3,24 +3,56 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 #include "libcircle.h"
 #include "queue.h"
 #include "log.h"
 
-void CIRCLE_queue_init(CIRCLE_queue_t *qp)
+CIRCLE_queue_t * CIRCLE_queue_init(void)
 {
+    CIRCLE_queue_t * qp;
+
     qp = (CIRCLE_queue_t *)malloc(sizeof(CIRCLE_queue_t));
     qp->base = (char *) malloc(sizeof(char) * MAX_STRING_LEN * INITIAL_QUEUE_SIZE);
     qp->strings = (char **) malloc(sizeof(char*) * INITIAL_QUEUE_SIZE);
+
+    if(qp && qp->base && qp->strings) {
+        LOG(LOG_DBG, "Allocated a basic queue structure.");
+    }
+
+    return qp;
 }
 
-void CIRCLE_queue_free(CIRCLE_queue_t *qp)
+int CIRCLE_queue_free(CIRCLE_queue_t *qp)
 {
-    free(qp->strings);
-    free(qp->base);
-    free(qp);
+    int i = 0;
+
+    if(qp) {
+        if(qp->strings) {
+            LOG(LOG_DBG, "Freeing the queue strings array.");
+
+            while(qp->strings[i])  {
+                LOG(LOG_DBG, "Freeing a string element (%d).", i);
+                free(qp->strings[i]);
+                i++;
+            }
+        }
+
+        if(qp->base) {
+            LOG(LOG_DBG, "Freeing the queue base pointer.");
+            free(qp->base);
+        }
+
+        LOG(LOG_DBG, "Freeing a queue pointer.");
+        free(qp);
+    } else {
+        LOG(LOG_ERR, "Attempted to free a null queue structure.");
+        return -1;
+    }
+
+    return 1;
 }
 
 /*
