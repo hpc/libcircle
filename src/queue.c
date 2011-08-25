@@ -129,16 +129,23 @@ int CIRCLE_queue_push(CIRCLE_queue_t *qp, char *str)
  */
 int CIRCLE_queue_pop(CIRCLE_queue_t *qp, char *str)
 {
-    if(qp->count == 0)
+    if(!qp) {
+        LOG(LOG_ERR, "Attempted to pop from an invalid queue.");
         return 0;
+    }
 
-    if(str == NULL) {
+    if(qp->count < 1) {
+        LOG(LOG_DBG, "Attempted to pop from an empty queue.");
+        return 0;
+    }
+
+    if(!str) {
         LOG(LOG_ERR, "You must allocate a buffer for storing the result.");
-        return -1;
+        return 0;
     }
 
     /* Copy last element into str */
-    strcpy(str,qp->strings[qp->count-1]);
+    strcpy(str, qp->strings[qp->count-1]);
     qp->count = qp->count - 1;
 
     return 0;
