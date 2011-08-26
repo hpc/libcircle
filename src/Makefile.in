@@ -72,7 +72,7 @@ am__installdirs = "$(DESTDIR)$(libdir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
 am__DEPENDENCIES_1 =
 libcircle_0_0_1_la_DEPENDENCIES = $(am__DEPENDENCIES_1)
-am_libcircle_0_0_1_la_OBJECTS = libcircle_0_0_1_la-frame.lo \
+am_libcircle_0_0_1_la_OBJECTS = libcircle_0_0_1_la-lib.lo \
 	libcircle_0_0_1_la-queue.lo
 libcircle_0_0_1_la_OBJECTS = $(am_libcircle_0_0_1_la_OBJECTS)
 libcircle_0_0_1_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -217,7 +217,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 lib_LTLIBRARIES = libcircle-0.0.1.la
-libcircle_0_0_1_la_SOURCES = frame.c queue.c
+libcircle_0_0_1_la_SOURCES = lib.c queue.c
 libcircle_0_0_1_la_CFLAGS = -Wall
 libcircle_0_0_1_la_LIBADD = $(MPI_CLDFLAGS)
 INCLUDES = $(MPI_CFLAGS)
@@ -295,7 +295,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcircle_0_0_1_la-frame.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcircle_0_0_1_la-lib.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcircle_0_0_1_la-queue.Plo@am__quote@
 
 .c.o:
@@ -319,12 +319,12 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
 
-libcircle_0_0_1_la-frame.lo: frame.c
-@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcircle_0_0_1_la_CFLAGS) $(CFLAGS) -MT libcircle_0_0_1_la-frame.lo -MD -MP -MF $(DEPDIR)/libcircle_0_0_1_la-frame.Tpo -c -o libcircle_0_0_1_la-frame.lo `test -f 'frame.c' || echo '$(srcdir)/'`frame.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libcircle_0_0_1_la-frame.Tpo $(DEPDIR)/libcircle_0_0_1_la-frame.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='frame.c' object='libcircle_0_0_1_la-frame.lo' libtool=yes @AMDEPBACKSLASH@
+libcircle_0_0_1_la-lib.lo: lib.c
+@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcircle_0_0_1_la_CFLAGS) $(CFLAGS) -MT libcircle_0_0_1_la-lib.lo -MD -MP -MF $(DEPDIR)/libcircle_0_0_1_la-lib.Tpo -c -o libcircle_0_0_1_la-lib.lo `test -f 'lib.c' || echo '$(srcdir)/'`lib.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libcircle_0_0_1_la-lib.Tpo $(DEPDIR)/libcircle_0_0_1_la-lib.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='lib.c' object='libcircle_0_0_1_la-lib.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcircle_0_0_1_la_CFLAGS) $(CFLAGS) -c -o libcircle_0_0_1_la-frame.lo `test -f 'frame.c' || echo '$(srcdir)/'`frame.c
+@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcircle_0_0_1_la_CFLAGS) $(CFLAGS) -c -o libcircle_0_0_1_la-lib.lo `test -f 'lib.c' || echo '$(srcdir)/'`lib.c
 
 libcircle_0_0_1_la-queue.lo: queue.c
 @am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcircle_0_0_1_la_CFLAGS) $(CFLAGS) -MT libcircle_0_0_1_la-queue.lo -MD -MP -MF $(DEPDIR)/libcircle_0_0_1_la-queue.Tpo -c -o libcircle_0_0_1_la-queue.lo `test -f 'queue.c' || echo '$(srcdir)/'`queue.c
