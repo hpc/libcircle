@@ -1,6 +1,9 @@
 #ifndef QUEUE_H
 #define QUEUE_H
 
+/* The initial queue size for malloc. */
+#define INITIAL_QUEUE_SIZE 400000
+
 typedef struct CIRCLE_queue_t
 {
     char *base;     /* Base of the memory pool */
