@@ -12130,7 +12130,7 @@ echo "  Logging level .................................. $logginglevel"
 echo "========================================================"
 echo
 
-ac_config_files="$ac_config_files Makefile src/Makefile tests/Makefile"
+ac_config_files="$ac_config_files Makefile src/Makefile tests/Makefile examples/Makefile examples/dstat/Makefile examples/dcopy/Makefile"
 
 
 cat >confcache <<\_ACEOF
@@ -13149,6 +13149,9 @@ do
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
     "tests/Makefile") CONFIG_FILES="$CONFIG_FILES tests/Makefile" ;;
+    "examples/Makefile") CONFIG_FILES="$CONFIG_FILES examples/Makefile" ;;
+    "examples/dstat/Makefile") CONFIG_FILES="$CONFIG_FILES examples/dstat/Makefile" ;;
+    "examples/dcopy/Makefile") CONFIG_FILES="$CONFIG_FILES examples/dcopy/Makefile" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac
