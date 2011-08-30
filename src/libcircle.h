@@ -25,7 +25,7 @@ typedef void (*CIRCLE_cb)(CIRCLE_handle *handle);
  * Initialize internal state needed by libcircle. This should be called before
  * any other libcircle API call.
  */
-void CIRCLE_init(void);
+void CIRCLE_init(int argc, char *argv[]);
 
 /*
  * Processing and creating work is done through callbacks. Here's how we tell

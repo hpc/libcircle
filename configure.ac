@@ -15,13 +15,16 @@ AC_PROG_CC
 AM_PROG_CC_C_O
 
 # Needed for tests
-AM_PATH_CHECK
+PKG_CHECK_MODULES([CHECK], [check >= 0.9.4])
 
 LT_INIT
 AC_SUBST(LIBTOOL_DEPS)
 
 # Checks for headers.
 AC_CHECK_HEADERS([stdlib.h string.h])
+
+# Check for the logging level.
+X_AC_LIBCIRCLE_LOGGING
 
 # Checks for typedefs, structs, and compiler options.
 AC_TYPE_SIZE_T
@@ -36,15 +39,6 @@ test "x$have_C_mpi" = xyes || \
     AC_MSG_ERROR([You should check to see if MPI is setup properly.])
 AM_CONDITIONAL(HAVE_MPI, [test "x$have_C_mpi" = xyes])
 
-# Check for debug mode.
-AC_MSG_CHECKING([turn on debug mode with verbose output])
-AC_ARG_ENABLE([debug],
-              [AS_HELP_STRING([--enable-debug],
-                              [Turn on debug mode with verbose output])])
-test "x$enable_debug" = xyes || enable_debug=no
-AC_MSG_RESULT($enable_debug)
-AM_CONDITIONAL(DEBUG, [test x$enable_debug = xyes])
-
 echo
 echo "========================================================"
 echo "==        libcircle: final build configuration        =="
@@ -53,7 +47,7 @@ echo "External Library Support:"
 echo "  MPI ............................................ $have_C_mpi"
 echo
 echo "Build Options:"
-echo "  Debug enabled .................................. $enable_debug"
+echo "  Logging level .................................. $logginglevel"
 echo "========================================================"
 echo
 

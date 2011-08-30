@@ -13,6 +13,9 @@
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
+/* Define to 1 if you have MPI libs and headers. */
+#undef HAVE_MPI
+
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
 
@@ -33,6 +36,9 @@
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
+
+/* Define the level of log output for libcircle */
+#undef LIBCIRCLE_LOG_LEVEL
 
 /* Define to 1 if `lstat' dereferences a symlink specified with a trailing
    slash. */
