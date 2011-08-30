@@ -31,7 +31,7 @@ process_objects(CIRCLE_handle *handle)
     {
         current_dir = opendir(temp);
         if(!current_dir) {
-            perror("Unable to open dir");
+            LOG(LOG_ERR, "Unable to open dir");
         }
         else
         {
