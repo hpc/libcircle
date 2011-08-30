@@ -8,10 +8,14 @@ int  debug_level;
  * Initialize internal state needed by libcircle. This should be called before
  * any other libcircle API call.
  */
-void CIRCLE_init(void)
+void CIRCLE_init(int argc, char *argv[])
 {
     dbgstream = stderr;
     debug_level = LOG_DBG;
+
+    MPI_Init(&argc,&argv);
+
+    return 0;
 }
 
 /*
@@ -38,7 +42,7 @@ void CIRCLE_cb_process(CIRCLE_cb func)
  */
 void CIRCLE_begin(void)
 {
-    /* FIXME */
+    CIRCLE_worker();
 }
 
 /*
@@ -49,6 +53,8 @@ void CIRCLE_finalize(void)
 {
     fflush(dbgstream);
     dbgstream = NULL;
+
+    MPI_Finalize();
 }
 
 /* EOF */
