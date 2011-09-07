@@ -100,6 +100,7 @@ CIRCLE_worker()
     if(rank == 0)
     {
         (*(CIRCLE_INPUT_ST.create_cb))(&queue_handle);
+        s.have_token = 1;
     }
     start_time = MPI_Wtime();
     /* Loop until done */
