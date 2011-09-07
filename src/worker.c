@@ -147,7 +147,7 @@ CIRCLE_worker()
                 exit(1);
             if(sptr->request_flag[i])
             {
-                CIRCLE_send_no_work(i,sptr);
+                CIRCLE_send_no_work(sptr, i);
                 MPI_Start(&sptr->mpi_state_st->request_request[i]);
             }
         }

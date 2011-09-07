@@ -196,7 +196,7 @@ int wait_on_probe(int source, int tag,int timeout, int reject_requests, int excl
                 {
                     if(st->request_flag[i])
                     {
-                        send_no_work(i,st);
+                        CIRCLE_send_no_work(st, i);
                         MPI_Start(&st->request_request[i]);
                     }
 
@@ -352,7 +352,7 @@ void probe_messages(state_st * st)
     }
 }
 /*! \brief Sends a no work reply to someone requesting work. */
-void send_no_work( int dest, state_st * st )
+void CIRCLE_send_no_work(state_st * st, int dest)
 {
     int no_work[2];
     no_work[0] = 0;
@@ -364,7 +364,7 @@ void send_no_work( int dest, state_st * st )
     LOG("Response sent to %d, have no work.\n",dest);
 }
 /*! \brief Distributes a random amount of the local work queue to the n requestors */
-void send_work_to_many( work_queue * qp, state_st * st, int * requestors, int rcount)
+void CIRCLE_send_work_to_many( work_queue * qp, state_st * st, int * requestors, int rcount)
 {
     assert(rcount > 0);
     /* Random number between rcount+1 and qp->count */
@@ -383,7 +383,7 @@ void send_work_to_many( work_queue * qp, state_st * st, int * requestors, int rc
     }
 }
 /* \brief Sends work to a requestor */
-int send_work( work_queue * qp, state_st * st, int dest, int count )
+int CIRCLE_send_work( work_queue * qp, state_st * st, int dest, int count )
 {
     /* For termination detection */
     if(dest < st->rank || dest == st->token_partner)
@@ -424,7 +424,7 @@ int send_work( work_queue * qp, state_st * st, int dest, int count )
     return 0;
 }
 /*! \brief Checks for outstanding work requests */
-int check_for_requests( work_queue * qp, state_st * st)
+int CIRCLE_check_for_requests( work_queue * qp, state_st * st)
 {
     int * requestors = (int *) calloc(st->size,sizeof(int));
     int i = 0;
@@ -474,44 +474,6 @@ int check_for_requests( work_queue * qp, state_st * st)
     for(i = 0; i < rcount; i++)
         MPI_Start(&st->request_request[requestors[i]]);
     free(requestors);
-    return 0;
-}
-
-/*! \brief Parses command line arguments */
-int parse_args( int argc, char *argv[] , options * opts )
-{
-    static struct option long_options[] = 
-    {
-        {"db",        required_argument, 0, 'd'},
-        {"path",    required_argument, 0, 'p'},
-        {"restart",    required_argument, 0, 'r'},
-        {"help",    no_argument,       0, 'h'},
-        {"verbose", no_argument,    0,    'v'},
-        {0,0,0,0}
-    };
-    int option_index = 0;
-    int c = 0;
-    while((c = getopt_long(argc,argv, "d:p:r:h", long_options, &option_index)) != -1)
-    {
-        switch(c)
-        {
-            case 'p':
-                    snprintf(opts->beginning_path, strlen(optarg)+1, "%s", optarg);
-                    break;
-            case 'd':
-                    break;
-            case 'r':
-                    break;
-            case 'v':
-                    opts->verbose = 1;
-                    break;
-            case 'h':
-                    return -1;
-                    break; // just for fun
-            default:
-                    return 0; 
-        }
-    }
     return 0;
 }
 
