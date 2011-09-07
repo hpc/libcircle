@@ -424,7 +424,7 @@ int CIRCLE_send_work( work_queue * qp, state_st * st, int dest, int count )
     return 0;
 }
 /*! \brief Checks for outstanding work requests */
-int CIRCLE_check_for_requests( work_queue * qp, state_st * st)
+int CIRCLE_check_for_requests( CIRCLE_queue_t *qp, CIRCLE_state_st *st);
 {
     int * requestors = (int *) calloc(st->size,sizeof(int));
     int i = 0;

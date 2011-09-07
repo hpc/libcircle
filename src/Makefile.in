@@ -74,7 +74,8 @@ LTLIBRARIES = $(lib_LTLIBRARIES)
 am__DEPENDENCIES_1 =
 libcircle_0_0_1_la_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_libcircle_0_0_1_la_OBJECTS = libcircle_0_0_1_la-lib.lo \
-	libcircle_0_0_1_la-queue.lo libcircle_0_0_1_la-worker.lo
+	libcircle_0_0_1_la-queue.lo libcircle_0_0_1_la-worker.lo \
+	libcircle_0_0_1_la-token.lo
 libcircle_0_0_1_la_OBJECTS = $(am_libcircle_0_0_1_la_OBJECTS)
 libcircle_0_0_1_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) \
@@ -221,7 +222,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 lib_LTLIBRARIES = libcircle-0.0.1.la
-libcircle_0_0_1_la_SOURCES = lib.c queue.c worker.c
+libcircle_0_0_1_la_SOURCES = lib.c queue.c worker.c token.c
 libcircle_0_0_1_la_CFLAGS = -Wall
 libcircle_0_0_1_la_LIBADD = $(MPI_CLDFLAGS)
 INCLUDES = $(MPI_CFLAGS)
@@ -301,6 +302,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcircle_0_0_1_la-lib.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcircle_0_0_1_la-queue.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcircle_0_0_1_la-token.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcircle_0_0_1_la-worker.Plo@am__quote@
 
 .c.o:
@@ -344,6 +346,13 @@ libcircle_0_0_1_la-worker.lo: worker.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='worker.c' object='libcircle_0_0_1_la-worker.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcircle_0_0_1_la_CFLAGS) $(CFLAGS) -c -o libcircle_0_0_1_la-worker.lo `test -f 'worker.c' || echo '$(srcdir)/'`worker.c
+
+libcircle_0_0_1_la-token.lo: token.c
+@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcircle_0_0_1_la_CFLAGS) $(CFLAGS) -MT libcircle_0_0_1_la-token.lo -MD -MP -MF $(DEPDIR)/libcircle_0_0_1_la-token.Tpo -c -o libcircle_0_0_1_la-token.lo `test -f 'token.c' || echo '$(srcdir)/'`token.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libcircle_0_0_1_la-token.Tpo $(DEPDIR)/libcircle_0_0_1_la-token.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='token.c' object='libcircle_0_0_1_la-token.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libcircle_0_0_1_la_CFLAGS) $(CFLAGS) -c -o libcircle_0_0_1_la-token.lo `test -f 'token.c' || echo '$(srcdir)/'`token.c
 
 mostlyclean-libtool:
 	-rm -f *.lo
