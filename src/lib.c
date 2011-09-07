@@ -1,7 +1,9 @@
 #include <mpi.h>
+
 #include "libcircle.h"
 #include "log.h"
 #include "lib.h"
+#include "worker.h"
 
 FILE *dbgstream;
 int  debug_level;
@@ -18,8 +20,6 @@ void CIRCLE_init(int argc, char *argv[])
     debug_level = LOG_DBG;
 
     MPI_Init(&argc,&argv);
-
-    return 0;
 }
 
 /*

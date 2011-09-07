@@ -35,8 +35,6 @@ CIRCLE_queue_init(void)
 int
 CIRCLE_queue_free(CIRCLE_queue_t *qp)
 {
-    int i = 0;
-
     if(qp) {
         if(qp->strings) {
             LOG(LOG_DBG, "Freeing the queue strings array.");
