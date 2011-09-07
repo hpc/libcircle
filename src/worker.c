@@ -6,6 +6,7 @@
 
 #include "log.h"
 #include "libcircle.h"
+#include "token.h"
 
 int
 CIRCLE_worker()
@@ -15,11 +16,15 @@ CIRCLE_worker()
     int token_partner;
     
     /* Holds all worker state */
-    state_st s;
-    state_st * sptr = &s;
+    CIRCLE_state_st s;
+    CIRCLE_state_st * sptr = &s;
+
+    /* Holds all mpi state */
+    CIRCLE_mpi_state_st mpi_s;
+    s.mpi_state_st = &mpi_s;
 
     /* Holds work elements */
-    work_queue queue;
+    CIRCLE_queue_t queue;
     
     /* Memory for work queue */
     queue.base = (char*) malloc(sizeof(char) * MAX_STRING_LEN * INITIAL_QUEUE_SIZE);
@@ -27,7 +32,7 @@ CIRCLE_worker()
     /* A pointer to each string in the queue */
     queue.strings = (char **) malloc(sizeof(char*) * INITIAL_QUEUE_SIZE);
     
-    work_queue * qp = &queue;
+    CIRCLE_queue_t * qp = &queue;
     
     queue.head = queue.base;
     queue.end = queue.base + (MAX_STRING_LEN*INITIAL_QUEUE_SIZE);
@@ -61,13 +66,13 @@ CIRCLE_worker()
     s.incoming_token = BLACK;
     s.request_offsets = (unsigned int*) calloc(INITIAL_QUEUE_SIZE,sizeof(unsigned int));
     s.work_offsets = (unsigned int*) calloc(INITIAL_QUEUE_SIZE,sizeof(unsigned int));
-    s.request_status = (MPI_Status *) malloc(sizeof(MPI_Status)*size);
+    s.mpi_state_st->request_status = (MPI_Status *) malloc(sizeof(MPI_Status)*size);
     int i = 0;
     s.request_flag = (int *) calloc(size,sizeof(int));
     s.request_recv_buf = (int *) calloc(size,sizeof(int));
-    s.request_request = (MPI_Request*) malloc(sizeof(MPI_Request)*size);
+    s.mpi_state_st->request_request = (MPI_Request*) malloc(sizeof(MPI_Request)*size);
     for(i = 0; i < size; i++)
-        s.request_request[i] = MPI_REQUEST_NULL;
+        s.mpi_state_st->request_request[i] = MPI_REQUEST_NULL;
     s.work_request_tries = 0;
     
     /* Master rank starts out with the beginning path */
@@ -116,7 +121,9 @@ CIRCLE_worker()
         if(i != sptr->rank)
         {
             sptr->request_flag[i] = 0;
-            if(MPI_Test(&sptr->request_request[i], &sptr->request_flag[i], &sptr->request_status[i]) != MPI_SUCCESS)
+            if(MPI_Test(&sptr->.mpi_state_st->request_request[i], \
+                    &sptr->request_flag[i], &sptr->.mpi_state_st->request_status[i]) \
+                    != MPI_SUCCESS)
                 exit(1);
             if(sptr->request_flag[i])
             {

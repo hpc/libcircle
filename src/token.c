@@ -16,13 +16,15 @@
  * When the master rank is idle, it generates a token that is initially white.
  * When a node is idle, and can't get work for one loop iteration then it
  * checks for termination.  It checks to see if the token has been passed to it,
- * additionally checking for the termination token.  If a rank receives a black token
- * then it forwards a black token.  Otherwise it forwards its own color.  
- * All nodes start out in the white state.  State is *not* the same thing as the token.
- * If a node j sends work to a rank i (i < j) then its state turns black.  It then
- * turns the token black when it comes around, forwards it, and turns its state back to white.
+ * additionally checking for the termination token.  If a rank receives a black
+ * token then it forwards a black token. Otherwise it forwards its own color.
+ *
+ * All nodes start out in the white state.  State is *not* the same thing as
+ * the token. If a node j sends work to a rank i (i < j) then its state turns
+ * black. It then turns the token black when it comes around, forwards it, and
+ * turns its state back to white.
  */
-int check_for_term( state_st * st )
+int CIRCLE_check_for_term( CIRCLE_state_st *state )
 {
     /* If I have the token (I am already idle) */
     if(st->have_token)
@@ -32,39 +34,63 @@ int check_for_term( state_st * st )
         {
             LOG("Master generating WHITE token.\n");
             st->incoming_token = WHITE;
-            MPI_Send(&st->incoming_token, 1, MPI_INT, (st->rank+1)%st->size, TOKEN, MPI_COMM_WORLD);
+            MPI_Send(&st->incoming_token, 1, MPI_INT, (st->rank+1)%st->size, \
+                     TOKEN, MPI_COMM_WORLD);
             st->token = WHITE;
             st->have_token = 0;
-        /* Immediately post a receive to listen for the token when it comes back around */
-            MPI_Irecv(&st->incoming_token, 1, MPI_INT, st->token_partner, TOKEN, MPI_COMM_WORLD, &st->term_request);
+        
+            /*
+             * Immediately post a receive to listen for the token when it
+             * comes back around
+             */
+            MPI_Irecv(&st->incoming_token, 1, MPI_INT, st->token_partner, \
+                      TOKEN, MPI_COMM_WORLD, &st->term_request);
+
             st->term_pending_receive = 1;
         }
         else
         {
-        /* In this case I am not the master rank. */
-        /* Turn it black if I am in a black state, and forward it since I am idle. */
-        /* Then I turn my state white. */ 
+            /*
+             * In this case I am not the master rank.
+             *
+             * Turn it black if I am in a black state, and forward it since
+             * I am idle.
+             *
+             * Then I turn my state white.
+             */ 
             if(st->token == BLACK)
                 st->incoming_token = BLACK;
-            MPI_Send(&st->incoming_token, 1, MPI_INT, (st->rank+1)%st->size, TOKEN, MPI_COMM_WORLD);
+
+            MPI_Send(&st->incoming_token, 1, MPI_INT, (st->rank+1)%st->size, \
+                     TOKEN, MPI_COMM_WORLD);
+
             st->token = WHITE;
             st->have_token = 0;
-        /* Immediately post a receive to listen for the token when it comes back around */
-            MPI_Irecv(&st->incoming_token, 1, MPI_INT, st->token_partner, TOKEN, MPI_COMM_WORLD, &st->term_request);
+
+            /*
+             * Immediately post a receive to listen for the token when it
+             * comes back around.
+             */
+            MPI_Irecv(&st->incoming_token, 1, MPI_INT, st->token_partner, \
+                      TOKEN, MPI_COMM_WORLD, &st->term_request);
+
             st->term_pending_receive = 1;
         }
+
         return 0;
     }
     /* If I don't have the token. */
     else
     {
-        /*  Check to see if I have posted a receive */
+        /* Check to see if I have posted a receive. */
         if(!st->term_pending_receive)
         {
             st->incoming_token = -1;
-            MPI_Irecv(&st->incoming_token, 1, MPI_INT, st->token_partner, TOKEN, MPI_COMM_WORLD, &st->term_request);
+            MPI_Irecv(&st->incoming_token, 1, MPI_INT, st->token_partner, \
+                      TOKEN, MPI_COMM_WORLD, &st->term_request);
             st->term_pending_receive = 1;
         }
+
         st->term_flag = 0;
         /* Check to see if my pending receive has completed */
         MPI_Test(&st->term_request, &st->term_flag, &st->term_status);
@@ -72,18 +98,24 @@ int check_for_term( state_st * st )
         {
             return 0;
         }
+
         /* If I get here, then I received the token */
         st->term_pending_receive = 0;
         st->have_token = 1;
+
         /* Check for termination */
         if(st->incoming_token == TERMINATE)
         {
             st->token = TERMINATE;
-            MPI_Send(&st->token, 1, MPI_INT, (st->rank+1)%st->size,TOKEN,MPI_COMM_WORLD);
+            MPI_Send(&st->token, 1, MPI_INT, (st->rank+1)%st->size, \
+                     TOKEN,MPI_COMM_WORLD);
+
             return TERMINATE;
         }
+
         if(st->token == BLACK && st->incoming_token == BLACK)
             st->token = WHITE;
+
         if(st->rank == 0 && st->incoming_token == WHITE)
             {
                 LOG("Master has detected termination.\n");
