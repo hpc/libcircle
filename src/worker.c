@@ -83,7 +83,6 @@ CIRCLE_worker()
     s.work_pending_request = 0;
     s.request_pending_receive = 0;
     s.term_pending_receive = 0;
-    qp->num_stats = 0;
     s.incoming_token = BLACK;
     s.request_offsets = (unsigned int*) calloc(CIRCLE_INITIAL_QUEUE_SIZE,sizeof(unsigned int));
     s.work_offsets = (unsigned int*) calloc(CIRCLE_INITIAL_QUEUE_SIZE,sizeof(unsigned int));
@@ -152,8 +151,6 @@ CIRCLE_worker()
                 MPI_Start(&sptr->mpi_state_st->request_request[i]);
             }
         }
-
-    LOG(LOG_DBG, "[Rank %d] Stats: %d", rank, qp->num_stats);
 
     return 0;
 }

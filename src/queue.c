@@ -26,7 +26,6 @@ CIRCLE_queue_init(void)
     }
 
     qp->count = 0;
-    qp->num_stats = 0;
     qp->head = qp->base;
     qp->end = qp->base + (CIRCLE_MAX_STRING_LEN * CIRCLE_INITIAL_QUEUE_SIZE);
 

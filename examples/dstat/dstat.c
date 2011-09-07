@@ -1,4 +1,10 @@
 #include <libcircle.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <log.h>
 
 void
 add_objects(CIRCLE_handle *handle)
@@ -10,15 +16,14 @@ void
 process_objects(CIRCLE_handle *handle)
 {
     DIR *current_dir;
-    char temp[MAX_STRING_LEN];
-    char stat_temp[MAX_STRING_LEN];
+    char temp[CIRCLE_MAX_STRING_LEN];
+    char stat_temp[CIRCLE_MAX_STRING_LEN];
     struct dirent *current_ent; 
     struct stat st;
 
     /* Pop an item off the queue */ 
-    temp = handle->dequeue();
+    handle->dequeue(temp);
     LOG(LOG_DBG, "Popped [%s]\n", temp);
-    qp->num_ops++;
 
     /* Try and stat it, checking to see if it is a link */
     if(lstat(temp,&st) != EXIT_SUCCESS)

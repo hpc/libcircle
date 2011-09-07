@@ -14,7 +14,6 @@ typedef struct CIRCLE_queue_t
     char *head;     /* The location of the next free byte */
     char **strings; /* The string data */
     int count;      /* The number of strings */
-    int num_stats;
 } CIRCLE_queue_t;
 
 /*
