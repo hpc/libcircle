@@ -87,7 +87,7 @@ CIRCLE_worker()
     {
         /* Check for and service work requests */
         LOG(LOG_DBG, "Checking for requests...");
-        check_for_requests(qp,sptr);
+        CIRCLE_check_for_requests(qp,sptr);
         LOG(LOG_DBG, "done");
 
         if(qp->count == 0)
@@ -95,7 +95,7 @@ CIRCLE_worker()
             LOG(LOG_DBG, "Requesting work...");
 
             //cleanup_work_messages(sptr);
-            if(request_work(qp,sptr) < 0)
+            if(CIRCLE_request_work(qp,sptr) < 0)
                 token = DONE;
 
             LOG(LOG_DBG, "Done requesting work");
@@ -103,12 +103,12 @@ CIRCLE_worker()
 
         if(qp->count > 0)
         {
-            process_work(qp,sptr);
+            CIRCLE_process_work(qp,sptr);
         }
         else if(token != DONE)
         {
             LOG(LOG_DBG, "Checking for termination...");
-            if(check_for_term(sptr) == TERMINATE)
+            if(CIRCLE_check_for_term(sptr) == TERMINATE)
                 token = DONE;
             LOG(LOG_DBG, "done");
         }
@@ -127,7 +127,7 @@ CIRCLE_worker()
                 exit(1);
             if(sptr->request_flag[i])
             {
-                send_no_work(i,sptr);
+                CIRCLE_send_no_work(i,sptr);
                 MPI_Start(&sptr->mpi_state_st->request_request[i]);
             }
         }
