@@ -1,8 +1,12 @@
+#include <mpi.h>
 #include "libcircle.h"
 #include "log.h"
+#include "lib.h"
 
 FILE *dbgstream;
 int  debug_level;
+
+CIRCLE_input_st CIRCLE_INPUT_ST;
 
 /*
  * Initialize internal state needed by libcircle. This should be called before
@@ -24,7 +28,7 @@ void CIRCLE_init(int argc, char *argv[])
  */
 void CIRCLE_cb_create(CIRCLE_cb func)
 {
-    /* FIXME */
+    CIRCLE_INPUT_ST.create_cb = func;
 }
 
 /*
@@ -33,7 +37,7 @@ void CIRCLE_cb_create(CIRCLE_cb func)
  */
 void CIRCLE_cb_process(CIRCLE_cb func)
 {
-    /* FIXME */
+    CIRCLE_INPUT_ST.process_cb = func;
 }
 
 /*

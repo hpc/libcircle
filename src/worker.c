@@ -7,6 +7,21 @@
 #include "log.h"
 #include "libcircle.h"
 #include "token.h"
+#include "lib.h"
+
+extern CIRCLE_input_st CIRCLE_INPUT_ST;
+
+int
+CIRCLE_enqueue(char *element)
+{
+    return CIRCLE_queue_push(CIRCLE_INPUT_ST.queue, element);
+}
+
+int
+CIRCLE_dequeue(char *element)
+{
+    return CIRCLE_queue_pop(CIRCLE_INPUT_ST.queue, element);
+}
 
 int
 CIRCLE_worker()
@@ -25,7 +40,13 @@ CIRCLE_worker()
 
     /* Holds work elements */
     CIRCLE_queue_t queue;
-    
+    CIRCLE_INPUT_ST.queue = &queue;
+
+    /* Provides an interface to the queue. */
+    CIRCLE_handle queue_handle;
+    queue_handle.enqueue = &CIRCLE_enqueue;
+    queue_handle.dequeue = &CIRCLE_dequeue;
+
     /* Memory for work queue */
     queue.base = (char*) malloc(sizeof(char) * CIRCLE_MAX_STRING_LEN * CIRCLE_INITIAL_QUEUE_SIZE);
     
@@ -75,11 +96,10 @@ CIRCLE_worker()
         s.mpi_state_st->request_request[i] = MPI_REQUEST_NULL;
     s.work_request_tries = 0;
     
-    /* Master rank starts out with the beginning path */
+    /* Master rank starts out with the initial data creation */
     if(rank == 0)
     {
-        CIRCLE_queue_push(qp, opts->beginning_path);
-        s.have_token = 1;
+        (*(CIRCLE_INPUT_ST.create_cb))(&queue_handle);
     }
     start_time = MPI_Wtime();
     /* Loop until done */
@@ -122,7 +142,7 @@ CIRCLE_worker()
         {
             sptr->request_flag[i] = 0;
             if(MPI_Test(&sptr->mpi_state_st->request_request[i], \
-                    &sptr->request_flag[i], &sptr->.mpi_state_st->request_status[i]) \
+                    &sptr->request_flag[i], &sptr->mpi_state_st->request_status[i]) \
                     != MPI_SUCCESS)
                 exit(1);
             if(sptr->request_flag[i])

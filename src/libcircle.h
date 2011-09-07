@@ -12,8 +12,8 @@
  * process and create work callbacks.
  */
 typedef struct {
-    void (*enqueue)(char *element);
-    void (*dequeue)(char *element);
+    int (*enqueue)(char *element);
+    int (*dequeue)(char *element);
 } CIRCLE_handle;
 
 /*
