@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <stdlib.h>
 
+#include "libcircle.h"
 #include "log.h"
 #include "token.h"
 #include "queue.h"
@@ -411,19 +412,19 @@ int CIRCLE_send_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st,\
     for(i=0; i < st->request_offsets[0]; i++)
     {
         st->request_offsets[i+2] = qp->strings[j++] - b;
-        LOG("[j=%d] Base address: %p, String[%d] address: %p, String \"%s\" Offset: %u\n",j,b,i,qp->strings[j-1],qp->strings[j-1],st->request_offsets[i+2]);
+        LOG(LOG_DBG, "[j=%d] Base address: %p, String[%d] address: %p, String \"%s\" Offset: %u\n",j,b,i,qp->strings[j-1],qp->strings[j-1],st->request_offsets[i+2]);
     }
     /* offsets[qp->count - qp->count/2+2]  is the size of the last string */
     st->request_offsets[count+2] = strlen(qp->strings[qp->count-1]);
-    LOG("\tSending offsets for %d items to %d...",st->request_offsets[0],dest);
+    LOG(LOG_DBG, "\tSending offsets for %d items to %d...",st->request_offsets[0],dest);
     MPI_Ssend(st->request_offsets, st->request_offsets[0]+2, MPI_INT, dest, WORK, MPI_COMM_WORLD);
-    LOG("done.\n");
-    LOG("\tSending buffer to %d...",dest);
+    LOG(LOG_DBG, "done.\n");
+    LOG(LOG_DBG, "\tSending buffer to %d...",dest);
 
     MPI_Ssend(b, (diff+1)*sizeof(char), MPI_BYTE, dest, WORK, MPI_COMM_WORLD);
-    LOG("done.\n");
+    LOG(LOG_DBG, "done.\n");
     qp->count = qp->count - count;
-    LOG("sent %d items to %d.\n",st->request_offsets[0],dest);
+    LOG(LOG_DBG, "sent %d items to %d.\n",st->request_offsets[0],dest);
     return 0;
 }
 /*! \brief Checks for outstanding work requests */
@@ -441,8 +442,8 @@ int CIRCLE_check_for_requests( CIRCLE_queue_t *qp, CIRCLE_state_st *st)
         {
             if(i != st->rank)
             {
-                MPI_Recv_init(&st->request_recv_buf[i], 1, MPI_INT, i, WORK_REQUEST, MPI_COMM_WORLD, &st->request_request[i]);
-                MPI_Start(&st->request_request[i]);
+                MPI_Recv_init(&st->request_recv_buf[i], 1, MPI_INT, i, WORK_REQUEST, MPI_COMM_WORLD, &st->mpi_state_st->request_request[i]);
+                MPI_Start(&st->mpi_state_st->request_request[i]);
             }
         }
         st->request_pending_receive = 1;
@@ -453,7 +454,7 @@ int CIRCLE_check_for_requests( CIRCLE_queue_t *qp, CIRCLE_state_st *st)
         if(i != st->rank)
         {
             st->request_flag[i] = 0;
-            if(MPI_Test(&st->request_request[i], &st->request_flag[i], &st->request_status[i]) != MPI_SUCCESS)
+            if(MPI_Test(&st->mpi_state_st->request_request[i], &st->request_flag[i], &st->mpi_state_st->request_status[i]) != MPI_SUCCESS)
                 exit(1);
             if(st->request_flag[i])
             {
@@ -475,7 +476,7 @@ int CIRCLE_check_for_requests( CIRCLE_queue_t *qp, CIRCLE_state_st *st)
         send_work_to_many( qp, st, requestors, rcount);
     }
     for(i = 0; i < rcount; i++)
-        MPI_Start(&st->request_request[requestors[i]]);
+        MPI_Start(&st->mpi_state_st->request_request[requestors[i]]);
     free(requestors);
     return 0;
 }

@@ -9,14 +9,16 @@
 
 #include "queue.h"
 
-int WHITE        = 10;
-int BLACK        = 20;
-int DONE         = 30;
-int TERMINATE    = 40;
-int WORK_REQUEST = 50;
-int WORK         = 60;
-int TOKEN        = 70;
-int SUCCESS      = 80;
+enum tags {
+    WHITE,
+    BLACK,
+    DONE,
+    TERMINATE,
+    WORK_REQUEST,
+    WORK,
+    TOKEN,
+    SUCCESS
+};
 
 typedef struct options
 {
