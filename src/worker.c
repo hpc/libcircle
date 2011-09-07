@@ -78,7 +78,7 @@ CIRCLE_worker()
     /* Master rank starts out with the beginning path */
     if(rank == 0)
     {
-        pushq(qp, opts->beginning_path);
+        CIRCLE_queue_push(qp, opts->beginning_path);
         s.have_token = 1;
     }
     start_time = MPI_Wtime();
@@ -121,14 +121,14 @@ CIRCLE_worker()
         if(i != sptr->rank)
         {
             sptr->request_flag[i] = 0;
-            if(MPI_Test(&sptr->.mpi_state_st->request_request[i], \
+            if(MPI_Test(&sptr->mpi_state_st->request_request[i], \
                     &sptr->request_flag[i], &sptr->.mpi_state_st->request_status[i]) \
                     != MPI_SUCCESS)
                 exit(1);
             if(sptr->request_flag[i])
             {
                 send_no_work(i,sptr);
-                MPI_Start(&sptr->request_request[i]);
+                MPI_Start(&sptr->mpi_state_st->request_request[i]);
             }
         }
 
