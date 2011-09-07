@@ -9,7 +9,7 @@ START_TEST
     int free_result = -1;
 
     CIRCLE_queue_t *q;
-    CIRCLE_init();
+    CIRCLE_init(0, NULL);
 
     q = CIRCLE_queue_init();
     fail_if(q == NULL, "Initializing a queue failed.");
@@ -25,10 +25,10 @@ START_TEST
 (test_queue_pop_empty)
 {
     int free_result = -1;
-    char result[MAX_STRING_LEN];
+    char result[CIRCLE_MAX_STRING_LEN];
 
     CIRCLE_queue_t *q;
-    CIRCLE_init();
+    CIRCLE_init(0, NULL);
 
     q = CIRCLE_queue_init();
     fail_if(q == NULL, "Initializing a queue failed.");
@@ -49,10 +49,10 @@ START_TEST
 {
     int free_result = -1;
     char * test_string = "Here's a test string!";
-    char result[MAX_STRING_LEN];
+    char result[CIRCLE_MAX_STRING_LEN];
 
     CIRCLE_queue_t *q;
-    CIRCLE_init();
+    CIRCLE_init(0, NULL);
 
     q = CIRCLE_queue_init();
     fail_if(q == NULL, "Initializing a queue failed.");
@@ -79,7 +79,7 @@ START_TEST
 (test_queue_multiple_push_pop)
 {
     int free_result = -1;
-    char result[MAX_STRING_LEN];
+    char result[CIRCLE_MAX_STRING_LEN];
 
     char ** test_strings = (char **) malloc(sizeof(char *) * 10);
     test_strings[0] = "first test string";
@@ -94,7 +94,7 @@ START_TEST
     test_strings[9] = "tenth test string";
 
     CIRCLE_queue_t * q;
-    CIRCLE_init();
+    CIRCLE_init(0, NULL);
 
     q = CIRCLE_queue_init();
     fail_unless(q != NULL, "Initializing a queue failed.");
