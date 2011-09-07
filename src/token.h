@@ -9,16 +9,14 @@
 
 #include "queue.h"
 
-enum tags {
-    WHITE        = 10,
-    BLACK        = 20,
-    DONE         = 30,
-    TERMINATE    = 40,
-    WORK_REQUEST = 50,
-    WORK         = 60,
-    TOKEN        = 70,
-    SUCCESS      = 80 
-};
+int WHITE        = 10;
+int BLACK        = 20;
+int DONE         = 30;
+int TERMINATE    = 40;
+int WORK_REQUEST = 50;
+int WORK         = 60;
+int TOKEN        = 70;
+int SUCCESS      = 80;
 
 typedef struct options
 {
@@ -66,6 +64,7 @@ typedef struct CIRCLE_state_st
     int work_request_tries;
 } CIRCLE_state_st;
 
+void CIRCLE_probe_messages        ( CIRCLE_state_st *st);
 void CIRCLE_send_no_work          ( CIRCLE_state_st *st, int dest);
 void CIRCLE_cleanup_work_messages ( CIRCLE_state_st *st );
 int  CIRCLE_check_for_term        ( CIRCLE_state_st *st );
