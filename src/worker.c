@@ -124,7 +124,7 @@ CIRCLE_worker()
 
         if(qp->count > 0)
         {
-            CIRCLE_process_work(qp,sptr);
+            (*(CIRCLE_INPUT_ST.process_cb))(&queue_handle);
         }
         else if(token != DONE)
         {
