@@ -1,0 +1,15 @@
+# Metadata for RPM/TAR makefile targets
+  Meta:		1
+  Name:		libcircle
+  Major:	0
+  Minor:	0
+  Micro:	1
+  Version:	0.0.1
+  Release:	1
+##
+#  When changing API_CURRENT update src/libcircle.h with a new
+#  CIRCLE_API_VERSION
+##
+  API_CURRENT:	0
+  API_AGE:	0
+  API_REVISION:	0
