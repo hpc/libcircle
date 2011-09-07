@@ -136,7 +136,7 @@ int CIRCLE_check_for_term( CIRCLE_state_st *st )
  *
  * This returns a random rank (not yourself)
  */
-int get_next_proc(int current, int rank, int size)
+int CIRCLE_get_next_proc(int current, int rank, int size)
 {
     int result = rand() % size;
 
@@ -152,7 +152,7 @@ int get_next_proc(int current, int rank, int size)
  * up until a timeout.  If you wish to have this
  * request canceled after timing out, it will do that too.
  */
-int wait_on_mpi_request( MPI_Request * req, MPI_Status * stat, int timeout, int cancel)
+int CIRCLE_wait_on_mpi_request( MPI_Request * req, MPI_Status * stat, int timeout, int cancel)
 {
     int tries = 0;
     int flag = 0;
@@ -184,7 +184,7 @@ int wait_on_mpi_request( MPI_Request * req, MPI_Status * stat, int timeout, int 
  * given source, with the given tag.  It does *not* receive the message.
  * If a message is pending, it will return it's size.  Otherwise
  * it returns 0.
-    int size = wait_on_probe(st->next_processor, WORK,1,-1, 1,st);
+    int size = wait_on_probe(st, st->next_processor, WORK,1,-1, 1);
  */
 int CIRCLE_wait_on_probe(CIRCLE_state_st *st, int source, int tag, \
                          int timeout, int reject_requests, \
@@ -247,7 +247,7 @@ int CIRCLE_request_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
 {
     int temp_buffer = 3;
 
-    LOG("Sending work request to %d...",st->next_processor);
+    LOG(LOG_DBG, "Sending work request to %d...",st->next_processor);
 
     /* Send work request. */
     MPI_Send(&temp_buffer,1,MPI_INT,st->next_processor,WORK_REQUEST,MPI_COMM_WORLD);
@@ -259,7 +259,7 @@ int CIRCLE_request_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
     st->work_offsets[0] = 0;
 
     /* Wait for an answer... */
-    int size = wait_on_probe(st->next_processor, WORK,1,-1, -1,st);
+    int size = CIRCLE_wait_on_probe(st, st->next_processor, WORK, 1, -1, -1);
 
     if(size == TERMINATE)
         return TERMINATE;
@@ -267,7 +267,7 @@ int CIRCLE_request_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
     if(size == 0)
     {
         LOG(LOG_DBG, "No response from %d\n",st->next_processor);
-        st->next_processor = get_next_proc(st->next_processor, st->rank, st->size);
+        st->next_processor = CIRCLE_get_next_proc(st->next_processor, st->rank, st->size);
         return 0;
     }
 
@@ -279,7 +279,7 @@ int CIRCLE_request_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
     /* We'll ask somebody else next time */
     int source = st->next_processor;
 
-    st->next_processor = get_next_proc(st->next_processor, st->rank, st->size);
+    st->next_processor = CIRCLE_get_next_proc(st->next_processor, st->rank, st->size);
 
     int chars = st->work_offsets[1];
     int items = st->work_offsets[0];
@@ -295,7 +295,7 @@ int CIRCLE_request_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
     LOG(LOG_DBG, "Getting work from %d, %d items.\n",source, items);
     
     /* Wait and see if they sent the work over */
-    size = wait_on_probe(source,WORK,-1,-1,1000000,st);
+    size = CIRCLE_wait_on_probe(st, source, WORK, -1, -1, 1000000);
 
     if(size == TERMINATE)
         return TERMINATE;
@@ -317,7 +317,7 @@ int CIRCLE_request_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
 
     /* Be polite and let them know we received the buffer.  If they don't get this message, then they assume the transfer failed. */
     /* In fact, if they don't get our acknowledgement, they'll assume we didn't get the buffer */
-    //size = wait_on_probe(source, SUCCESS, 0,10000000,st);
+    //size = wait_on_probe(st, source, SUCCESS, 0, 10000000);
 
     LOG(LOG_DBG, "Verifying success: size = %d\n",size);
 
@@ -328,7 +328,10 @@ int CIRCLE_request_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
     }
 
     /* They'll let us know that the transfer was complete.  Just like the three way tcp handshake. */
-    assert(qp->strings[0] == qp->base);
+    if(qp->strings[0] != qp->base) {
+        LOG(LOG_FATAL, "The base address of the queue doesn't match what it should be.\n");
+        exit(EXIT_FAILURE);
+    }
 
     qp->head = qp->strings[qp->count-1] + strlen(qp->strings[qp->count-1]);
 
@@ -414,25 +417,28 @@ void CIRCLE_send_no_work(CIRCLE_state_st *st, int dest)
     no_work[0] = 0;
     no_work[1] = 0;
 
-    LOG("Received work request from %d, but have no work.\n",dest);
+    LOG(LOG_DBG, "Received work request from %d, but have no work.\n",dest);
 
     MPI_Request r;
     MPI_Isend(&no_work, 1, MPI_INT, dest, WORK, MPI_COMM_WORLD,&r);
     MPI_Wait(&r,MPI_STATUS_IGNORE);
 
-    LOG("Response sent to %d, have no work.\n",dest);
+    LOG(LOG_DBG, "Response sent to %d, have no work.\n",dest);
 }
 
 /*! \brief Distributes a random amount of the local work queue to the n requestors */
 void CIRCLE_send_work_to_many(CIRCLE_queue_t *qp, CIRCLE_state_st *st,\
                               int *requestors, int rcount)
 {
-    assert(rcount > 0);
+    if(rcount <= 0) {
+        LOG(LOG_FATAL, "Something is wrong with the amount of work we think we have.\n");
+        exit(EXIT_FAILURE);
+    }
 
     /* Random number between rcount+1 and qp->count */
     int total_amount = rand() % (qp->count-(rcount+1)) + rcount;
 
-    LOG("Queue size: %d, Total_amount: %d\n",qp->count,total_amount);
+    LOG(LOG_DBG, "Queue size: %d, Total_amount: %d\n",qp->count,total_amount);
 
     int i = 0;
 
@@ -468,14 +474,17 @@ int CIRCLE_send_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st,\
     diff += strlen(e);
 
     if(qp->count < 10)
-        printq(qp);
+        CIRCLE_queue_print(qp);
 
     /* offsets[0] = number of strings */
     /* offsets[1] = number of chars being sent */
     st->request_offsets[0] = count;
     st->request_offsets[1] = diff;
 
-    assert(diff < (CIRCLE_INITIAL_QUEUE_SIZE * CIRCLE_MAX_STRING_LEN)); 
+    if(diff >= (CIRCLE_INITIAL_QUEUE_SIZE * CIRCLE_MAX_STRING_LEN)) {
+        LOG(LOG_FATAL, "We're trying to throw away part of the queue for some reason.");
+        exit(EXIT_FAILURE);
+    }
 
     int j = qp->count-count;
     int i = 0;
@@ -556,12 +565,12 @@ int CIRCLE_check_for_requests( CIRCLE_queue_t *qp, CIRCLE_state_st *st)
     if(qp->count <= rcount+1)
     {
         for(i = 0; i < rcount; i++)
-            send_no_work( requestors[i], st );
+            CIRCLE_send_no_work(st, requestors[i]);
     }
     else
     {
-        LOG("Got work requests from %d ranks.\n",rcount);
-        send_work_to_many( qp, st, requestors, rcount);
+        LOG(LOG_DBG, "Got work requests from %d ranks.\n",rcount);
+        CIRCLE_send_work_to_many( qp, st, requestors, rcount);
     }
 
     for(i = 0; i < rcount; i++)
@@ -572,12 +581,12 @@ int CIRCLE_check_for_requests( CIRCLE_queue_t *qp, CIRCLE_state_st *st)
     return 0;
 }
 
-void print_offsets(unsigned int * offsets, int count)
+void CIRCLE_print_offsets(unsigned int * offsets, int count)
 {
     int i = 0;
 
     for(i = 0; i < count; i++)
-        LOG("\t[%d] %d\n",i,offsets[i]);
+        LOG(LOG_DBG, "\t[%d] %d\n",i,offsets[i]);
 }
 
 /* EOF */
