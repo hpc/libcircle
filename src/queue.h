@@ -2,7 +2,9 @@
 #define QUEUE_H
 
 /* The initial queue size for malloc. */
-#define INITIAL_QUEUE_SIZE 400000
+#ifndef CIRCLE_INITIAL_QUEUE_SIZE
+    #define CIRCLE_INITIAL_QUEUE_SIZE 400000
+#endif
 
 typedef struct CIRCLE_queue_t
 {

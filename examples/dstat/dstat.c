@@ -26,7 +26,7 @@ process_objects(CIRCLE_handle *handle)
             LOG(LOG_ERR, "Error: Couldn't stat \"%s\"\n", temp);
             //MPI_Abort(MPI_COMM_WORLD,-1);
     }
-    /* Check to see if it is a directory.  If so, put it's children in the queue */
+    /* Check to see if it is a directory.  If so, put its children in the queue */
     else if(S_ISDIR(st.st_mode) && !(S_ISLNK(st.st_mode)))
     {
         current_dir = opendir(temp);

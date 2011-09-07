@@ -27,15 +27,15 @@ CIRCLE_worker()
     CIRCLE_queue_t queue;
     
     /* Memory for work queue */
-    queue.base = (char*) malloc(sizeof(char) * MAX_STRING_LEN * INITIAL_QUEUE_SIZE);
+    queue.base = (char*) malloc(sizeof(char) * CIRCLE_MAX_STRING_LEN * CIRCLE_INITIAL_QUEUE_SIZE);
     
     /* A pointer to each string in the queue */
-    queue.strings = (char **) malloc(sizeof(char*) * INITIAL_QUEUE_SIZE);
+    queue.strings = (char **) malloc(sizeof(char*) * CIRCLE_INITIAL_QUEUE_SIZE);
     
     CIRCLE_queue_t * qp = &queue;
     
     queue.head = queue.base;
-    queue.end = queue.base + (MAX_STRING_LEN*INITIAL_QUEUE_SIZE);
+    queue.end = queue.base + (CIRCLE_MAX_STRING_LEN * CIRCLE_INITIAL_QUEUE_SIZE);
     queue.count = 0;
     int rank = -1;
     int size = -1;
@@ -64,8 +64,8 @@ CIRCLE_worker()
     s.term_pending_receive = 0;
     qp->num_stats = 0;
     s.incoming_token = BLACK;
-    s.request_offsets = (unsigned int*) calloc(INITIAL_QUEUE_SIZE,sizeof(unsigned int));
-    s.work_offsets = (unsigned int*) calloc(INITIAL_QUEUE_SIZE,sizeof(unsigned int));
+    s.request_offsets = (unsigned int*) calloc(CIRCLE_INITIAL_QUEUE_SIZE,sizeof(unsigned int));
+    s.work_offsets = (unsigned int*) calloc(CIRCLE_INITIAL_QUEUE_SIZE,sizeof(unsigned int));
     s.mpi_state_st->request_status = (MPI_Status *) malloc(sizeof(MPI_Status)*size);
     int i = 0;
     s.request_flag = (int *) calloc(size,sizeof(int));

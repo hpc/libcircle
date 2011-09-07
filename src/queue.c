@@ -18,8 +18,8 @@ CIRCLE_queue_init(void)
     LOG(LOG_DBG, "Allocating a queue structure.");
 
     qp = (CIRCLE_queue_t *) malloc(sizeof(CIRCLE_queue_t));
-    qp->base = (char *) malloc(sizeof(char) * MAX_STRING_LEN * INITIAL_QUEUE_SIZE);
-    qp->strings = (char **) malloc(sizeof(char *) * INITIAL_QUEUE_SIZE);
+    qp->base = (char *) malloc(sizeof(char) * CIRCLE_MAX_STRING_LEN * CIRCLE_INITIAL_QUEUE_SIZE);
+    qp->strings = (char **) malloc(sizeof(char *) * CIRCLE_INITIAL_QUEUE_SIZE);
 
     if(!qp || !qp->base || !qp->strings) {
         LOG(LOG_ERR, "Failed to allocate a basic queue structure.");
@@ -28,7 +28,7 @@ CIRCLE_queue_init(void)
     qp->count = 0;
     qp->num_stats = 0;
     qp->head = qp->base;
-    qp->end = qp->base + (MAX_STRING_LEN * INITIAL_QUEUE_SIZE);
+    qp->end = qp->base + (CIRCLE_MAX_STRING_LEN * CIRCLE_INITIAL_QUEUE_SIZE);
 
     return qp;
 }
@@ -93,13 +93,13 @@ CIRCLE_queue_push(CIRCLE_queue_t *qp, char *str)
     }
 
     if(qp->count > 0) {
-        if(qp->strings[qp->count-1] + MAX_STRING_LEN >= qp->end) {
+        if(qp->strings[qp->count-1] + CIRCLE_MAX_STRING_LEN >= qp->end) {
             LOG(LOG_ERR, "Size of queue not large enough to push another value.");
             return -1;
         }
     }
 
-    if(strlen(str) > MAX_STRING_LEN) {
+    if(strlen(str) > CIRCLE_MAX_STRING_LEN) {
         LOG(LOG_ERR, "Attempted to push a value that was larger than expected.");
         return -1;
     }

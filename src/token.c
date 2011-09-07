@@ -308,7 +308,7 @@ void cleanup_work_messages(state_st * st)
     int i = 0;
     int flag = 0;
     MPI_Status status;
-    unsigned int temp_buf[INITIAL_QUEUE_SIZE];
+    unsigned int temp_buf[CIRCLE_INITIAL_QUEUE_SIZE];
     for(i = 0; i < st->size; i++)
     {
         if(i == st->rank)
@@ -402,7 +402,7 @@ int send_work( work_queue * qp, state_st * st, int dest, int count )
     /* offsets[1] = number of chars being sent */
     st->request_offsets[0] = count;
     st->request_offsets[1] = diff;
-    assert(diff < (INITIAL_QUEUE_SIZE*MAX_STRING_LEN)); 
+    assert(diff < (CIRCLE_INITIAL_QUEUE_SIZE * CIRCLE_MAX_STRING_LEN)); 
     int j = qp->count-count;
     int i = 0;
     for(i=0; i < st->request_offsets[0]; i++)
