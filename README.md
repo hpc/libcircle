@@ -5,6 +5,14 @@ __NOTE: This is not complete. Please don't develop any software against it yet. 
 
 libcircle is an API for distributing embarrassingly parallel workloads using self-stabilization. Local actions work towards a global objective in a finite number of operations. It is not meant for applications where cross-process communication is necessary. The core algorithm used is based on Dijkstra's 1974 token ring proposal and heavily uses MPI under the hood. It should be easy to use for anyone with a basic grasp of map-reduce (assuming a predefined mapping process).
 
+Compile and install
+-------------------
+```
+./configure
+make all check
+sudo make install
+```
+
 How does this thing work?
 -------------------------
 ```C
