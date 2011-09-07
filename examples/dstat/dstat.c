@@ -1,15 +1,19 @@
-#include <libcircle.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <string.h>
+
+#include <libcircle.h>
 #include <log.h>
+
+char *TOP_DIR;
 
 void
 add_objects(CIRCLE_handle *handle)
 {
-    handle->enqueue("/home/jonb/test_dstat");
+    handle->enqueue(TOP_DIR);
 }
 
 void
@@ -61,18 +65,52 @@ process_objects(CIRCLE_handle *handle)
     else if(S_ISREG(st.st_mode)) {
         LOG(LOG_DBG, "%s\n",temp);
     }
-
-    return 0;
 }
 
 int
-main (int argc, char *argv[])
+main (int argc, char **argv)
 {
-    CIRCLE_init(&argc, &argv);
+    int index;
+    int c;
+     
+    opterr = 0;
+    while((c = getopt(argc, argv, "d:")) != -1)
+    {
+        switch(c)
+        {
+            case 'd':
+                TOP_DIR = optarg;
+                break;
+            case '?':
+                if (optopt == 'd')
+                    fprintf(stderr, "Option -%c requires an argument.\n", optopt);
+                else if (isprint (optopt))
+                    fprintf(stderr, "Unknown option `-%c'.\n", optopt);
+                else
+                    fprintf(stderr,
+                        "Unknown option character `\\x%x'.\n",
+                        optopt);
+
+                exit(EXIT_FAILURE);
+            default:
+                abort();
+        }
+    }
+
+    if(argc < 2) {
+         fprintf(stderr, "Usage: %s -d <starting directory>\n", argv[0]);
+         exit(EXIT_FAILURE);
+    }
+    for (index = optind; index < argc; index++)
+        printf ("Non-option argument %s\n", argv[index]);
+
+    CIRCLE_init(argc, argv);
     CIRCLE_cb_create(&add_objects);
     CIRCLE_cb_process(&process_objects);
     CIRCLE_begin();
     CIRCLE_finalize();
+
+    exit(EXIT_SUCCESS);
 }
 
 /* EOF */
