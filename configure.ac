@@ -51,11 +51,15 @@ echo "  Logging level .................................. $logginglevel"
 echo "========================================================"
 echo
 
-AC_CONFIG_FILES([Makefile \
-                 src/Makefile \
-                 tests/Makefile \
-                 examples/Makefile \
-                 examples/dstat/Makefile \
-                 examples/dcopy/Makefile])
+AC_CONFIG_FILES([ \
+    Makefile                \
+    src/Makefile            \
+    doc/Makefile            \
+    doc/man/Makefile        \
+    tests/Makefile          \
+    examples/Makefile       \
+    examples/dstat/Makefile \
+    examples/dcopy/Makefile
+])
 
 AC_OUTPUT

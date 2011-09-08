@@ -12130,7 +12130,7 @@ echo "  Logging level .................................. $logginglevel"
 echo "========================================================"
 echo
 
-ac_config_files="$ac_config_files Makefile src/Makefile tests/Makefile examples/Makefile examples/dstat/Makefile examples/dcopy/Makefile"
+ac_config_files="$ac_config_files Makefile src/Makefile doc/Makefile doc/man/Makefile tests/Makefile examples/Makefile examples/dstat/Makefile examples/dcopy/Makefile"
 
 
 cat >confcache <<\_ACEOF
@@ -13148,6 +13148,8 @@ do
     "libtool") CONFIG_COMMANDS="$CONFIG_COMMANDS libtool" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
+    "doc/Makefile") CONFIG_FILES="$CONFIG_FILES doc/Makefile" ;;
+    "doc/man/Makefile") CONFIG_FILES="$CONFIG_FILES doc/man/Makefile" ;;
     "tests/Makefile") CONFIG_FILES="$CONFIG_FILES tests/Makefile" ;;
     "examples/Makefile") CONFIG_FILES="$CONFIG_FILES examples/Makefile" ;;
     "examples/dstat/Makefile") CONFIG_FILES="$CONFIG_FILES examples/dstat/Makefile" ;;

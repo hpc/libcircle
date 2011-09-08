@@ -1,0 +1,30 @@
+.TH "CIRCLE_init" "3" "September 2011" "Core libcircle API"
+.SH "NAME"
+CIRCLE_init \- Create a basic libcircle context
+.SH "SYNTAX"
+.LP
+#include <libcircle.h>
+.LP
+int main(int argc, char **argv)
+{
+    CIRCLE_init(argc, argv);
+}
+.SH "ARGUMENTS"
+.LP
+.TP
+\fIargc\fP
+The number of arguments from the parent process.
+.TP
+\fIargv\fP
+The array of arguments from the parent process.
+
+.SH "NOTE"
+These functions are included in the libcircle library,
+which must be linked to your process for use
+(e.g. "cc \-llibcircle myprog.c").
+
+.SH "SEE ALSO"
+.LP
+\fBCIRCLE_init\fR(3),
+\fBCIRCLE_cb_create\fR(3), \fBCIRCLE_cb_process\fR(3),
+\fBCIRCLE_begin\fR(3), \fBCIRCLE_finalize\fR(3)

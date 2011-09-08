@@ -1,0 +1,34 @@
+.TH "dcopy" "1" "Libcircle 0.0.1" "September 2011" "Libcircle Examples"
+
+.SH "NAME"
+dcopy \- Distribute file copying across nodes in a compute cluster
+
+.SH "SYNOPSIS"
+\fBdcopy\fR            [\fIOPTIONS\fR...]  \fIexecutable \fR[\fIargs\fR...]
+
+.SH "DESCRIPTION"
+The purpose of dcopy is to perform a large number of file copy operations
+(such as a directory tree with billions of files) across many different nodes
+in a cluster. Using a filesystem that benefits from heavy parallel reads and
+writes is recommended.
+.br
+http://github.com/hpc/libcircle
+
+.SH "OPTIONS"
+.LP
+
+.TP
+\fB\-s\fR=<\fIsource\fR>
+Use the specified path to a directory structure as the source of files.
+
+.TP
+\fB\-d\fR=<\fIdestination\fR>
+Use the specified path to a directory structure as the destionation to copy
+files to.
+
+.TP
+\fB\-?\fR
+Display help information and exit.
+
+.SH "SEE ALSO"
+\fBdstat\fR(1)

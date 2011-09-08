@@ -1,0 +1,33 @@
+.TH "dstat" "1" "Libcircle 0.0.1" "September 2011" "Libcircle Examples"
+
+.SH "NAME"
+dstat \- Distribute file stats across nodes in a compute cluster
+
+.SH "SYNOPSIS"
+\fBdstat\fR            [\fIOPTIONS\fR...]
+
+.SH "DESCRIPTION"
+This is an example for a distributed stat() using libcircle. The purpose is to
+walk a large file tree which is mounted on several nodes in a cluster. Then,
+as the files are stat()ed, the results are stored in a database. Using a
+filesystem which benefits from heavy use of parallel reads is recommended.
+.br
+http://github.com/hpc/libcircle
+
+.SH "OPTIONS"
+.LP
+
+.TP
+\fB\-d\fR=<\fIroot directory\fR>
+Use the specified path to a directory structure as the source of files to stat.
+
+.TP
+\fB\-p\fR=<\fIplugin trigger\fR>
+Use the specified plugin trigger to enable a feature.
+
+.TP
+\fB\-?\fR
+Display help information and exit.
+
+.SH "SEE ALSO"
+\fBdcopy\fR(1)
