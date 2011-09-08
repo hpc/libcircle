@@ -29,10 +29,6 @@ dcopy_process_objects(CIRCLE_handle *handle)
     char stat_temp[CIRCLE_MAX_STRING_LEN];
     struct dirent *current_ent;
     struct stat st;
-    char * dest_path;
-
-    /* Clean up the destination input. */
-    dest_path = dirname(DCOPY_DEST_PATH);
 
     /* Pop an item off the queue */
     handle->dequeue(temp);
@@ -56,10 +52,10 @@ dcopy_process_objects(CIRCLE_handle *handle)
         else
         {
             /* Since it's quick, just create the directory at the destination. */
-            char * new_dir_name = malloc(snprintf(NULL, 0, "%s/%s", dest_path, temp) + 1);
-            sprintf(new_dir_name, "%s/%s", dest_path, temp);
+            char * new_dir_name = malloc(snprintf(NULL, 0, "%s/%s", DCOPY_DEST_PATH, temp) + 1);
+            sprintf(new_dir_name, "%s/%s", DCOPY_DEST_PATH, temp);
             LOG(LOG_DBG, "Creating directory with name: %s", new_dir_name);
-    //        mkdir(new_dir_name, st.st_mode);
+            mkdir(new_dir_name, st.st_mode);
             free(new_dir_name);
 
             /* Read in each directory entry */
@@ -92,8 +88,12 @@ dcopy_process_objects(CIRCLE_handle *handle)
         }
         else
         {
-            char * new_file_name = malloc(snprintf(NULL, 0, "%s/%s", dest_path, temp) + 1);
-            sprintf(new_file_name, "%s/%s", dest_path, temp);
+            char *base_name = basename(temp);
+            char *new_file_name = malloc(snprintf(NULL, 0, "%s/%s", DCOPY_DEST_PATH, base_name) + 1);
+            sprintf(new_file_name, "%s/%s", DCOPY_DEST_PATH, base_name);
+
+            LOG(LOG_DBG, "Dest path is: %s", DCOPY_DEST_PATH);
+            LOG(LOG_DBG, "Dest file is: %s", base_name);
             LOG(LOG_DBG, "Starting a copy to: %s", new_file_name);
 
             if((outfile = DCOPY_open_outfile(new_file_name, infile)) < 0)
@@ -103,8 +103,7 @@ dcopy_process_objects(CIRCLE_handle *handle)
             else
             {
                 /* Looks like we have valid in and out files. Let's do this. */
-                //if(DCOPY_copy_data(infile, outfile) < 0)
-                if(0)
+                if(DCOPY_copy_data(infile, outfile) < 0)
                 {
                     LOG(LOG_ERR, "Something went wrong while trying to copy: %s", new_file_name);
                 }
