@@ -1,6 +1,8 @@
 #ifndef DSTAT_PLUGINS_H
 #define DSTAT_PLUGINS_H
 
+#include <sys/stat.h>
+
 typedef struct DSTAT_plugin_ctx_st
 {
    DSTAT_plugin_st **registered_plugins;
@@ -9,7 +11,7 @@ typedef struct DSTAT_plugin_ctx_st
 
 typedef struct DSTAT_plugin_st
 {
-    void (*handle_output)(FILE *output);
+    void (*handle_output)(stat *st);
     char *trigger;
     int id;
 } DSTAT_plugin_st;
