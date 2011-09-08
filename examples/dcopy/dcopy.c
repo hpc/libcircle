@@ -1,9 +1,25 @@
 #include <libcircle.h>
 #include "dcopy.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <poll.h>
 #include <fcntl.h>
 #include <errno.h>
+
+char *DCOPY_SRC_PATH;
+char *DCOPY_DEST_PATH;
+
+void
+dcopy_add_objects(CIRCLE_handle *handle)
+{
+    handle->enqueue(DCOPY_SRC_PATH);
+}
+
+void
+dcopy_process_objects(CIRCLE_handle *handle)
+{
+    /* TODO */
+}
 
 void
 DCOPY_block(int fd, int event)
@@ -139,8 +155,49 @@ DCOPY_open_outfile(char *outfile, int fdin)
 }
 
 int
-main (void)
+main (int argc, char **argv)
 {
+    int index;
+    int c;
+     
+    opterr = 0;
+    while((c = getopt(argc, argv, "s:d:")) != -1)
+    {
+        switch(c)
+        {
+            case 'd':
+                DCOPY_DEST_PATH = optarg;
+                break;
+            case 's':
+                DCOPY_SRC_PATH = optarg;
+                break;
+            case '?':
+                if (optopt == 'd' || optopt == 's')
+                    fprintf(stderr, "Option -%c requires an argument.\n", optopt);
+                else if (isprint (optopt))
+                    fprintf(stderr, "Unknown option `-%c'.\n", optopt);
+                else
+                    fprintf(stderr,
+                        "Unknown option character `\\x%x'.\n",
+                        optopt);
+
+                exit(EXIT_FAILURE);
+            default:
+                abort();
+        }
+    }
+
+    for (index = optind; index < argc; index++)
+        printf ("Non-option argument %s\n", argv[index]);
+
+    CIRCLE_init(argc, argv);
+    CIRCLE_cb_create(&dcopy_add_objects);
+    CIRCLE_cb_process(&dcopy_process_objects);
+    CIRCLE_begin();
+    CIRCLE_finalize();
+
+    exit(EXIT_SUCCESS);
+
     /* TODO */
     return 0;
 }
