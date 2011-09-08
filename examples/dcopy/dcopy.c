@@ -59,7 +59,7 @@ dcopy_process_objects(CIRCLE_handle *handle)
             char * new_dir_name = malloc(snprintf(NULL, 0, "%s/%s", dest_path, temp) + 1);
             sprintf(new_dir_name, "%s/%s", dest_path, temp);
             LOG(LOG_DBG, "Creating directory with name: %s", new_dir_name);
-            //mkdir(new_dir_name, st.st_mode);
+            mkdir(new_dir_name, st.st_mode);
             free(new_dir_name);
 
             /* Read in each directory entry */
@@ -104,8 +104,7 @@ dcopy_process_objects(CIRCLE_handle *handle)
             else
             {
                 /* Looks like we have valid in and out files. Let's do this. */
-                //if(DCOPY_copy_data(infile, outfile) < 0)
-                if(1)
+                if(DCOPY_copy_data(infile, outfile) < 0)
                 {
                     LOG(LOG_ERR, "Something went wrong while trying to copy: %s", new_file_name);
                 }
