@@ -7,7 +7,7 @@
 void
 dstat_handle_output_stdout(stat *st)
 {
-    /* FIXME: not implemented */
+    printf("%10ld %s\n", st->st_size, st->d_name);
 }
 
 void
