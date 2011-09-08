@@ -7,12 +7,11 @@
     #define DCOPY_FILECOPY_BUFFER_SIZE (64 * 1024)
 #endif
 
-void DCOPY_block( int fd, int event );
+void DCOPY_add_objects    ( CIRCLE_handle *handle );
+void DCOPY_process_objects( CIRCLE_handle *handle );
 
-int  DCOPY_copy_data_buffer( int fdin, int fdout, void *buf, size_t bufsize );
-int  DCOPY_copy_data       ( int fdin, int fdout );
-
-int  DCOPY_open_infile ( char *infile  );
-int  DCOPY_open_outfile( char *outfile, int fdin );
+int    DCOPY_copy_data   ( FILE *fin, FILE *fout );
+FILE * DCOPY_open_infile ( char *infile );
+FILE * DCOPY_open_outfile( char *outfile, FILE *fdin );
 
 #endif /* DCOPY_H */

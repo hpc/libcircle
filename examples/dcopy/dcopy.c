@@ -16,13 +16,13 @@ char *DCOPY_SRC_PATH;
 char *DCOPY_DEST_PATH;
 
 void
-dcopy_add_objects(CIRCLE_handle *handle)
+DCOPY_add_objects(CIRCLE_handle *handle)
 {
     handle->enqueue(DCOPY_SRC_PATH);
 }
 
 void
-dcopy_process_objects(CIRCLE_handle *handle)
+DCOPY_process_objects(CIRCLE_handle *handle)
 {
     DIR *current_dir;
     char temp[CIRCLE_MAX_STRING_LEN];
@@ -79,10 +79,10 @@ dcopy_process_objects(CIRCLE_handle *handle)
     else if(S_ISREG(st.st_mode)) {
         LOG(LOG_DBG, "Copying: %s\n", temp);
 
-        int infile;
-        int outfile;
+        FILE *infile;
+        FILE *outfile;
 
-        if((infile = DCOPY_open_infile(temp)) < 0)
+        if((infile = DCOPY_open_infile(temp)) == NULL)
         {
             LOG(LOG_ERR, "Something went wrong while trying to read in a source file.");
         }
@@ -96,7 +96,7 @@ dcopy_process_objects(CIRCLE_handle *handle)
             LOG(LOG_DBG, "Dest file is: %s", base_name);
             LOG(LOG_DBG, "Starting a copy to: %s", new_file_name);
 
-            if((outfile = DCOPY_open_outfile(new_file_name, infile)) < 0)
+            if((outfile = DCOPY_open_outfile(new_file_name, infile)) == NULL)
             {
                 LOG(LOG_ERR, "Something went wrong while trying to open an output file.");
             }
@@ -106,6 +106,7 @@ dcopy_process_objects(CIRCLE_handle *handle)
                 if(DCOPY_copy_data(infile, outfile) < 0)
                 {
                     LOG(LOG_ERR, "Something went wrong while trying to copy: %s", new_file_name);
+                    
                 }
                 else
                 {
@@ -113,142 +114,57 @@ dcopy_process_objects(CIRCLE_handle *handle)
                 }
             }
 
+            fclose(infile);
+            fclose(outfile);
             free(new_file_name);
         }
     }
 }
 
-void
-DCOPY_block(int fd, int event)
-{
-    struct pollfd topoll;
-    topoll.fd = fd;
-    topoll.events = event;
-    poll(&topoll, 1, -1);
-}
-
 int
-DCOPY_copy_data_buffer(int fdin, int fdout, void *buf, size_t bufsize)
+DCOPY_copy_data(FILE *fin, FILE *fout)
 {
-    for(;;)
+    char    buffer[DCOPY_FILECOPY_BUFFER_SIZE];
+    size_t  n;
+
+    while ((n = fread(buffer, sizeof(char), sizeof(buffer), fin)) > 0)
     {
-       void *pos;
-       ssize_t bytestowrite = read(fdin, buf, bufsize);
-
-       if (bytestowrite == 0)
-       {
-           /* End of input */
-           break;
-       }
-
-       if (bytestowrite == -1)
-       {
-           if (errno == EINTR)
-           {
-               /* Signal handled */
-               continue;
-           }
-
-           if (errno == EAGAIN)
-           {
-               DCOPY_block(fdin, POLLIN);
-               continue;
-           }
-
-           /* Error */
-           return -1;
-       }
-
-       /* Write data from buffer */
-       pos = buf;
-       while (bytestowrite > 0)
-       {
-           ssize_t bytes_written = write(fdout, pos, bytestowrite);
-
-           if (bytes_written == -1)
-           {
-               if (errno == EINTR)
-               {
-                   /* Signal handled */
-                   continue;
-               }
-
-               if (errno == EAGAIN)
-               {
-                   DCOPY_block(fdout, POLLOUT);
-                   continue;
-               }
-
-               /* Error */
-               return -1;
-           }
-
-           bytestowrite -= bytes_written;
-           pos += bytes_written;
-       }
-    }
-
-    /* Success */
-    return 0;
-}
-
-int
-DCOPY_copy_data(int fdin, int fdout)
-{
-    /*
-     * TODO: take the file size as a parameter,
-     * and don't use a buffer any bigger than that. This prevents 
-     * memory-hogging if DCOPY_FILECOPY_BUFFER_SIZE is very large and the file
-     * is small.
-     */
-
-    size_t bufsize;
-    for (bufsize = DCOPY_FILECOPY_BUFFER_SIZE; bufsize >= 256; bufsize /= 2)
-    {
-        void *buffer = malloc(bufsize);
-
-        if (buffer != NULL)
+        if (fwrite(buffer, sizeof(char), n, fout) != n)
         {
-            int result = DCOPY_copy_data_buffer(fdin, fdout, buffer, bufsize);
-            free(buffer);
-            return result;
+            LOG(LOG_FATAL, "Writing a file failed.");
+            return -1;
         }
     }
 
-    /*
-     * could use a stack buffer here instead of failing, if desired.
-     * 128 bytes ought to fit on any stack worth having, but again
-     * this could be made configurable.
-     */
-
-    /* Error is ENOMEM */
-    return -1; // errno is ENOMEM
+    return 0;
 }
 
-int
+FILE *
 DCOPY_open_infile(char *infile)
 {
-    int fdin = open(infile, O_RDONLY, 0);
+    FILE *fin = fopen(infile, "rb");
 
-    if (fdin == -1) {
-        return -1;
+    if (fin == NULL) {
+        LOG(LOG_ERR, "Could not open the source file: %s", infile);
+        return NULL;
     }
 
-    return fdin;
+    return fin;
 }
 
-int
-DCOPY_open_outfile(char *outfile, int fdin)
+FILE *
+DCOPY_open_outfile(char *outfile, FILE *fin)
 {
-    int fdout = open(outfile, O_WRONLY|O_CREAT|O_TRUNC, 0x1ff);
+    FILE *fout = fopen(outfile, "wb");
 
-    if (fdout == -1)
+    if (fout == NULL)
     {
-        close(fdin);
-        return -1;
+        LOG(LOG_ERR, "Could not open the destination file: %s", outfile);
+        fclose(fin);
+        return NULL;
     }
 
-    return fdout;
+    return fout;
 }
 
 int
@@ -288,8 +204,10 @@ main (int argc, char **argv)
         printf ("Non-option argument %s\n", argv[index]);
 
     CIRCLE_init(argc, argv);
-    CIRCLE_cb_create(&dcopy_add_objects);
-    CIRCLE_cb_process(&dcopy_process_objects);
+
+    CIRCLE_cb_create (&DCOPY_add_objects);
+    CIRCLE_cb_process(&DCOPY_process_objects);
+
     CIRCLE_begin();
     CIRCLE_finalize();
 
