@@ -1,8 +1,8 @@
 #include <libcircle.h>
 #include "dcopy.h"
 #include <stdlib.h>
-#include <unistd.h>
 #include <poll.h>
+#include <fcntl.h>
 #include <errno.h>
 
 void
@@ -110,6 +110,32 @@ DCOPY_copy_data(int fdin, int fdout)
 
     /* Error is ENOMEM */
     return -1; // errno is ENOMEM
+}
+
+int
+DCOPY_open_infile(char *infile)
+{
+    int fdin = open(infile, O_RDONLY, 0);
+
+    if (fdin == -1) {
+        return -1;
+    }
+
+    return fdin;
+}
+
+int
+DCOPY_open_outfile(char *outfile, int fdin)
+{
+    int fdout = open(outfile, O_WRONLY|O_CREAT|O_TRUNC, 0x1ff);
+
+    if (fdout == -1)
+    {
+        close(fdin);
+        return -1;
+    }
+
+    return fdout;
 }
 
 int
