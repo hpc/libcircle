@@ -197,9 +197,6 @@ main (int argc, char **argv)
     CIRCLE_finalize();
 
     exit(EXIT_SUCCESS);
-
-    /* TODO */
-    return 0;
 }
 
 /* EOF */
