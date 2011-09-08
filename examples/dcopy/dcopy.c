@@ -92,9 +92,7 @@ DCOPY_process_objects(CIRCLE_handle *handle)
             char *new_file_name = malloc(snprintf(NULL, 0, "%s/%s", DCOPY_DEST_PATH, base_name) + 1);
             sprintf(new_file_name, "%s/%s", DCOPY_DEST_PATH, base_name);
 
-            LOG(LOG_DBG, "Dest path is: %s", DCOPY_DEST_PATH);
-            LOG(LOG_DBG, "Dest file is: %s", base_name);
-            LOG(LOG_DBG, "Starting a copy to: %s", new_file_name);
+            LOG(LOG_DBG, "Starting a copy from \"%s\" to \"%s\"", temp, new_file_name);
 
             if((outfile = DCOPY_open_outfile(new_file_name, infile)) == NULL)
             {
@@ -124,8 +122,10 @@ DCOPY_process_objects(CIRCLE_handle *handle)
 int
 DCOPY_copy_data(FILE *fin, FILE *fout)
 {
-    char    buffer[DCOPY_FILECOPY_BUFFER_SIZE];
-    size_t  n;
+    char   *buffer = (char *)malloc(DCOPY_FILECOPY_BUFFER_SIZE);
+    size_t n;
+
+    LOG(LOG_DBG, "Copying the file.");
 
     while ((n = fread(buffer, sizeof(char), sizeof(buffer), fin)) > 0)
     {
@@ -155,7 +155,18 @@ DCOPY_open_infile(char *infile)
 FILE *
 DCOPY_open_outfile(char *outfile, FILE *fin)
 {
-    FILE *fout = fopen(outfile, "wb");
+    FILE *fout;
+
+    if(outfile == NULL)
+    {
+        LOG(LOG_ERR, "Attempted to open a bad filename.");
+        fclose(fin);
+        return NULL;
+    }
+    else
+    {
+        fout = fopen(outfile, "wb");
+    }
 
     if (fout == NULL)
     {
