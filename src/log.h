@@ -11,7 +11,7 @@
 
 #define LOG(level, ...) do {  \
         if (level <= debug_level) { \
-            fprintf(dbgstream,"%s:%d:", __FILE__, __LINE__); \
+            fprintf(dbgstream,"%d:%s:%d:",global_rank, __FILE__, __LINE__); \
             fprintf(dbgstream, __VA_ARGS__); \
             fprintf(dbgstream, "\n"); \
             fflush(dbgstream); \
@@ -20,5 +20,5 @@
 
 extern FILE *dbgstream;
 extern int  debug_level;
-
+extern int global_rank;
 #endif /* LOG_H */

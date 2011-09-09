@@ -67,6 +67,7 @@ CIRCLE_worker()
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     srand(rank);
+    global_rank = rank;
     s.rank = rank;
     s.size = size;
     s.token = WHITE;
@@ -115,9 +116,10 @@ CIRCLE_worker()
             LOG(LOG_DBG, "Requesting work...");
 
             //cleanup_work_messages(sptr);
-            if(CIRCLE_request_work(qp,sptr) < 0)
+            if(CIRCLE_request_work(qp,sptr) == TERMINATE)
                 token = DONE;
-
+            if(token == DONE)
+                LOG(LOG_DBG,"Received termination signal.");
             LOG(LOG_DBG, "Done requesting work");
         }
 
@@ -130,6 +132,8 @@ CIRCLE_worker()
             LOG(LOG_DBG, "Checking for termination...");
             if(CIRCLE_check_for_term(sptr) == TERMINATE)
                 token = DONE;
+            if(token == DONE)
+                LOG(LOG_DBG,"Received termination signal.");
             LOG(LOG_DBG, "done");
         }
     }
@@ -144,14 +148,14 @@ CIRCLE_worker()
             if(MPI_Test(&sptr->mpi_state_st->request_request[i], \
                     &sptr->request_flag[i], &sptr->mpi_state_st->request_status[i]) \
                     != MPI_SUCCESS)
-                exit(1);
+                MPI_Abort(MPI_COMM_WORLD,-1);
             if(sptr->request_flag[i])
             {
                 CIRCLE_send_no_work(sptr, i);
                 MPI_Start(&sptr->mpi_state_st->request_request[i]);
             }
         }
-
+    LOG(LOG_DBG,"Exiting.");
     return 0;
 }
 

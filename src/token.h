@@ -13,7 +13,7 @@ enum tags {
     WHITE,
     BLACK,
     DONE,
-    TERMINATE,
+    TERMINATE=-1,
     WORK_REQUEST,
     WORK,
     TOKEN,

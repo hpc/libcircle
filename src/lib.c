@@ -7,7 +7,7 @@
 
 FILE *dbgstream;
 int  debug_level;
-
+int global_rank;
 CIRCLE_input_st CIRCLE_INPUT_ST;
 
 /*

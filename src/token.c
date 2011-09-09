@@ -109,10 +109,11 @@ int CIRCLE_check_for_term( CIRCLE_state_st *st )
         /* Check for termination */
         if(st->incoming_token == TERMINATE)
         {
+             LOG(LOG_DBG,"Received termination token");
             st->token = TERMINATE;
             MPI_Send(&st->token, 1, MPI_INT, (st->rank+1)%st->size, \
                      TOKEN,MPI_COMM_WORLD);
-
+            LOG(LOG_DBG,"Forwared termination token");
             return TERMINATE;
         }
 
@@ -120,13 +121,15 @@ int CIRCLE_check_for_term( CIRCLE_state_st *st )
             st->token = WHITE;
 
         if(st->rank == 0 && st->incoming_token == WHITE)
+        {
             LOG(LOG_DBG, "Master has detected termination.\n");
 
-        st->token = TERMINATE;
-        MPI_Send(&st->token, 1, MPI_INT,1, TOKEN, MPI_COMM_WORLD);
-        MPI_Send(&st->token, 1, MPI_INT,1, WORK, MPI_COMM_WORLD);
+            st->token = TERMINATE;
+            MPI_Send(&st->token, 1, MPI_INT,1, TOKEN, MPI_COMM_WORLD);
+            MPI_Send(&st->token, 1, MPI_INT,1, WORK, MPI_COMM_WORLD);
 
-        return TERMINATE;
+            return TERMINATE;
+        }
     }
 
     return 0;
@@ -253,14 +256,13 @@ int CIRCLE_request_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
     MPI_Send(&temp_buffer,1,MPI_INT,st->next_processor,WORK_REQUEST,MPI_COMM_WORLD);
 
     LOG(LOG_DBG, "done.\n");
-//    cleanup_work_messages(st);
 
     LOG(LOG_DBG, "Getting response from %d...",st->next_processor);
     st->work_offsets[0] = 0;
 
     /* Wait for an answer... */
     int size = CIRCLE_wait_on_probe(st, st->next_processor, WORK, 1, -1, -1);
-
+    
     if(size == TERMINATE)
         return TERMINATE;
 
