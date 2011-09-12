@@ -51,7 +51,7 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_dstat_OBJECTS = vfprintstatf.$(OBJEXT) dstat.$(OBJEXT)
+am_dstat_OBJECTS = sprintstatf.$(OBJEXT) dstat.$(OBJEXT)
 dstat_OBJECTS = $(am_dstat_OBJECTS)
 am__DEPENDENCIES_1 =
 dstat_DEPENDENCIES = $(am__DEPENDENCIES_1) \
@@ -235,7 +235,7 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-dstat_SOURCES = vfprintstatf.c dstat.c
+dstat_SOURCES = sprintstatf.c dstat.c
 dstat_LDADD = \
     $(MPI_CLDFLAGS)                      \
     $(top_srcdir)/src/libcircle-0.0.1.la \
@@ -336,7 +336,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dstat.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vfprintstatf.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sprintstatf.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

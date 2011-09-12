@@ -31,6 +31,25 @@ process_objects(CIRCLE_handle *handle)
     struct dirent *current_ent; 
     struct stat st;
 
+    char *redis_cmd_buf = (char *)malloc(2048 * sizeof(char));
+    char *redis_cmd_fmt = (char *)malloc(2048 * sizeof(char));
+    char *redis_cmd_fmt_cnt = \
+            "atime_decimal \"%a\" "
+            "atime_string  \"%A\" "
+            "ctime_decimal \"%c\" "
+            "ctime_string  \"%C\" "
+            "gid_decimal   \"%g\" "
+            "gid_string    \"%G\" "
+            "ino           \"%i\" "
+            "mtime_decimal \"%m\" "
+            "mtime_string  \"%M\" "
+            "nlink         \"%n\" "
+            "mode_octal    \"%p\" "
+            "mode_string   \"%P\" "
+            "size          \"%s\" "
+            "uid           \"%u\" "
+            "uid           \"%U\" ";
+
     /* Pop an item off the queue */ 
     handle->dequeue(temp);
     LOG(LOG_DBG, "Popped [%s]\n", temp);
@@ -69,8 +88,12 @@ process_objects(CIRCLE_handle *handle)
     }
     //else if(S_ISREG(st.st_mode) && (st.st_size % 4096 == 0))
     else if(S_ISREG(st.st_mode)) {
-        //if(redisAsyncCommand(/* FIXME */) == NULL)
-        if(1)
+        sprintf(redis_cmd_fmt, "HMSET %s %s", temp, redis_cmd_fmt_cnt);
+        sprintstatf(redis_cmd_buf, redis_cmd_fmt, &st);
+
+        LOG(LOG_DBG, "RedisCmd = %s", redis_cmd_buf);
+
+        if(redisAsyncCommand(REDIS, NULL, NULL, redis_cmd_buf) == NULL)
         {
             LOG(LOG_DBG, "Failed to SET %s", temp);
             if (REDIS->err)
@@ -83,6 +106,9 @@ process_objects(CIRCLE_handle *handle)
             LOG(LOG_DBG, "Sent %s to redis", temp);
         }
     }
+
+    free(redis_cmd_buf);
+    free(redis_cmd_fmt);
 }
 
 int
