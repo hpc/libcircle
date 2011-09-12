@@ -9,7 +9,12 @@
 #include <libcircle.h>
 #include <log.h>
 
+/* For redis */
+#include <hiredis.h>
+#include <async.h>
+
 char *TOP_DIR;
+redisAsyncContext *REDIS;
 
 void
 add_objects(CIRCLE_handle *handle)
@@ -64,7 +69,19 @@ process_objects(CIRCLE_handle *handle)
     }
     //else if(S_ISREG(st.st_mode) && (st.st_size % 4096 == 0))
     else if(S_ISREG(st.st_mode)) {
-        LOG(LOG_DBG, "%s\n",temp);
+        //if(redisAsyncCommand(/* FIXME */) == NULL)
+        if(1)
+        {
+            LOG(LOG_DBG, "Failed to SET %s", temp);
+            if (REDIS->err)
+            {
+                LOG(LOG_ERR, "Redis error: %s\n", REDIS->errstr);
+            }
+        }
+        else
+        {
+            LOG(LOG_DBG, "Sent %s to redis", temp);
+        }
     }
 }
 
@@ -104,6 +121,13 @@ main (int argc, char **argv)
     }
     for (index = optind; index < argc; index++)
         printf ("Non-option argument %s\n", argv[index]);
+
+    REDIS = redisAsyncConnect("127.0.0.1", 6379);
+    if (REDIS->err)
+    {
+        LOG(LOG_FATAL, "Error: %s\n", REDIS->errstr);
+        exit(EXIT_FAILURE);
+    }
 
     CIRCLE_init(argc, argv);
     CIRCLE_cb_create(&add_objects);

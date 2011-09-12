@@ -52,13 +52,14 @@ echo "========================================================"
 echo
 
 AC_CONFIG_FILES([ \
-    Makefile                \
-    src/Makefile            \
-    doc/Makefile            \
-    doc/man/Makefile        \
-    tests/Makefile          \
-    examples/Makefile       \
-    examples/dstat/Makefile \
+    Makefile                        \
+    src/Makefile                    \
+    doc/Makefile                    \
+    doc/man/Makefile                \
+    tests/Makefile                  \
+    examples/Makefile               \
+    examples/dstat/Makefile         \
+    examples/dstat/hiredis/Makefile \
     examples/dcopy/Makefile
 ])
 

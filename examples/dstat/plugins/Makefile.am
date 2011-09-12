@@ -1,3 +1,0 @@
-SUBDIRS = \
-    redis  \
-    stdout \
