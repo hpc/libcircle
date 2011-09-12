@@ -5,6 +5,10 @@
 #include <grp.h>
 #include <pwd.h>
 
+/*
+ * See <http://github.com/hpc/sprintstatf> for more information on this.
+ */
+
 int
 sprintstatf(char *out, char *format, struct stat *stbuf)
 {

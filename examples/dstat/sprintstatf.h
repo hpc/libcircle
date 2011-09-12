@@ -1,6 +1,10 @@
 #ifndef SPRINTSTATF_H
 #define SPRINTSTATF_H
 
+/*
+ * See <http://github.com/hpc/sprintstatf> for more information on this.
+ */
+
 #include <stddef.h>
 #include <sys/stat.h>
 
