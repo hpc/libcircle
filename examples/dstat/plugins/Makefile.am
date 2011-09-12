@@ -1,1 +1,3 @@
-SUBDIRS = output
+SUBDIRS = \
+    redis  \
+    stdout \
