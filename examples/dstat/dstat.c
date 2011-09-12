@@ -47,8 +47,8 @@ process_objects(CIRCLE_handle *handle)
             "mode_octal    \"%p\" "
             "mode_string   \"%P\" "
             "size          \"%s\" "
-            "uid           \"%u\" "
-            "uid           \"%U\" ";
+            "uid_decimal   \"%u\" "
+            "uid_string    \"%U\" ";
 
     /* Pop an item off the queue */ 
     handle->dequeue(temp);
