@@ -37,7 +37,7 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
-/* Define the level of log output for libcircle */
+/* Define the libcircle logging level */
 #undef LIBCIRCLE_LOG_LEVEL
 
 /* Define to 1 if `lstat' dereferences a symlink specified with a trailing

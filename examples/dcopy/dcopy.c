@@ -32,12 +32,12 @@ DCOPY_process_objects(CIRCLE_handle *handle)
 
     /* Pop an item off the queue */
     handle->dequeue(temp);
-    LOG(LOG_DBG, "Popped [%s]\n", temp);
+    LOG(LOG_DBG, "Popped [%s]", temp);
 
     /* Try and stat it, checking to see if it is a link */
     if(lstat(temp,&st) != EXIT_SUCCESS)
     {
-        LOG(LOG_ERR, "Error: Couldn't stat \"%s\"\n", temp);
+        LOG(LOG_ERR, "Error: Couldn't stat \"%s\"", temp);
         //MPI_Abort(MPI_COMM_WORLD,-1);
     }
     /* Check to see if it is a directory.  If so, put its children in the queue */
@@ -68,7 +68,7 @@ DCOPY_process_objects(CIRCLE_handle *handle)
                     strcat(stat_temp,"/");
                     strcat(stat_temp,current_ent->d_name);
 
-                    LOG(LOG_DBG, "Pushing [%s] <- [%s]\n", stat_temp, temp);
+                    LOG(LOG_DBG, "Pushing [%s] <- [%s]", stat_temp, temp);
                     handle->enqueue(&stat_temp[0]);
                 }
             }
@@ -77,7 +77,7 @@ DCOPY_process_objects(CIRCLE_handle *handle)
     }
     //else if(S_ISREG(st.st_mode) && (st.st_size % 4096 == 0))
     else if(S_ISREG(st.st_mode)) {
-        LOG(LOG_DBG, "Copying: %s\n", temp);
+        LOG(LOG_DBG, "Copying: %s", temp);
 
         FILE *infile;
         FILE *outfile;

@@ -33,6 +33,9 @@ AC_TYPE_SIZE_T
 AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
 AC_FUNC_MALLOC
 
+# Make sure we have openssl for dstat key hashing
+AC_CHECK_LIB([ssl], [SSL_library_init], [], [AC_MSG_FAILURE([could not find OpenSSL])])
+
 # Check for MPI
 LX_FIND_MPI
 test "x$have_C_mpi" = xyes || \

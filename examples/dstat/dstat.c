@@ -52,12 +52,12 @@ process_objects(CIRCLE_handle *handle)
 
     /* Pop an item off the queue */ 
     handle->dequeue(temp);
-    LOG(LOG_DBG, "Popped [%s]\n", temp);
+    LOG(LOG_DBG, "Popped [%s]", temp);
 
     /* Try and stat it, checking to see if it is a link */
     if(lstat(temp,&st) != EXIT_SUCCESS)
     {
-            LOG(LOG_ERR, "Error: Couldn't stat \"%s\"\n", temp);
+            LOG(LOG_ERR, "Error: Couldn't stat \"%s\"", temp);
             //MPI_Abort(MPI_COMM_WORLD,-1);
     }
     /* Check to see if it is a directory.  If so, put its children in the queue */
@@ -79,7 +79,7 @@ process_objects(CIRCLE_handle *handle)
                     strcat(stat_temp,"/");
                     strcat(stat_temp,current_ent->d_name);
 
-                    LOG(LOG_DBG, "Pushing [%s] <- [%s]\n", stat_temp, temp);
+                    LOG(LOG_DBG, "Pushing [%s] <- [%s]", stat_temp, temp);
                     handle->enqueue(&stat_temp[0]);
                 }
             }
@@ -98,7 +98,7 @@ process_objects(CIRCLE_handle *handle)
             LOG(LOG_DBG, "Failed to SET %s", temp);
             if (REDIS->err)
             {
-                LOG(LOG_ERR, "Redis error: %s\n", REDIS->errstr);
+                LOG(LOG_ERR, "Redis error: %s", REDIS->errstr);
             }
         }
         else
@@ -151,7 +151,7 @@ main (int argc, char **argv)
     REDIS = redisAsyncConnect("127.0.0.1", 6379);
     if (REDIS->err)
     {
-        LOG(LOG_FATAL, "Error: %s\n", REDIS->errstr);
+        LOG(LOG_FATAL, "Error: %s", REDIS->errstr);
         exit(EXIT_FAILURE);
     }
 

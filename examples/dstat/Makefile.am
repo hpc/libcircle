@@ -5,6 +5,8 @@ dstat_LDADD = \
     $(top_srcdir)/src/libcircle-0.0.1.la \
     $(top_srcdir)/examples/dstat/hiredis/libhiredis.a
 
+LIBADD = -lssl -lcrypto
+
 SUBDIRS = hiredis
 INCLUDES = \
     $(MPI_CFLAGS)                          \

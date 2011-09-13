@@ -61,7 +61,7 @@ CIRCLE_queue_dump(CIRCLE_queue_t *qp)
    char * p = qp->base;
 
    while(p++ != (qp->strings[qp->count-1]+strlen(qp->strings[qp->count-1])))
-       if(i++ % 120 == 0) LOG(LOG_DBG, "%c\n", *p); else LOG(LOG_DBG, "%c",*p);
+       if(i++ % 120 == 0) LOG(LOG_DBG, "%c", *p); else LOG(LOG_DBG, "%c",*p);
 }
 
 /*
@@ -73,9 +73,7 @@ CIRCLE_queue_print(CIRCLE_queue_t *qp)
     int i = 0;
 
     for(i = 0; i < qp->count; i++)
-       LOG(LOG_DBG, "\t[%p][%d] %s\n",qp->strings[i],i,qp->strings[i]);
-
-    LOG(LOG_DBG, "\n");
+       LOG(LOG_DBG, "\t[%p][%d] %s",qp->strings[i],i,qp->strings[i]);
 }
 
 /*
