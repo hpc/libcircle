@@ -8,10 +8,13 @@
 
 #include <libcircle.h>
 #include <log.h>
+#include "hash.h"
 
 /* For redis */
 #include <hiredis.h>
 #include <async.h>
+
+
 
 char *TOP_DIR;
 redisAsyncContext *REDIS;
@@ -31,6 +34,8 @@ process_objects(CIRCLE_handle *handle)
     struct dirent *current_ent; 
     struct stat st;
 
+    int  hash_idx = 0;
+    int  redis_cmd_idx = 0;
     char *redis_cmd_buf = (char *)malloc(2048 * sizeof(char));
     char *redis_cmd_fmt = (char *)malloc(2048 * sizeof(char));
     char *redis_cmd_fmt_cnt = \
@@ -88,22 +93,34 @@ process_objects(CIRCLE_handle *handle)
     }
     //else if(S_ISREG(st.st_mode) && (st.st_size % 4096 == 0))
     else if(S_ISREG(st.st_mode)) {
-        sprintf(redis_cmd_fmt, "HMSET %s %s", temp, redis_cmd_fmt_cnt);
-        sprintstatf(redis_cmd_buf, redis_cmd_fmt, &st);
+        char redis_cmd_fmt[2048];
+        unsigned char name_hash[32];
+
+        /* Add the header */
+        redis_cmd_idx = sprintf(redis_cmd_fmt, "HMSET id:");
+
+        /* Generate and add the key */
+        dstat_filename_hash(name_hash, temp);
+        for(hash_idx = 0; hash_idx < 32; hash_idx++)
+            redis_cmd_idx += sprintf(redis_cmd_fmt + redis_cmd_idx, "%02x", name_hash[hash_idx]);
+
+        /* Add the printf args for stat items */
+        sprintf(redis_cmd_fmt + redis_cmd_idx, " %s", redis_cmd_fmt_cnt);
+        redis_cmd_idx += sprintstatf(redis_cmd_buf, redis_cmd_fmt, &st);
 
         LOG(LOG_DBG, "RedisCmd = %s", redis_cmd_buf);
 
-        if(redisAsyncCommand(REDIS, NULL, NULL, redis_cmd_buf) == NULL)
+        if(redisAsyncCommand(REDIS, NULL, NULL, redis_cmd_buf) == REDIS_OK)
+        {
+            LOG(LOG_DBG, "Sent %s to redis", temp);
+        }
+        else
         {
             LOG(LOG_DBG, "Failed to SET %s", temp);
             if (REDIS->err)
             {
                 LOG(LOG_ERR, "Redis error: %s", REDIS->errstr);
             }
-        }
-        else
-        {
-            LOG(LOG_DBG, "Sent %s to redis", temp);
         }
     }
 
