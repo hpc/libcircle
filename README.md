@@ -1,9 +1,11 @@
 libcircle 0.0.1
 ===============
+libcircle is an API for distributing embarrassingly parallel workloads using self-stabilization. Local actions work towards a global objective in a finite number of operations. The core algorithm used is based on Dijkstra's 1974 token ring proposal and heavily uses MPI under the hood.
 
-__NOTE: This is not complete. Please don't develop any software against it yet. Thanks!__
-
-libcircle is an API for distributing embarrassingly parallel workloads using self-stabilization. Local actions work towards a global objective in a finite number of operations. It is not meant for applications where cross-process communication is necessary. The core algorithm used is based on Dijkstra's 1974 token ring proposal and heavily uses MPI under the hood. It should be easy to use for anyone with a basic grasp of map-reduce (assuming a predefined mapping process).
+Dependencies
+------------
+* OpenSSL <http://www.openssl.org/>
+* Open MPI  <http://www.open-mpi.org/>
 
 Compile and install
 -------------------
@@ -13,7 +15,15 @@ make all check
 sudo make install
 ```
 
-How does this thing work?
+RPM Build and Install
+---------------------
+The RPM spec file isn't really complete yet. Still working on it. However,
+when it does work, you'll be able to build and install like this:
+
+1. rpmbuild -ta libcircle-*.tar.gz
+2. rpm --install <the appropriate RPM files>
+
+Developer API Information
 -------------------------
 ```C
 #include <libcircle.h>
@@ -76,3 +86,14 @@ CIRCLE_begin();
  */
 CIRCLE_finalize();
 ```
+
+Additional documentation
+------------------------
+After installation, the following man pages (will eventually) be available:
+
+* CIRCLE_init(3)
+* CIRCLE_cb_create(3)
+* CIRCLE_cb_process(3),
+* CIRCLE_begin(3)
+* CIRCLE_finalize(3)
+
