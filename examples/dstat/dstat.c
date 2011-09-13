@@ -34,7 +34,9 @@ process_objects(CIRCLE_handle *handle)
     struct dirent *current_ent; 
     struct stat st;
 
-    int  hash_idx = 0;
+    int hash_idx = 0;
+    unsigned char filename_hash[32];
+
     int  redis_cmd_idx = 0;
     char *redis_cmd_buf = (char *)malloc(2048 * sizeof(char));
     char *redis_cmd_fmt = (char *)malloc(2048 * sizeof(char));
@@ -93,16 +95,13 @@ process_objects(CIRCLE_handle *handle)
     }
     //else if(S_ISREG(st.st_mode) && (st.st_size % 4096 == 0))
     else if(S_ISREG(st.st_mode)) {
-        char redis_cmd_fmt[2048];
-        unsigned char name_hash[32];
-
         /* Add the header */
         redis_cmd_idx = sprintf(redis_cmd_fmt, "HMSET id:");
 
         /* Generate and add the key */
-        dstat_filename_hash(name_hash, temp);
+        dstat_filename_hash(filename_hash, temp);
         for(hash_idx = 0; hash_idx < 32; hash_idx++)
-            redis_cmd_idx += sprintf(redis_cmd_fmt + redis_cmd_idx, "%02x", name_hash[hash_idx]);
+            redis_cmd_idx += sprintf(redis_cmd_fmt + redis_cmd_idx, "%02x", filename_hash[hash_idx]);
 
         /* Add the printf args for stat items */
         sprintf(redis_cmd_fmt + redis_cmd_idx, " %s", redis_cmd_fmt_cnt);
