@@ -12,6 +12,7 @@
 int
 sprintstatf(char *out, char *format, struct stat *stbuf)
 {
+    char buf[12];
     char *p;
     struct passwd *pwp;
     struct group *grp;
@@ -69,7 +70,7 @@ sprintstatf(char *out, char *format, struct stat *stbuf)
                     break;
 
                 case 'n':
-                    i += sprintf(out+i, "%d", stbuf->st_nlink);
+                    i += sprintf(out+i, "%d", (unsigned int)stbuf->st_nlink);
                     break;
 
                 case 'p':
@@ -77,7 +78,8 @@ sprintstatf(char *out, char *format, struct stat *stbuf)
                     break;
 
                 case 'P':
-                    i += sprintf(out+i, "%s", lsmodes(stbuf->st_mode));
+                    lsmodes(buf,stbuf->st_mode);
+                    i += sprintf(out+i, "%s", buf);
                     break;
 
                 case 's':
@@ -108,10 +110,9 @@ sprintstatf(char *out, char *format, struct stat *stbuf)
     return i;
 }
 
-char *
-lsmodes(int mode)
+void
+lsmodes(char * retbuf, int mode)
 {
-    char retbuf[11];
     int ifmt = mode & S_IFMT;
 
     if(ifmt == S_IFDIR)
@@ -144,7 +145,6 @@ lsmodes(int mode)
 
     retbuf[10] = '\0';
 
-    return(retbuf);
 }
 
 void
