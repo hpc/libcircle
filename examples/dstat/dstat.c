@@ -99,10 +99,12 @@ process_objects(CIRCLE_handle *handle)
         for(hash_idx = 0; hash_idx < 32; hash_idx++)
             redis_cmd_idx += sprintf(redis_cmd_fmt + redis_cmd_idx, "%02x", filename_hash[hash_idx]);
 
-        /* Add the printf args for stat items */
+        /* Add the filename itself to the redis set command */
         redis_cmd_idx += sprintf(redis_cmd_fmt + redis_cmd_idx, " name \"%s\"",temp);
+
+        /* Add the args for sprintstatf */
         sprintf(redis_cmd_fmt + redis_cmd_idx, " %s", redis_cmd_fmt_cnt);
-        
+
         redis_cmd_idx += sprintstatf(redis_cmd_buf, redis_cmd_fmt, &st);
         LOG(LOG_DBG, "RedisCmd = \"%s\" Count = %d", redis_cmd_buf,redis_cmd_idx);
 
