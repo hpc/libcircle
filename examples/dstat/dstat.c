@@ -10,11 +10,8 @@
 #include <log.h>
 #include "hash.h"
 
-/* For redis */
 #include <hiredis.h>
 #include <async.h>
-
-
 
 char *TOP_DIR;
 redisAsyncContext *REDIS;
