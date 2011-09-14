@@ -77,12 +77,29 @@ process_objects(CIRCLE_handle *handle)
     else if(S_ISREG(st.st_mode)) {
         dstat_redis_run_cmd("MULTI", temp);
 
-        /* Create and send the hash with basic attributes. */
+        /* Create and hset with basic attributes. */
         dstat_create_redis_attr_cmd(redis_cmd_buf, &st, temp);
         dstat_redis_run_cmd(redis_cmd_buf, temp);
 
-        /* TODO: zadd for dates here */
+        /* The mtime as a zadd. */
+        int zadd_mtime_cnt = 0;
+        char *zadd_mtime_cmd = (char *)malloc(2048 * sizeof(char));
+        zadd_mtime_cnt += sprintf(zadd_mtime_cmd, "ZADD mtime ");
+        zadd_mtime_cnt += sprintf(zadd_mtime_cmd + zadd_mtime_cnt, "%ld ", (long)st.st_mtime);
+        zadd_mtime_cnt += dstat_redis_keygen(zadd_mtime_cmd + zadd_mtime_cnt, temp);
+        dstat_redis_run_cmd(zadd_mtime_cmd, temp);
+        free(zadd_mtime_cmd);
 
+        /* The mtime as a zadd. */
+        int zadd_starttime_cnt = 0;
+        char *zadd_starttime_cmd = (char *)malloc(2048 * sizeof(char));
+        zadd_starttime_cnt += sprintf(zadd_starttime_cmd, "ZADD starttime ");
+        zadd_starttime_cnt += sprintf(zadd_starttime_cmd + zadd_starttime_cnt, "%ld ", (long)time_started);
+        zadd_starttime_cnt += dstat_redis_keygen(zadd_starttime_cmd + zadd_starttime_cnt, temp);
+        dstat_redis_run_cmd(zadd_starttime_cmd, temp);
+        free(zadd_starttime_cmd);
+
+        /* Run all of the cmds. */
         dstat_redis_run_cmd("EXEC", temp);
     }
 
@@ -114,7 +131,10 @@ dstat_create_redis_attr_cmd(char *buf, struct stat *st, char *filename)
             "uid_string    \"%U\" ";
 
     /* Create the start of the command, i.e. "HMSET file:<hash>" */
-    fmt_cnt += dstat_redis_cmd_header(redis_cmd_fmt, "HMSET", filename);
+    fmt_cnt += sprintf(redis_cmd_fmt + fmt_cnt, "HMSET ");
+
+    /* Add in the file key */
+    fmt_cnt += dstat_redis_keygen(redis_cmd_fmt + fmt_cnt, filename);
 
     /* Add the filename itself to the redis set command */
     fmt_cnt += sprintf(redis_cmd_fmt + fmt_cnt, " name \"%s\"", filename);
@@ -122,8 +142,8 @@ dstat_create_redis_attr_cmd(char *buf, struct stat *st, char *filename)
     /* Add the args for sprintstatf */
     fmt_cnt += sprintf(redis_cmd_fmt + fmt_cnt, " %s", redis_cmd_fmt_cnt);
 
+    /* Add the stat struct values. */
     buf_cnt += sprintstatf(buf, redis_cmd_fmt, st);
-    LOG(LOG_DBG, "RedisCmd = \"%s\" Count = %d", buf, buf_cnt);
 
     free(redis_cmd_fmt);
     return buf_cnt;
@@ -132,6 +152,8 @@ dstat_create_redis_attr_cmd(char *buf, struct stat *st, char *filename)
 void
 dstat_redis_run_cmd(char *cmd, char *filename)
 {
+    LOG(LOG_DBG, "RedisCmd = \"%s\"", cmd);
+
     if(redisCommand(REDIS, cmd) == REDIS_OK)
     {
         LOG(LOG_DBG, "Sent %s to redis", filename);
@@ -147,15 +169,15 @@ dstat_redis_run_cmd(char *cmd, char *filename)
 }
 
 int
-dstat_redis_cmd_header(char *buf, char *cmd, char *filename)
+dstat_redis_keygen(char *buf, char *filename)
 {
     unsigned char filename_hash[32];
 
     int hash_idx = 0;
     int cnt = 0;
 
-    /* Add the command */
-    cnt += sprintf(buf, "%s file:", cmd);
+    /* Add the key header */
+    cnt += sprintf(buf, "file:");
 
     /* Generate and add the key */
     dstat_filename_hash(filename_hash, (unsigned char *)filename);
