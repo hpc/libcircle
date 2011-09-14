@@ -50,7 +50,7 @@ echo "External Library Support:"
 echo "  MPI ............................................ $have_C_mpi"
 echo
 echo "Build Options:"
-echo "  Logging level .................................. $logginglevel"
+echo "  Logging level .................................. $loglevel"
 echo "========================================================"
 echo
 

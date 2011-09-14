@@ -11654,7 +11654,7 @@ fi
     fi
 
 cat >>confdefs.h <<_ACEOF
-#define LIBCIRCLE_LOG_LEVEL $loglevel
+#define LIBCIRCLE_LOGLEVEL $loglevel
 _ACEOF
 
   fi
@@ -12178,7 +12178,7 @@ echo "External Library Support:"
 echo "  MPI ............................................ $have_C_mpi"
 echo
 echo "Build Options:"
-echo "  Logging level .................................. $logginglevel"
+echo "  Logging level .................................. $loglevel"
 echo "========================================================"
 echo
 

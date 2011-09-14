@@ -13,6 +13,6 @@ AC_DEFUN([X_AC_LIBCIRCLE_LOGGING], [
     if test $loglevel -gt 5; then
       AC_MSG_ERROR([Invalid log level $loglevel])
     fi
-    AC_DEFINE_UNQUOTED(LIBCIRCLE_LOG_LEVEL, [$loglevel], [Define the libcircle logging level])
+    AC_DEFINE_UNQUOTED(LIBCIRCLE_LOGLEVEL, [$loglevel], [Define the libcircle logging level])
   fi
 ])

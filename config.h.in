@@ -41,7 +41,7 @@
 #undef HAVE_UNISTD_H
 
 /* Define the libcircle logging level */
-#undef LIBCIRCLE_LOG_LEVEL
+#undef LIBCIRCLE_LOGLEVEL
 
 /* Define to 1 if `lstat' dereferences a symlink specified with a trailing
    slash. */

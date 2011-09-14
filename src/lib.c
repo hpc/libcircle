@@ -17,7 +17,7 @@ CIRCLE_input_st CIRCLE_INPUT_ST;
 void CIRCLE_init(int argc, char *argv[])
 {
     dbgstream = stderr;
-    debug_level = LOG_DBG;
+    debug_level = LIBCIRCLE_LOGLEVEL;
 
     MPI_Init(&argc,&argv);
 }
