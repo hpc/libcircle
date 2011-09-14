@@ -15,7 +15,7 @@
 #include <async.h>
 
 char *TOP_DIR;
-redisAsyncContext *REDIS;
+redisContext *REDIS;
 
 void
 add_objects(CIRCLE_handle *handle)
@@ -110,7 +110,7 @@ process_objects(CIRCLE_handle *handle)
         redis_cmd_idx += sprintstatf(redis_cmd_buf, redis_cmd_fmt, &st);
         LOG(LOG_DBG, "RedisCmd = \"%s\" Count = %d", redis_cmd_buf,redis_cmd_idx);
 
-        if(redisAsyncCommand(REDIS, NULL, NULL, redis_cmd_buf) == REDIS_OK)
+        if(redisCommand(REDIS, redis_cmd_buf) == REDIS_OK)
         {
             LOG(LOG_DBG, "Sent %s to redis", temp);
         }
@@ -216,7 +216,7 @@ main (int argc, char **argv)
     for (index = optind; index < argc; index++)
         LOG(LOG_WARN, "Non-option argument %s", argv[index]);
 
-    REDIS = redisAsyncConnect(redis_hostname, redis_port);
+    REDIS = redisConnect(redis_hostname, redis_port);
     if (REDIS->err)
     {
         LOG(LOG_FATAL, "Redis error: %s", REDIS->errstr);
