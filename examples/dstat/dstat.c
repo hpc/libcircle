@@ -126,53 +126,106 @@ process_objects(CIRCLE_handle *handle)
     free(redis_cmd_fmt);
 }
 
+void
+print_usage(char **argv)
+{
+    fprintf(stderr, "Usage: %s -d <starting directory> [-h <redis_hostname> -p <redis_port>]\n", argv[0]);
+}
+
 int
 main (int argc, char **argv)
 {
     int index;
     int c;
+
+    char *redis_hostname;
+    int redis_port;
+
+    int dir_flag = 0;
+    int redis_hostname_flag = 0;
+    int redis_port_flag = 0;
      
     opterr = 0;
-    while((c = getopt(argc, argv, "d:")) != -1)
+    while((c = getopt(argc, argv, "d:h:p:")) != -1)
     {
         switch(c)
         {
             case 'd':
                 TOP_DIR = optarg;
+                dir_flag = 1;
                 break;
+
+            case 'h':
+                redis_hostname = optarg;
+                redis_hostname_flag = 1;
+                break;
+
+            case 'p':
+                redis_port = atoi(optarg);
+                redis_port_flag = 1;
+                break;
+
             case '?':
-                if (optopt == 'd')
+                if (optopt == 'd' || optopt == 'h' || optopt == 'p')
+                {
+                    print_usage(argv);
                     fprintf(stderr, "Option -%c requires an argument.\n", optopt);
+                    exit(EXIT_FAILURE);
+                }
                 else if (isprint (optopt))
+                {
+                    print_usage(argv);
                     fprintf(stderr, "Unknown option `-%c'.\n", optopt);
+                    exit(EXIT_FAILURE);
+                }
                 else
+                {
+                    print_usage(argv);
                     fprintf(stderr,
                         "Unknown option character `\\x%x'.\n",
                         optopt);
+                    exit(EXIT_FAILURE);
+                }
 
-                exit(EXIT_FAILURE);
             default:
                 abort();
         }
     }
 
-    if(argc < 2) {
+    if(dir_flag == 0)
+    {
          fprintf(stderr, "Usage: %s -d <starting directory>\n", argv[0]);
+         LOG(LOG_FATAL, "You must specify a starting directory");
          exit(EXIT_FAILURE);
     }
+
+    if(redis_hostname_flag == 0)
+    {
+        LOG(LOG_WARN, "A hostname for redis was not specified, defaulting to localhost.");
+        redis_hostname = "localhost";
+    }
+
+    if(redis_port_flag == 0)
+    {
+        LOG(LOG_WARN, "A port number for redis was not specified, defaulting to 6379.");
+        redis_port = 6379;
+    }
+
     for (index = optind; index < argc; index++)
-        printf ("Non-option argument %s\n", argv[index]);
+        LOG(LOG_WARN, "Non-option argument %s", argv[index]);
 
     REDIS = redisAsyncConnect("127.0.0.1", 6379);
     if (REDIS->err)
     {
-        LOG(LOG_FATAL, "Error: %s", REDIS->errstr);
+        LOG(LOG_FATAL, "Redis error: %s", REDIS->errstr);
         exit(EXIT_FAILURE);
     }
 
     CIRCLE_init(argc, argv);
+
     CIRCLE_cb_create(&add_objects);
     CIRCLE_cb_process(&process_objects);
+
     CIRCLE_begin();
     CIRCLE_finalize();
 
