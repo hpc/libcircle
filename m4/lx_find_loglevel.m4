@@ -14,5 +14,7 @@ AC_DEFUN([X_AC_LIBCIRCLE_LOGGING], [
       AC_MSG_ERROR([Invalid log level $loglevel])
     fi
     AC_DEFINE_UNQUOTED(LIBCIRCLE_LOGLEVEL, [$loglevel], [Define the libcircle logging level])
+  else
+    loglevel="0"
   fi
 ])

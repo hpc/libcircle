@@ -498,8 +498,8 @@ if $want_maintainer_mode; then
 fi
 
 if test x$NOCONFIGURE = x; then
-    printbold Running $srcdir/configure $conf_flags --with-loglevel=5 "$@" ...
-    $srcdir/configure $conf_flags --with-loglevel=5 "$@" \
+    printbold Running $srcdir/configure $conf_flags "$@" ...
+    $srcdir/configure $conf_flags "$@" \
 	&& echo Now type \`make\' to compile $PKG_NAME || exit 1
 else
     echo Skipping configure process.

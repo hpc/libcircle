@@ -11657,6 +11657,8 @@ cat >>confdefs.h <<_ACEOF
 #define LIBCIRCLE_LOGLEVEL $loglevel
 _ACEOF
 
+  else
+    loglevel="0"
   fi
 
 
