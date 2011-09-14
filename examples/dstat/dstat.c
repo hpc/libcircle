@@ -194,7 +194,7 @@ main (int argc, char **argv)
 
     if(dir_flag == 0)
     {
-         fprintf(stderr, "Usage: %s -d <starting directory>\n", argv[0]);
+         print_usage(argv);
          LOG(LOG_FATAL, "You must specify a starting directory");
          exit(EXIT_FAILURE);
     }
