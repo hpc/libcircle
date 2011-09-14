@@ -154,7 +154,7 @@ dstat_redis_run_cmd(char *cmd, char *filename)
 {
     LOG(LOG_DBG, "RedisCmd = \"%s\"", cmd);
 
-    if(redisCommand(REDIS, cmd) == REDIS_OK)
+    if(redisCommand(REDIS, cmd) != NULL)
     {
         LOG(LOG_DBG, "Sent %s to redis", filename);
     }
