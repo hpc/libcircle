@@ -214,7 +214,7 @@ main (int argc, char **argv)
     for (index = optind; index < argc; index++)
         LOG(LOG_WARN, "Non-option argument %s", argv[index]);
 
-    REDIS = redisAsyncConnect("127.0.0.1", 6379);
+    REDIS = redisAsyncConnect(redis_hostname, redis_port);
     if (REDIS->err)
     {
         LOG(LOG_FATAL, "Redis error: %s", REDIS->errstr);
