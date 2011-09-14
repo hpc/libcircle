@@ -77,27 +77,18 @@ process_objects(CIRCLE_handle *handle)
     else if(S_ISREG(st.st_mode)) {
         dstat_redis_run_cmd("MULTI", temp);
 
+        char filekey[512];
+        dstat_redis_keygen(filekey, temp);
+
         /* Create and hset with basic attributes. */
-        dstat_create_redis_attr_cmd(redis_cmd_buf, &st, temp);
+        dstat_create_redis_attr_cmd(redis_cmd_buf, &st, temp, filekey);
         dstat_redis_run_cmd(redis_cmd_buf, temp);
 
-        /* The mtime as a zadd. */
-        int zadd_mtime_cnt = 0;
-        char *zadd_mtime_cmd = (char *)malloc(2048 * sizeof(char));
-        zadd_mtime_cnt += sprintf(zadd_mtime_cmd, "ZADD mtime ");
-        zadd_mtime_cnt += sprintf(zadd_mtime_cmd + zadd_mtime_cnt, "%ld ", (long)st.st_mtime);
-        zadd_mtime_cnt += dstat_redis_keygen(zadd_mtime_cmd + zadd_mtime_cnt, temp);
-        dstat_redis_run_cmd(zadd_mtime_cmd, temp);
-        free(zadd_mtime_cmd);
+        /* The mtime of the file as a zadd. */
+        dstat_redis_run_zadd(filekey, (long)st.st_mtime, "mtime", temp);
 
-        /* The mtime as a zadd. */
-        int zadd_starttime_cnt = 0;
-        char *zadd_starttime_cmd = (char *)malloc(2048 * sizeof(char));
-        zadd_starttime_cnt += sprintf(zadd_starttime_cmd, "ZADD starttime ");
-        zadd_starttime_cnt += sprintf(zadd_starttime_cmd + zadd_starttime_cnt, "%ld ", (long)time_started);
-        zadd_starttime_cnt += dstat_redis_keygen(zadd_starttime_cmd + zadd_starttime_cnt, temp);
-        dstat_redis_run_cmd(zadd_starttime_cmd, temp);
-        free(zadd_starttime_cmd);
+        /* The start time of this dstat run as a zadd. */
+        dstat_redis_run_zadd(filekey, (long)time_started, "starttime", temp);
 
         /* Run all of the cmds. */
         dstat_redis_run_cmd("EXEC", temp);
@@ -107,7 +98,23 @@ process_objects(CIRCLE_handle *handle)
 }
 
 int
-dstat_create_redis_attr_cmd(char *buf, struct stat *st, char *filename)
+dstat_redis_run_zadd(char *filekey, long val, char *zset, char *filename)
+{
+    int cnt = 0;
+    char *buf = (char *)malloc(2048 * sizeof(char));
+
+    cnt += sprintf(buf, "ZADD %s ", zset);
+    cnt += sprintf(buf + cnt, "%ld ", val);
+    cnt += sprintf(buf + cnt, filekey);
+
+    dstat_redis_run_cmd(buf, filename);
+    free(buf);
+
+    return cnt;
+}
+
+int
+dstat_create_redis_attr_cmd(char *buf, struct stat *st, char *filename, char *filekey)
 {
     int fmt_cnt = 0;
     int buf_cnt = 0;
@@ -134,7 +141,7 @@ dstat_create_redis_attr_cmd(char *buf, struct stat *st, char *filename)
     fmt_cnt += sprintf(redis_cmd_fmt + fmt_cnt, "HMSET ");
 
     /* Add in the file key */
-    fmt_cnt += dstat_redis_keygen(redis_cmd_fmt + fmt_cnt, filename);
+    fmt_cnt += sprintf(redis_cmd_fmt + fmt_cnt, filekey);
 
     /* Add the filename itself to the redis set command */
     fmt_cnt += sprintf(redis_cmd_fmt + fmt_cnt, " name \"%s\"", filename);
