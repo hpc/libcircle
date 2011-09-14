@@ -236,9 +236,9 @@ main (int argc, char **argv)
 
     time(&time_finished);
 
-    LOG(LOG_INFO, "dstat run started at: %.24s.",
+    LOG(LOG_INFO, "dstat run started at: %s.",
         asctime(localtime(&time_started)));
-    LOG(LOG_INFO, "dstat run completed at: %.24s.",
+    LOG(LOG_INFO, "dstat run completed at: %s.",
         asctime(localtime(&time_finished)));
     LOG(LOG_INFO, "dstat total time (seconds) for this run: %.3lf.",
         ((double) (time_finished - time_started)) / CLOCKS_PER_SEC);
