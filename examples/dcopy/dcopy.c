@@ -11,6 +11,7 @@
 #include <libgen.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <ctype.h>
 
 char *DCOPY_SRC_PATH;
 char *DCOPY_DEST_PATH;

@@ -8,6 +8,7 @@
 
 #include <libcircle.h>
 #include <log.h>
+#include "sprintstatf.h"
 #include "hash.h"
 
 #include <hiredis.h>
@@ -95,7 +96,7 @@ process_objects(CIRCLE_handle *handle)
         redis_cmd_idx = sprintf(redis_cmd_fmt, "HMSET id:");
 
         /* Generate and add the key */
-        dstat_filename_hash(filename_hash, temp);
+        dstat_filename_hash(filename_hash, (unsigned char *)temp);
         for(hash_idx = 0; hash_idx < 32; hash_idx++)
             redis_cmd_idx += sprintf(redis_cmd_fmt + redis_cmd_idx, "%02x", filename_hash[hash_idx]);
 
