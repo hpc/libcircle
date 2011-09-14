@@ -17,6 +17,7 @@ sudo make install
 
 To enable output from libcircle (including fatal errors), run configure with
 "--enable-loglevel=<number>" where "<number>" is one of the following options:
+
 * "1" fatal errors only.
 * "2" errors and lower log levels.
 * "3" warnings and lower log levels.
@@ -27,6 +28,7 @@ RPM Build and Install
 ---------------------
 The RPM spec file isn't really complete yet. Still working on it. However,
 when it does work, you'll be able to build and install like this:
+
 1. rpmbuild -ta libcircle-*.tar.gz
 2. rpm --install <the appropriate RPM files>
 
