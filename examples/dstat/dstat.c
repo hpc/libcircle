@@ -146,6 +146,9 @@ main (int argc, char **argv)
     int dir_flag = 0;
     int redis_hostname_flag = 0;
     int redis_port_flag = 0;
+
+    time_t time_started;
+    time_t time_finished;
      
     opterr = 0;
     while((c = getopt(argc, argv, "d:h:p:")) != -1)
@@ -223,13 +226,22 @@ main (int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    CIRCLE_init(argc, argv);
+    time(&time_started);
 
+    CIRCLE_init(argc, argv);
     CIRCLE_cb_create(&add_objects);
     CIRCLE_cb_process(&process_objects);
-
     CIRCLE_begin();
     CIRCLE_finalize();
+
+    time(&time_finished);
+
+    LOG(LOG_INFO, "dstat run started at: %.24s.",
+        asctime(localtime(&time_started)));
+    LOG(LOG_INFO, "dstat run completed at: %.24s.",
+        asctime(localtime(&time_finished)));
+    LOG(LOG_INFO, "dstat total time (seconds) for this run: %.3lf.",
+        ((double) (time_finished - time_started)) / CLOCKS_PER_SEC);
 
     exit(EXIT_SUCCESS);
 }
