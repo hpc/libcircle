@@ -34,7 +34,7 @@ AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
 AC_FUNC_MALLOC
 
 # Make sure we have openssl for dstat key hashing
-AC_CHECK_LIB([ssl], [SSL_library_init], [], [AC_MSG_FAILURE([could not find OpenSSL])])
+X_AC_CHECK_FOR_OPENSSL
 
 # Check for MPI
 LX_FIND_MPI
@@ -48,6 +48,7 @@ echo "==        libcircle: final build configuration        =="
 echo "========================================================"
 echo "External Library Support:"
 echo "  MPI ............................................ $have_C_mpi"
+echo "  OpenSSL ........................................ $have_openssl"
 echo
 echo "Build Options:"
 echo "  Logging level .................................. $loglevel"
