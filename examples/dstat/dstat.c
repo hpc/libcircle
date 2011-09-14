@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <ctype.h>
-
+#include <time.h>
 #include <libcircle.h>
 #include <log.h>
 #include "sprintstatf.h"
