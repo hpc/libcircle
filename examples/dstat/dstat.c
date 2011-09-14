@@ -5,8 +5,9 @@
 #include <unistd.h>
 #include <string.h>
 #include <ctype.h>
+#include <time.h>
 
-#include <libcircle.h>
+#include "dstat.h"
 #include <log.h>
 #include "sprintstatf.h"
 #include "hash.h"
@@ -14,8 +15,11 @@
 #include <hiredis.h>
 #include <async.h>
 
-char *TOP_DIR;
+char         *TOP_DIR;
 redisContext *REDIS;
+
+time_t *time_started;
+time_t *time_finished;
 
 void
 add_objects(CIRCLE_handle *handle)
@@ -32,28 +36,7 @@ process_objects(CIRCLE_handle *handle)
     struct dirent *current_ent; 
     struct stat st;
 
-    int hash_idx = 0;
-    unsigned char filename_hash[32];
-
-    int  redis_cmd_idx = 0;
     char *redis_cmd_buf = (char *)malloc(2048 * sizeof(char));
-    char *redis_cmd_fmt = (char *)malloc(2048 * sizeof(char));
-    char *redis_cmd_fmt_cnt = \
-            "atime_decimal \"%a\" "
-            "atime_string  \"%A\" "
-            "ctime_decimal \"%c\" "
-            "ctime_string  \"%C\" "
-            "gid_decimal   \"%g\" "
-            "gid_string    \"%G\" "
-            "ino           \"%i\" "
-            "mtime_decimal \"%m\" "
-            "mtime_string  \"%M\" "
-            "nlink         \"%n\" "
-            "mode_octal    \"%p\" "
-            "mode_string   \"%P\" "
-            "size          \"%s\" "
-            "uid_decimal   \"%u\" "
-            "uid_string    \"%U\" ";
 
     /* Pop an item off the queue */ 
     handle->dequeue(temp);
@@ -92,40 +75,94 @@ process_objects(CIRCLE_handle *handle)
         closedir(current_dir);
     }
     else if(S_ISREG(st.st_mode)) {
-        /* Add the header */
-        redis_cmd_idx = sprintf(redis_cmd_fmt, "HMSET id:");
+        dstat_redis_run_cmd("MULTI", temp);
 
-        /* Generate and add the key */
-        dstat_filename_hash(filename_hash, (unsigned char *)temp);
-        for(hash_idx = 0; hash_idx < 32; hash_idx++)
-            redis_cmd_idx += sprintf(redis_cmd_fmt + redis_cmd_idx, "%02x", filename_hash[hash_idx]);
-        redis_cmd_idx += sprintf(redis_cmd_fmt + redis_cmd_idx, ":file");
+        /* Create and send the hash with basic attributes. */
+        dstat_create_redis_attr_cmd(redis_cmd_buf, &st, temp);
+        dstat_redis_run_cmd(redis_cmd_buf, temp);
 
-        /* Add the filename itself to the redis set command */
-        redis_cmd_idx += sprintf(redis_cmd_fmt + redis_cmd_idx, " name \"%s\"",temp);
+        /* TODO: zadd for dates here */
 
-        /* Add the args for sprintstatf */
-        sprintf(redis_cmd_fmt + redis_cmd_idx, " %s", redis_cmd_fmt_cnt);
-
-        redis_cmd_idx += sprintstatf(redis_cmd_buf, redis_cmd_fmt, &st);
-        LOG(LOG_DBG, "RedisCmd = \"%s\" Count = %d", redis_cmd_buf,redis_cmd_idx);
-
-        if(redisCommand(REDIS, redis_cmd_buf) == REDIS_OK)
-        {
-            LOG(LOG_DBG, "Sent %s to redis", temp);
-        }
-        else
-        {
-            LOG(LOG_DBG, "Failed to SET %s", temp);
-            if (REDIS->err)
-            {
-                LOG(LOG_ERR, "Redis error: %s", REDIS->errstr);
-            }
-        }
+        dstat_redis_run_cmd("EXEC", temp);
     }
 
     free(redis_cmd_buf);
+}
+
+int
+dstat_create_redis_attr_cmd(char *buf, struct stat *st, char *filename)
+{
+    int fmt_cnt = 0;
+    int buf_cnt = 0;
+
+    char *redis_cmd_fmt = (char *)malloc(2048 * sizeof(char));
+    char *redis_cmd_fmt_cnt = \
+            "atime_decimal \"%a\" "
+            "atime_string  \"%A\" "
+            "ctime_decimal \"%c\" "
+            "ctime_string  \"%C\" "
+            "gid_decimal   \"%g\" "
+            "gid_string    \"%G\" "
+            "ino           \"%i\" "
+            "mtime_decimal \"%m\" "
+            "mtime_string  \"%M\" "
+            "nlink         \"%n\" "
+            "mode_octal    \"%p\" "
+            "mode_string   \"%P\" "
+            "size          \"%s\" "
+            "uid_decimal   \"%u\" "
+            "uid_string    \"%U\" ";
+
+    /* Create the start of the command, i.e. "HMSET file:<hash>" */
+    fmt_cnt += dstat_redis_cmd_header(redis_cmd_fmt, "HMSET", filename);
+
+    /* Add the filename itself to the redis set command */
+    fmt_cnt += sprintf(redis_cmd_fmt + fmt_cnt, " name \"%s\"", filename);
+
+    /* Add the args for sprintstatf */
+    fmt_cnt += sprintf(redis_cmd_fmt + fmt_cnt, " %s", redis_cmd_fmt_cnt);
+
+    buf_cnt += sprintstatf(buf, redis_cmd_fmt, st);
+    LOG(LOG_DBG, "RedisCmd = \"%s\" Count = %d", buf, buf_cnt);
+
     free(redis_cmd_fmt);
+    return buf_cnt;
+}
+
+void
+dstat_redis_run_cmd(char *cmd, char *filename)
+{
+    if(redisCommand(REDIS, cmd) == REDIS_OK)
+    {
+        LOG(LOG_DBG, "Sent %s to redis", filename);
+    }
+    else
+    {
+        LOG(LOG_DBG, "Failed to SET %s", filename);
+        if (REDIS->err)
+        {
+            LOG(LOG_ERR, "Redis error: %s", REDIS->errstr);
+        }
+    }
+}
+
+int
+dstat_redis_cmd_header(char *buf, char *cmd, char *filename)
+{
+    unsigned char filename_hash[32];
+
+    int hash_idx = 0;
+    int cnt = 0;
+
+    /* Add the command */
+    cnt += sprintf(buf, "%s file:", cmd);
+
+    /* Generate and add the key */
+    dstat_filename_hash(filename_hash, (unsigned char *)filename);
+    for(hash_idx = 0; hash_idx < 32; hash_idx++)
+        cnt += sprintf(buf + cnt, "%02x", filename_hash[hash_idx]);
+
+    return cnt;
 }
 
 void
@@ -147,9 +184,6 @@ main (int argc, char **argv)
     int redis_hostname_flag = 0;
     int redis_port_flag = 0;
 
-    time_t time_started;
-    time_t time_finished;
-     
     opterr = 0;
     while((c = getopt(argc, argv, "d:h:p:")) != -1)
     {
@@ -226,7 +260,7 @@ main (int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    time(&time_started);
+    time(time_started);
 
     CIRCLE_init(argc, argv);
     CIRCLE_cb_create(&add_objects);
@@ -234,14 +268,17 @@ main (int argc, char **argv)
     CIRCLE_begin();
     CIRCLE_finalize();
 
-    time(&time_finished);
+    time(time_finished);
 
     LOG(LOG_INFO, "dstat run started at: %s.",
-        asctime(localtime(&time_started)));
+        asctime(localtime(time_started)));
     LOG(LOG_INFO, "dstat run completed at: %s.",
-        asctime(localtime(&time_finished)));
-    LOG(LOG_INFO, "dstat total time (seconds) for this run: %.3lf.",
-        ((double) (time_finished - time_started)) / CLOCKS_PER_SEC);
+        asctime(localtime(time_finished)));
+    LOG(LOG_INFO, "dstat total time (seconds) for this run: %lf.",
+        ((double) (*time_finished - *time_started)) / CLOCKS_PER_SEC);
+
+    free(time_started);
+    free(time_finished);
 
     exit(EXIT_SUCCESS);
 }
