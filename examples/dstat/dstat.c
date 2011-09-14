@@ -18,8 +18,8 @@
 char         *TOP_DIR;
 redisContext *REDIS;
 
-time_t *time_started;
-time_t *time_finished;
+time_t time_started;
+time_t time_finished;
 
 void
 add_objects(CIRCLE_handle *handle)
@@ -260,7 +260,7 @@ main (int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    time(time_started);
+    time(&time_started);
 
     CIRCLE_init(argc, argv);
     CIRCLE_cb_create(&add_objects);
@@ -268,18 +268,13 @@ main (int argc, char **argv)
     CIRCLE_begin();
     CIRCLE_finalize();
 
-    time(time_finished);
-
-    LOG(LOG_INFO, "dstat run started at: %s.",
-        asctime(localtime(time_started)));
-    LOG(LOG_INFO, "dstat run completed at: %s.",
-        asctime(localtime(time_finished)));
-    LOG(LOG_INFO, "dstat total time (seconds) for this run: %lf.",
-        ((double) (*time_finished - *time_started)) / CLOCKS_PER_SEC);
-
-    free(time_started);
-    free(time_finished);
-
+    time(&time_finished);
+/***
+    LOG(LOG_INFO, "dstat run started at: %l", time_started);
+    LOG(LOG_INFO, "dstat run completed at: %l", time_finished);
+    LOG(LOG_INFO, "dstat total time (seconds) for this run: %l",
+        ((double) (time_finished - time_started)) / CLOCKS_PER_SEC);
+***/
     exit(EXIT_SUCCESS);
 }
 
