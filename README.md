@@ -16,7 +16,7 @@ sudo make install
 ```
 
 To enable output from libcircle (including fatal errors), run configure with
-"--enable-loglevel=<number>" where "<number>" is one of the following options:
+"--enable-loglevel=number" where "number" is one of the following options:
 
 * "1" fatal errors only.
 * "2" errors and lower log levels.
