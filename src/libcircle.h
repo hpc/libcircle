@@ -15,7 +15,8 @@
 
 /*
  * The interface to the work queue. This can be accessed from within the
- * process and create work callbacks.
+ * process and create work callbacks. The type of element must be a NULL
+ * terminated string.
  */
 typedef struct {
     int (*enqueue)(char *element);
