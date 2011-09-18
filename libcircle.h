@@ -2,12 +2,6 @@
 #define LIBCIRCLE_H
 
 /*
- * The current version of this library API. If you update this, you should
- * also update the META file.
- */
-#define CIRCLE_API_VERSION 0
-
-/*
  * The maximum length of a string value which is allowed to be placed on the
  * queue structure.
  */
