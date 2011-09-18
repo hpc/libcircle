@@ -47,6 +47,7 @@ echo "  Logging level .................................. $loglevel"
 echo "========================================================"
 echo
 
-AC_CONFIG_FILES([Makefile
+AC_CONFIG_FILES([Makefile       \
+                 tests/Makefile \
                  libcircle-${LIBCIRCLE_API_VERSION}.pc:libcircle.pc.in])
 AC_OUTPUT
