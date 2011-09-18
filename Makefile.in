@@ -86,18 +86,14 @@ am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(pkgconfigdir)" \
 	"$(DESTDIR)$(libcircle_libincludedir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
 am__DEPENDENCIES_1 =
-libcircle_@LIBCIRCLE_API_VERSION@_la_DEPENDENCIES =  \
-	$(am__DEPENDENCIES_1)
+libcircle_la_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am__dirstamp = $(am__leading_dot)dirstamp
-am_libcircle_@LIBCIRCLE_API_VERSION@_la_OBJECTS = libcircle/lib.lo \
-	libcircle/queue.lo libcircle/worker.lo libcircle/token.lo
-libcircle_@LIBCIRCLE_API_VERSION@_la_OBJECTS =  \
-	$(am_libcircle_@LIBCIRCLE_API_VERSION@_la_OBJECTS)
-libcircle_@LIBCIRCLE_API_VERSION@_la_LINK = $(LIBTOOL) --tag=CC \
-	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
-	$(AM_CFLAGS) $(CFLAGS) \
-	$(libcircle_@LIBCIRCLE_API_VERSION@_la_LDFLAGS) $(LDFLAGS) -o \
-	$@
+am_libcircle_la_OBJECTS = libcircle/lib.lo libcircle/queue.lo \
+	libcircle/worker.lo libcircle/token.lo
+libcircle_la_OBJECTS = $(am_libcircle_la_OBJECTS)
+libcircle_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(libcircle_la_LDFLAGS) $(LDFLAGS) -o $@
 SCRIPTS = $(dist_noinst_SCRIPTS)
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/auxdir/depcomp
@@ -112,8 +108,8 @@ CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(libcircle_@LIBCIRCLE_API_VERSION@_la_SOURCES)
-DIST_SOURCES = $(libcircle_@LIBCIRCLE_API_VERSION@_la_SOURCES)
+SOURCES = $(libcircle_la_SOURCES)
+DIST_SOURCES = $(libcircle_la_SOURCES)
 RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	html-recursive info-recursive install-data-recursive \
 	install-dvi-recursive install-exec-recursive \
@@ -294,17 +290,17 @@ top_srcdir = @top_srcdir@
 SUBDIRS = tests
 AUTOMAKE_OPTIONS = subdir-objects foreign
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
-lib_LTLIBRARIES = libcircle-@LIBCIRCLE_API_VERSION@.la
-libcircle_@LIBCIRCLE_API_VERSION@_la_LIBADD = $(MPI_CLDFLAGS)
-libcircle_@LIBCIRCLE_API_VERSION@_la_LDFLAGS = -version-info $(LIBCIRCLE_SO_VERSION)
-libcircle_@LIBCIRCLE_API_VERSION@_la_SOURCES = libcircle/lib.c    \
+lib_LTLIBRARIES = libcircle.la
+libcircle_la_LIBADD = $(MPI_CLDFLAGS)
+libcircle_la_LDFLAGS = -version-info $(LIBCIRCLE_SO_VERSION)
+libcircle_la_SOURCES = libcircle/lib.c    \
                                                 libcircle/queue.c  \
                                                 libcircle/worker.c \
                                                 libcircle/token.c
 
 libcircle_includedir = $(includedir)/
 nobase_libcircle_include_HEADERS = libcircle.h
-libcircle_libincludedir = $(libdir)/libcircle-$(LIBCIRCLE_API_VERSION)/include
+libcircle_libincludedir = $(libdir)/
 nodist_libcircle_libinclude_HEADERS = libcircleconfig.h
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libcircle.pc
@@ -428,8 +424,8 @@ libcircle/worker.lo: libcircle/$(am__dirstamp) \
 	libcircle/$(DEPDIR)/$(am__dirstamp)
 libcircle/token.lo: libcircle/$(am__dirstamp) \
 	libcircle/$(DEPDIR)/$(am__dirstamp)
-libcircle-@LIBCIRCLE_API_VERSION@.la: $(libcircle_@LIBCIRCLE_API_VERSION@_la_OBJECTS) $(libcircle_@LIBCIRCLE_API_VERSION@_la_DEPENDENCIES) 
-	$(libcircle_@LIBCIRCLE_API_VERSION@_la_LINK) -rpath $(libdir) $(libcircle_@LIBCIRCLE_API_VERSION@_la_OBJECTS) $(libcircle_@LIBCIRCLE_API_VERSION@_la_LIBADD) $(LIBS)
+libcircle.la: $(libcircle_la_OBJECTS) $(libcircle_la_DEPENDENCIES) 
+	$(libcircle_la_LINK) -rpath $(libdir) $(libcircle_la_OBJECTS) $(libcircle_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)

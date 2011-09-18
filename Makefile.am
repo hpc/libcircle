@@ -3,11 +3,11 @@ SUBDIRS = tests
 AUTOMAKE_OPTIONS = subdir-objects foreign
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 
-lib_LTLIBRARIES = libcircle-@LIBCIRCLE_API_VERSION@.la
+lib_LTLIBRARIES = libcircle.la
 
-libcircle_@LIBCIRCLE_API_VERSION@_la_LIBADD = $(MPI_CLDFLAGS)
-libcircle_@LIBCIRCLE_API_VERSION@_la_LDFLAGS = -version-info $(LIBCIRCLE_SO_VERSION)
-libcircle_@LIBCIRCLE_API_VERSION@_la_SOURCES = libcircle/lib.c    \
+libcircle_la_LIBADD = $(MPI_CLDFLAGS)
+libcircle_la_LDFLAGS = -version-info $(LIBCIRCLE_SO_VERSION)
+libcircle_la_SOURCES = libcircle/lib.c    \
                                                 libcircle/queue.c  \
                                                 libcircle/worker.c \
                                                 libcircle/token.c
@@ -15,7 +15,7 @@ libcircle_@LIBCIRCLE_API_VERSION@_la_SOURCES = libcircle/lib.c    \
 libcircle_includedir = $(includedir)/
 nobase_libcircle_include_HEADERS = libcircle.h
 
-libcircle_libincludedir = $(libdir)/libcircle-$(LIBCIRCLE_API_VERSION)/include
+libcircle_libincludedir = $(libdir)/
 nodist_libcircle_libinclude_HEADERS = libcircleconfig.h
 
 pkgconfigdir = $(libdir)/pkgconfig
