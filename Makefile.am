@@ -5,7 +5,8 @@ ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 
 lib_LTLIBRARIES = libcircle-@LIBCIRCLE_API_VERSION@.la
 
-libcircle_@LIBCIRCLE_API_VERSION@_la_LDFLAGS = -version-info $(libcircle_SO_VERSION)
+libcircle_@LIBCIRCLE_API_VERSION@_la_LDFLAGS = -version-info $(LIBCIRCLE_SO_VERSION) \
+                                               -export-dynamic
 libcircle_@LIBCIRCLE_API_VERSION@_la_SOURCES = libcircle/lib.c    \
                                                 libcircle/queue.c  \
                                                 libcircle/worker.c \
