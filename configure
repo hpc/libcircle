@@ -2755,7 +2755,7 @@ am__tar='${AMTAR} chof - "$$tardir"'; am__untar='${AMTAR} xf -'
 
 
 
-ac_config_headers="$ac_config_headers config.h libcircleconfig.h"
+ac_config_headers="$ac_config_headers config.h"
 
 
 ac_ext=c
@@ -13123,7 +13123,6 @@ for ac_config_target in $ac_config_targets
 do
   case $ac_config_target in
     "config.h") CONFIG_HEADERS="$CONFIG_HEADERS config.h" ;;
-    "libcircleconfig.h") CONFIG_HEADERS="$CONFIG_HEADERS libcircleconfig.h" ;;
     "depfiles") CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
     "libtool") CONFIG_COMMANDS="$CONFIG_COMMANDS libtool" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;

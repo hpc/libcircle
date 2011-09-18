@@ -41,11 +41,10 @@ subdir = .
 DIST_COMMON = $(am__configure_deps) $(dist_noinst_SCRIPTS) \
 	$(nobase_libcircle_include_HEADERS) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/config.h.in \
-	$(srcdir)/libcircle.pc.in $(srcdir)/libcircleconfig.h.in \
-	$(top_srcdir)/configure AUTHORS COPYING ChangeLog \
-	auxdir/compile auxdir/config.guess auxdir/config.sub \
-	auxdir/depcomp auxdir/install-sh auxdir/ltmain.sh \
-	auxdir/missing
+	$(srcdir)/libcircle.pc.in $(top_srcdir)/configure AUTHORS \
+	COPYING ChangeLog auxdir/compile auxdir/config.guess \
+	auxdir/config.sub auxdir/depcomp auxdir/install-sh \
+	auxdir/ltmain.sh auxdir/missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
 	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
@@ -57,7 +56,7 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
 mkinstalldirs = $(install_sh) -d
-CONFIG_HEADER = config.h libcircleconfig.h
+CONFIG_HEADER = config.h
 CONFIG_CLEAN_FILES = libcircle.pc
 CONFIG_CLEAN_VPATH_FILES =
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
@@ -82,8 +81,7 @@ am__base_list = \
   sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
   sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
 am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(pkgconfigdir)" \
-	"$(DESTDIR)$(libcircle_includedir)" \
-	"$(DESTDIR)$(libcircle_libincludedir)"
+	"$(DESTDIR)$(libcircle_includedir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
 am__DEPENDENCIES_1 =
 libcircle_la_DEPENDENCIES = $(am__DEPENDENCIES_1)
@@ -118,8 +116,7 @@ RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	installcheck-recursive installdirs-recursive pdf-recursive \
 	ps-recursive uninstall-recursive
 DATA = $(pkgconfig_DATA)
-HEADERS = $(nobase_libcircle_include_HEADERS) \
-	$(nodist_libcircle_libinclude_HEADERS)
+HEADERS = $(nobase_libcircle_include_HEADERS)
 RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
   distclean-recursive maintainer-clean-recursive
 AM_RECURSIVE_TARGETS = $(RECURSIVE_TARGETS:-recursive=) \
@@ -300,8 +297,6 @@ libcircle_la_SOURCES = libcircle/lib.c    \
 
 libcircle_includedir = $(includedir)/
 nobase_libcircle_include_HEADERS = libcircle.h
-libcircle_libincludedir = $(libdir)/
-nodist_libcircle_libinclude_HEADERS = libcircleconfig.h
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libcircle.pc
 dist_noinst_SCRIPTS = autogen.sh
@@ -311,7 +306,7 @@ MAINTAINERCLEANFILES = \
         ltconfig ltmain.sh missing mkinstalldirs        \
         stamp-h.in
 
-all: config.h libcircleconfig.h
+all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
 .SUFFIXES:
@@ -365,18 +360,8 @@ $(srcdir)/config.h.in:  $(am__configure_deps)
 	rm -f stamp-h1
 	touch $@
 
-libcircleconfig.h: stamp-h2
-	@if test ! -f $@; then \
-	  rm -f stamp-h2; \
-	  $(MAKE) $(AM_MAKEFLAGS) stamp-h2; \
-	else :; fi
-
-stamp-h2: $(srcdir)/libcircleconfig.h.in $(top_builddir)/config.status
-	@rm -f stamp-h2
-	cd $(top_builddir) && $(SHELL) ./config.status libcircleconfig.h
-
 distclean-hdr:
-	-rm -f config.h stamp-h1 libcircleconfig.h stamp-h2
+	-rm -f config.h stamp-h1
 libcircle.pc: $(top_builddir)/config.status $(srcdir)/libcircle.pc.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 install-libLTLIBRARIES: $(lib_LTLIBRARIES)
@@ -522,26 +507,6 @@ uninstall-nobase_libcircle_includeHEADERS:
 	test -n "$$files" || exit 0; \
 	echo " ( cd '$(DESTDIR)$(libcircle_includedir)' && rm -f" $$files ")"; \
 	cd "$(DESTDIR)$(libcircle_includedir)" && rm -f $$files
-install-nodist_libcircle_libincludeHEADERS: $(nodist_libcircle_libinclude_HEADERS)
-	@$(NORMAL_INSTALL)
-	test -z "$(libcircle_libincludedir)" || $(MKDIR_P) "$(DESTDIR)$(libcircle_libincludedir)"
-	@list='$(nodist_libcircle_libinclude_HEADERS)'; test -n "$(libcircle_libincludedir)" || list=; \
-	for p in $$list; do \
-	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
-	  echo "$$d$$p"; \
-	done | $(am__base_list) | \
-	while read files; do \
-	  echo " $(INSTALL_HEADER) $$files '$(DESTDIR)$(libcircle_libincludedir)'"; \
-	  $(INSTALL_HEADER) $$files "$(DESTDIR)$(libcircle_libincludedir)" || exit $$?; \
-	done
-
-uninstall-nodist_libcircle_libincludeHEADERS:
-	@$(NORMAL_UNINSTALL)
-	@list='$(nodist_libcircle_libinclude_HEADERS)'; test -n "$(libcircle_libincludedir)" || list=; \
-	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
-	test -n "$$files" || exit 0; \
-	echo " ( cd '$(DESTDIR)$(libcircle_libincludedir)' && rm -f" $$files ")"; \
-	cd "$(DESTDIR)$(libcircle_libincludedir)" && rm -f $$files
 
 # This directory's subdirectories are mostly independent; you can cd
 # into them and run `make' without going through this Makefile.
@@ -623,7 +588,7 @@ ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	mkid -fID $$unique
 tags: TAGS
 
-TAGS: tags-recursive $(HEADERS) $(SOURCES) config.h.in libcircleconfig.h.in $(TAGS_DEPENDENCIES) \
+TAGS: tags-recursive $(HEADERS) $(SOURCES) config.h.in $(TAGS_DEPENDENCIES) \
 		$(TAGS_FILES) $(LISP)
 	set x; \
 	here=`pwd`; \
@@ -640,7 +605,7 @@ TAGS: tags-recursive $(HEADERS) $(SOURCES) config.h.in libcircleconfig.h.in $(TA
 	      set "$$@" "$$include_option=$$here/$$subdir/TAGS"; \
 	  fi; \
 	done; \
-	list='$(SOURCES) $(HEADERS) config.h.in libcircleconfig.h.in $(LISP) $(TAGS_FILES)'; \
+	list='$(SOURCES) $(HEADERS) config.h.in $(LISP) $(TAGS_FILES)'; \
 	unique=`for i in $$list; do \
 	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
 	  done | \
@@ -658,9 +623,9 @@ TAGS: tags-recursive $(HEADERS) $(SOURCES) config.h.in libcircleconfig.h.in $(TA
 	  fi; \
 	fi
 ctags: CTAGS
-CTAGS: ctags-recursive $(HEADERS) $(SOURCES) config.h.in libcircleconfig.h.in $(TAGS_DEPENDENCIES) \
+CTAGS: ctags-recursive $(HEADERS) $(SOURCES) config.h.in $(TAGS_DEPENDENCIES) \
 		$(TAGS_FILES) $(LISP)
-	list='$(SOURCES) $(HEADERS) config.h.in libcircleconfig.h.in $(LISP) $(TAGS_FILES)'; \
+	list='$(SOURCES) $(HEADERS) config.h.in $(LISP) $(TAGS_FILES)'; \
 	unique=`for i in $$list; do \
 	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
 	  done | \
@@ -855,11 +820,10 @@ distcleancheck: distclean
 	       exit 1; } >&2
 check-am: all-am
 check: check-recursive
-all-am: Makefile $(LTLIBRARIES) $(SCRIPTS) $(DATA) $(HEADERS) config.h \
-		libcircleconfig.h
+all-am: Makefile $(LTLIBRARIES) $(SCRIPTS) $(DATA) $(HEADERS) config.h
 installdirs: installdirs-recursive
 installdirs-am:
-	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(pkgconfigdir)" "$(DESTDIR)$(libcircle_includedir)" "$(DESTDIR)$(libcircle_libincludedir)"; do \
+	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(pkgconfigdir)" "$(DESTDIR)$(libcircle_includedir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-recursive
@@ -915,7 +879,6 @@ info: info-recursive
 info-am:
 
 install-data-am: install-nobase_libcircle_includeHEADERS \
-	install-nodist_libcircle_libincludeHEADERS \
 	install-pkgconfigDATA
 
 install-dvi: install-dvi-recursive
@@ -966,7 +929,6 @@ ps-am:
 
 uninstall-am: uninstall-libLTLIBRARIES \
 	uninstall-nobase_libcircle_includeHEADERS \
-	uninstall-nodist_libcircle_libincludeHEADERS \
 	uninstall-pkgconfigDATA
 
 .MAKE: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) all \
@@ -984,8 +946,7 @@ uninstall-am: uninstall-libLTLIBRARIES \
 	install-dvi-am install-exec install-exec-am install-html \
 	install-html-am install-info install-info-am \
 	install-libLTLIBRARIES install-man \
-	install-nobase_libcircle_includeHEADERS \
-	install-nodist_libcircle_libincludeHEADERS install-pdf \
+	install-nobase_libcircle_includeHEADERS install-pdf \
 	install-pdf-am install-pkgconfigDATA install-ps install-ps-am \
 	install-strip installcheck installcheck-am installdirs \
 	installdirs-am maintainer-clean maintainer-clean-generic \
@@ -993,7 +954,6 @@ uninstall-am: uninstall-libLTLIBRARIES \
 	mostlyclean-libtool pdf pdf-am ps ps-am tags tags-recursive \
 	uninstall uninstall-am uninstall-libLTLIBRARIES \
 	uninstall-nobase_libcircle_includeHEADERS \
-	uninstall-nodist_libcircle_libincludeHEADERS \
 	uninstall-pkgconfigDATA
 
 
