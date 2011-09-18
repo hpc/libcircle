@@ -6,21 +6,20 @@ ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 lib_LTLIBRARIES = libcircle-@LIBCIRCLE_API_VERSION@.la
 
 libcircle_@LIBCIRCLE_API_VERSION@_la_LIBADD = $(MPI_CLDFLAGS)
-libcircle_@LIBCIRCLE_API_VERSION@_la_LDFLAGS = -version-info $(LIBCIRCLE_SO_VERSION) \
-                                               -export-dynamic
+libcircle_@LIBCIRCLE_API_VERSION@_la_LDFLAGS = -version-info $(LIBCIRCLE_SO_VERSION)
 libcircle_@LIBCIRCLE_API_VERSION@_la_SOURCES = libcircle/lib.c    \
                                                 libcircle/queue.c  \
                                                 libcircle/worker.c \
                                                 libcircle/token.c
 
-libcircle_includedir = $(includedir)/libcircle-$(LIBCIRCLE_API_VERSION)
+libcircle_includedir = $(includedir)/
 nobase_libcircle_include_HEADERS = libcircle.h
 
 libcircle_libincludedir = $(libdir)/libcircle-$(LIBCIRCLE_API_VERSION)/include
 nodist_libcircle_libinclude_HEADERS = libcircleconfig.h
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = libcircle-$(LIBCIRCLE_API_VERSION).pc
+pkgconfig_DATA = libcircle.pc
 
 dist_noinst_SCRIPTS = autogen.sh
 
@@ -32,7 +31,7 @@ MAINTAINERCLEANFILES =                                  \
 
 distclean-local:
 	-(cd $(top_srcdir) && rm -rf autom4te*.cache autoscan.*)
-	-(cd $(top_srcdir) && rm -rf $(PACKAGE)-*)
+	-(cd $(top_srcdir) && rm -rf $(PACKAGE)-* libcircle.pc)
 
 mrproper: distclean-local clean
 	-(cd $(top_srcdir) && rm -rf autom4te.cache config.h config.log)

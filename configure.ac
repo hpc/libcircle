@@ -49,5 +49,5 @@ echo
 
 AC_CONFIG_FILES([Makefile       \
                  tests/Makefile \
-                 libcircle-${LIBCIRCLE_API_VERSION}.pc:libcircle.pc.in])
+                 libcircle.pc:libcircle.pc.in])
 AC_OUTPUT

@@ -12109,7 +12109,7 @@ echo "  Logging level .................................. $loglevel"
 echo "========================================================"
 echo
 
-ac_config_files="$ac_config_files Makefile tests/Makefile libcircle-${LIBCIRCLE_API_VERSION}.pc:libcircle.pc.in"
+ac_config_files="$ac_config_files Makefile tests/Makefile libcircle.pc:libcircle.pc.in"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -13128,7 +13128,7 @@ do
     "libtool") CONFIG_COMMANDS="$CONFIG_COMMANDS libtool" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "tests/Makefile") CONFIG_FILES="$CONFIG_FILES tests/Makefile" ;;
-    "libcircle-${LIBCIRCLE_API_VERSION}.pc") CONFIG_FILES="$CONFIG_FILES libcircle-${LIBCIRCLE_API_VERSION}.pc:libcircle.pc.in" ;;
+    "libcircle.pc") CONFIG_FILES="$CONFIG_FILES libcircle.pc:libcircle.pc.in" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac
