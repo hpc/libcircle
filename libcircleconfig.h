@@ -1,0 +1,1 @@
+/* libcircleconfig.h.  Generated from libcircleconfig.h.in by configure.  */
