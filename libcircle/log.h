@@ -3,6 +3,10 @@
 
 #include <stdio.h>
 
+#ifndef LIBCIRCLE_LOGLEVEL
+    #define LIBCIRCLE_LOGLEVEL 0
+#endif
+
 #define LOG_FATAL (1)
 #define LOG_ERR   (2)
 #define LOG_WARN  (3)

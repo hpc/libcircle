@@ -5,10 +5,6 @@
 #include "libcircle.h"
 #include "queue.h"
 
-#ifndef LIBCIRCLE_LOGLEVEL
-    #define LIBCIRCLE_LOGLEVEL 0
-#endif
-
 typedef struct CIRCLE_input_st
 {
     CIRCLE_cb create_cb;

@@ -127,17 +127,17 @@ CIRCLE_queue_pop(CIRCLE_queue_t *qp, char *str)
 {
     if(!qp) {
         LOG(LOG_ERR, "Attempted to pop from an invalid queue.");
-        return 0;
+        return -1;
     }
 
     if(qp->count < 1) {
         LOG(LOG_DBG, "Attempted to pop from an empty queue.");
-        return 0;
+        return -1;
     }
 
     if(!str) {
         LOG(LOG_ERR, "You must allocate a buffer for storing the result.");
-        return 0;
+        return -1;
     }
 
     /* Copy last element into str */
