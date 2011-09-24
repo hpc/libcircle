@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+
 #include "libcircle.h"
 #include "queue.h"
 #include "log.h"
@@ -21,7 +22,8 @@ CIRCLE_queue_init(void)
     qp->base = (char *) malloc(sizeof(char) * CIRCLE_MAX_STRING_LEN * CIRCLE_INITIAL_QUEUE_SIZE);
     qp->strings = (char **) malloc(sizeof(char *) * CIRCLE_INITIAL_QUEUE_SIZE);
 
-    if(!qp || !qp->base || !qp->strings) {
+    if(!qp || !qp->base || !qp->strings)
+    {
         LOG(LOG_ERR, "Failed to allocate a basic queue structure.");
     }
 
@@ -35,15 +37,19 @@ CIRCLE_queue_init(void)
 int
 CIRCLE_queue_free(CIRCLE_queue_t *qp)
 {
-    if(qp) {
-        if(qp->strings) {
+    if(qp)
+    {
+        if(qp->strings)
+        {
             LOG(LOG_DBG, "Freeing the queue strings array.");
             free(qp->strings);
         }
 
         LOG(LOG_DBG, "Freeing a queue pointer.");
         free(qp);
-    } else {
+    }
+    else
+    {
         LOG(LOG_ERR, "Attempted to free a null queue structure.");
         return -1;
     }
@@ -57,11 +63,21 @@ CIRCLE_queue_free(CIRCLE_queue_t *qp)
 void
 CIRCLE_queue_dump(CIRCLE_queue_t *qp)
 {
-   int i = 0;
-   char * p = qp->base;
+    int i = 0;
+    char * p = qp->base;
 
-   while(p++ != (qp->strings[qp->count-1]+strlen(qp->strings[qp->count-1])))
-       if(i++ % 120 == 0) LOG(LOG_DBG, "%c", *p); else LOG(LOG_DBG, "%c",*p);
+    while(p++ != (qp->strings[qp->count - 1] + \
+            strlen(qp->strings[qp->count - 1 ])))
+    {
+        if(i++ % 120 == 0)
+        {
+            LOG(LOG_DBG, "%c", *p);
+        }
+        else
+        {
+            LOG(LOG_DBG, "%c", *p);
+        }
+    }
 }
 
 /*
@@ -73,7 +89,9 @@ CIRCLE_queue_print(CIRCLE_queue_t *qp)
     int i = 0;
 
     for(i = 0; i < qp->count; i++)
-       LOG(LOG_DBG, "\t[%p][%d] %s",qp->strings[i],i,qp->strings[i]);
+    {
+       LOG(LOG_DBG, "\t[%p][%d] %s", qp->strings[i], i, qp->strings[i]);
+    }
 }
 
 /*
@@ -82,19 +100,23 @@ CIRCLE_queue_print(CIRCLE_queue_t *qp)
 int
 CIRCLE_queue_push(CIRCLE_queue_t *qp, char *str)
 {
-    if(strlen(str) <= 0) {
+    if(strlen(str) <= 0)
+    {
         LOG(LOG_ERR, "Attempted to push an empty string onto a queue.");
         return -1;
     }
 
-    if(qp->count > 0) {
-        if(qp->strings[qp->count-1] + CIRCLE_MAX_STRING_LEN >= qp->end) {
-            LOG(LOG_ERR, "Size of queue not large enough to push another value.");
+    if(qp->count > 0)
+    {
+        if(qp->strings[qp->count-1] + CIRCLE_MAX_STRING_LEN >= qp->end)
+        {
+            LOG(LOG_ERR, "The queue is not large enough to add another value.");
             return -1;
         }
     }
 
-    if(strlen(str) > CIRCLE_MAX_STRING_LEN) {
+    if(strlen(str) > CIRCLE_MAX_STRING_LEN)
+    {
         LOG(LOG_ERR, "Attempted to push a value that was larger than expected.");
         return -1;
     }
@@ -125,17 +147,20 @@ CIRCLE_queue_push(CIRCLE_queue_t *qp, char *str)
 int
 CIRCLE_queue_pop(CIRCLE_queue_t *qp, char *str)
 {
-    if(!qp) {
+    if(!qp)
+    {
         LOG(LOG_ERR, "Attempted to pop from an invalid queue.");
         return -1;
     }
 
-    if(qp->count < 1) {
+    if(qp->count < 1)
+    {
         LOG(LOG_DBG, "Attempted to pop from an empty queue.");
         return -1;
     }
 
-    if(!str) {
+    if(!str)
+    {
         LOG(LOG_ERR, "You must allocate a buffer for storing the result.");
         return -1;
     }

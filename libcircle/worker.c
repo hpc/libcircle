@@ -67,7 +67,7 @@ CIRCLE_worker()
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     srand(rank);
-    global_rank = rank;
+    CIRCLE_global_rank = rank;
     s.rank = rank;
     s.size = size;
     s.token = WHITE;

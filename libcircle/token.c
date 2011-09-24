@@ -26,7 +26,8 @@
  * black. It then turns the token black when it comes around, forwards it, and
  * turns its state back to white.
  */
-int CIRCLE_check_for_term( CIRCLE_state_st *st )
+int
+CIRCLE_check_for_term(CIRCLE_state_st *st)
 {
     /* If I have the token (I am already idle) */
     if(st->have_token)
@@ -95,8 +96,11 @@ int CIRCLE_check_for_term( CIRCLE_state_st *st )
         }
 
         st->term_flag = 0;
+
         /* Check to see if my pending receive has completed */
-        MPI_Test(&st->mpi_state_st->term_request, &st->term_flag, &st->mpi_state_st->term_status);
+        MPI_Test(&st->mpi_state_st->term_request, &st->term_flag, \
+            &st->mpi_state_st->term_status);
+
         if(!st->term_flag)
         {
             return 0;
@@ -109,24 +113,29 @@ int CIRCLE_check_for_term( CIRCLE_state_st *st )
         /* Check for termination */
         if(st->incoming_token == TERMINATE)
         {
-             LOG(LOG_DBG,"Received termination token");
+            LOG(LOG_DBG, "Received termination token");
+
             st->token = TERMINATE;
-            MPI_Send(&st->token, 1, MPI_INT, (st->rank+1)%st->size, \
+            MPI_Send(&st->token, 1, MPI_INT, (st->rank+1) % st->size, \
                      TOKEN,MPI_COMM_WORLD);
-            LOG(LOG_DBG,"Forwared termination token");
+
+            LOG(LOG_DBG, "Forwared termination token");
+
             return TERMINATE;
         }
 
         if(st->token == BLACK && st->incoming_token == BLACK)
+        {
             st->token = WHITE;
+        }
 
         if(st->rank == 0 && st->incoming_token == WHITE)
         {
             LOG(LOG_DBG, "Master has detected termination.");
 
             st->token = TERMINATE;
-            MPI_Send(&st->token, 1, MPI_INT,1, TOKEN, MPI_COMM_WORLD);
-            MPI_Send(&st->token, 1, MPI_INT,1, WORK, MPI_COMM_WORLD);
+            MPI_Send(&st->token, 1, MPI_INT, 1, TOKEN, MPI_COMM_WORLD);
+            MPI_Send(&st->token, 1, MPI_INT, 1, WORK, MPI_COMM_WORLD);
 
             return TERMINATE;
         }
@@ -139,12 +148,15 @@ int CIRCLE_check_for_term( CIRCLE_state_st *st )
  *
  * This returns a random rank (not yourself)
  */
-int CIRCLE_get_next_proc(int current, int rank, int size)
+int
+CIRCLE_get_next_proc(int current, int rank, int size)
 {
     int result = rand() % size;
 
     while(result == rank)
+    {
         result = rand() % size;
+    }
 
     return result;
 }
@@ -155,14 +167,15 @@ int CIRCLE_get_next_proc(int current, int rank, int size)
  * up until a timeout.  If you wish to have this
  * request canceled after timing out, it will do that too.
  */
-int CIRCLE_wait_on_mpi_request( MPI_Request * req, MPI_Status * stat, int timeout, int cancel)
+int
+CIRCLE_wait_on_mpi_request( MPI_Request * req, MPI_Status * stat, int timeout, int cancel)
 {
     int tries = 0;
     int flag = 0;
 
     while(!flag && tries++ < timeout)
     {
-        MPI_Test(req,&flag,stat);
+        MPI_Test(req, &flag, stat);
     }
 
     if(tries > timeout)
@@ -170,8 +183,10 @@ int CIRCLE_wait_on_mpi_request( MPI_Request * req, MPI_Status * stat, int timeou
         LOG(LOG_DBG, "Cancelling...");
 
         if(cancel)
+        {
             MPI_Cancel(req);
 //            MPI_Wait(req,stat);
+        }
 
         LOG(LOG_DBG, "Cancelled.");
 
@@ -189,9 +204,10 @@ int CIRCLE_wait_on_mpi_request( MPI_Request * req, MPI_Status * stat, int timeou
  * it returns 0.
     int size = wait_on_probe(st, st->next_processor, WORK,1,-1, 1);
  */
-int CIRCLE_wait_on_probe(CIRCLE_state_st *st, int source, int tag, \
-                         int timeout, int reject_requests, \
-                         int exclude_rank)
+int
+CIRCLE_wait_on_probe(CIRCLE_state_st *st, int source, int tag, \
+                     int timeout, int reject_requests, \
+                     int exclude_rank)
 {
     int flag = 0;
     int i = 0;
@@ -209,7 +225,8 @@ int CIRCLE_wait_on_probe(CIRCLE_state_st *st, int source, int tag, \
 
             if(i != st->rank)
             {
-                MPI_Test(&st->mpi_state_st->request_request[i], &st->request_flag[i], &st->mpi_state_st->request_status[i]);
+                MPI_Test(&st->mpi_state_st->request_request[i], \
+                    &st->request_flag[i], &st->mpi_state_st->request_status[i]);
                 {
                     if(st->request_flag[i])
                     {
@@ -235,9 +252,13 @@ int CIRCLE_wait_on_probe(CIRCLE_state_st *st, int source, int tag, \
     }
 
     if(flag)
+    {
         return temp._count;
+    }
     else
+    {
         return 0;
+    }
 }
 
 /*! \brief Requests work from other ranks 
@@ -246,79 +267,105 @@ int CIRCLE_wait_on_probe(CIRCLE_state_st *st, int source, int tag, \
  * rank and gives up after a short timeout.  If it is successful in getting
  * work, the work is received directly into the work queue.
  */
-int CIRCLE_request_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
+int
+CIRCLE_request_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
 {
     int temp_buffer = 3;
 
     LOG(LOG_DBG, "Sending work request to %d...",st->next_processor);
 
     /* Send work request. */
-    MPI_Send(&temp_buffer,1,MPI_INT,st->next_processor,WORK_REQUEST,MPI_COMM_WORLD);
+    MPI_Send(&temp_buffer, 1, MPI_INT, st->next_processor, \
+        WORK_REQUEST, MPI_COMM_WORLD);
 
     LOG(LOG_DBG, "done.");
 
-    LOG(LOG_DBG, "Getting response from %d...",st->next_processor);
+    LOG(LOG_DBG, "Getting response from %d...", st->next_processor);
     st->work_offsets[0] = 0;
 
     /* Wait for an answer... */
     int size = CIRCLE_wait_on_probe(st, st->next_processor, WORK, 1, -1, -1);
     
     if(size == TERMINATE)
+    {
         return TERMINATE;
+    }
 
     if(size == 0)
     {
         LOG(LOG_DBG, "No response from %d", st->next_processor);
-        st->next_processor = CIRCLE_get_next_proc(st->next_processor, st->rank, st->size);
+        st->next_processor = CIRCLE_get_next_proc(st->next_processor, \
+            st->rank, st->size);
+
         return 0;
     }
 
     LOG(LOG_DBG, "Received message with %d elements.", size);
 
     /* If we get here, there was definitely an answer.  Receives the offsets then */
-    MPI_Recv(st->work_offsets,size,MPI_INT,st->next_processor,WORK,MPI_COMM_WORLD,&st->mpi_state_st->work_offsets_status);
+    MPI_Recv(st->work_offsets, size, MPI_INT, st->next_processor, \
+        WORK, MPI_COMM_WORLD, &st->mpi_state_st->work_offsets_status);
 
     /* We'll ask somebody else next time */
     int source = st->next_processor;
 
-    st->next_processor = CIRCLE_get_next_proc(st->next_processor, st->rank, st->size);
+    st->next_processor = CIRCLE_get_next_proc(st->next_processor, \
+        st->rank, st->size);
 
     int chars = st->work_offsets[1];
     int items = st->work_offsets[0];
 
     if(items == -1)
+    {
         return -1;
+    }
     else if(items == 0)
     {
         LOG(LOG_DBG, "Received no work.");
         return 0;
     }
 
-    LOG(LOG_DBG, "Getting work from %d, %d items.",source, items);
+    LOG(LOG_DBG, "Getting work from %d, %d items.", source, items);
     
     /* Wait and see if they sent the work over */
     size = CIRCLE_wait_on_probe(st, source, WORK, -1, -1, 1000000);
 
     if(size == TERMINATE)
+    {
         return TERMINATE;
+    }
+
     if(size == 0)
+    {
         return 0;
+    }
 
-    LOG(LOG_DBG, "Message pending with %d size",size);
+    LOG(LOG_DBG, "Message pending with %d size", size);
 
-    /* Good, we have a pending message from source with a WORK tag.  It can only be a work queue */
-    MPI_Recv(qp->base,(chars+1)*sizeof(char),MPI_BYTE,source,WORK,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+    /*
+     * Good, we have a pending message from source with a WORK tag.
+     * It can only be a work queue.
+     */
+    MPI_Recv(qp->base, (chars + 1) * sizeof(char), MPI_BYTE, source, WORK, \
+        MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
     qp->count = items;
     int i = 0;
-    for(i= 0; i < qp->count; i++)
+    for(i = 0; i < qp->count; i++)
     {
         qp->strings[i] = qp->base + st->work_offsets[i+2];
-        LOG(LOG_DBG, "Item [%d] Offset [%d] String [%s]",i,st->work_offsets[i+2],qp->strings[i]);
+        LOG(LOG_DBG, "Item [%d] Offset [%d] String [%s]", \
+            i, st->work_offsets[i + 2], qp->strings[i]);
     }
 
-    /* Be polite and let them know we received the buffer.  If they don't get this message, then they assume the transfer failed. */
-    /* In fact, if they don't get our acknowledgement, they'll assume we didn't get the buffer */
+    /*
+     * Be polite and let them know we received the buffer.  If they don't get
+     * this message, then they assume the transfer failed.
+     *
+     * In fact, if they don't get our acknowledgement, they'll assume we
+     * didn't get the buffer
+     */
+
     //size = wait_on_probe(st, source, SUCCESS, 0, 10000000);
 
     LOG(LOG_DBG, "Verifying success: size = %d",size);
@@ -329,15 +376,18 @@ int CIRCLE_request_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
         return 0;
     }
 
-    /* They'll let us know that the transfer was complete.  Just like the three way tcp handshake. */
+    /*
+     * They'll let us know that the transfer was complete.
+     * Just like the three way tcp handshake.
+     */
     if(qp->strings[0] != qp->base) {
         LOG(LOG_FATAL, "The base address of the queue doesn't match what it should be.");
         exit(EXIT_FAILURE);
     }
 
-    qp->head = qp->strings[qp->count-1] + strlen(qp->strings[qp->count-1]);
+    qp->head = qp->strings[qp->count - 1] + strlen(qp->strings[qp->count - 1]);
 
-    LOG(LOG_DBG, "Received items.  Queue size now %d",qp->count);
+    LOG(LOG_DBG, "Received items. Queue size now %d", qp->count);
     
     //printq(qp);
     return 0;
@@ -360,15 +410,18 @@ void CIRCLE_cleanup_work_messages(CIRCLE_state_st *st)
     for(i = 0; i < st->size; i++)
     {
         if(i == st->rank)
+        {
             continue;
+        }
 
         flag = 0;
 //        MPI_Iprobe(i, WORK, MPI_COMM_WORLD, &flag, &status);
 
         if(flag)
         {
-            LOG(LOG_DBG, "Cleaned up WORK message from %d",i);
-            MPI_Recv(temp_buf,status._count,MPI_INT,i,WORK,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+            LOG(LOG_DBG, "Cleaned up WORK message from %d", i);
+            MPI_Recv(temp_buf, status._count, MPI_INT, i, WORK, \
+                MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         }
 
         flag = 0;
@@ -377,7 +430,8 @@ void CIRCLE_cleanup_work_messages(CIRCLE_state_st *st)
         if(flag)
         {
             LOG(LOG_DBG, "Cleaned up SUCCESS message from %d",i);
-            MPI_Recv(temp_buf,status._count,MPI_INT,i,SUCCESS,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+            MPI_Recv(temp_buf, status._count, MPI_INT, i, \
+                SUCCESS, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         }
     }
 }
@@ -391,56 +445,67 @@ void CIRCLE_probe_messages(CIRCLE_state_st *st)
     for(i = 0; i < st->size; i++)
     {
         if(i == st->rank)
+        {
             continue;
+        }
 
-        MPI_Iprobe(i, WORK, MPI_COMM_WORLD, &flag,MPI_STATUS_IGNORE);
+        MPI_Iprobe(i, WORK, MPI_COMM_WORLD, &flag, MPI_STATUS_IGNORE);
 
         if(flag)
-            LOG(LOG_DBG, "Probe: Pending WORK message from %d",i);
+        {
+            LOG(LOG_DBG, "Probe: Pending WORK message from %d", i);
+        }
 
         flag = 0;
-        MPI_Iprobe(i, WORK_REQUEST, MPI_COMM_WORLD, &flag,MPI_STATUS_IGNORE);
+        MPI_Iprobe(i, WORK_REQUEST, MPI_COMM_WORLD, &flag, MPI_STATUS_IGNORE);
 
         if(flag)
-            LOG(LOG_DBG, "Probe: Pending WORK_REQUEST message from %d",i);
+        {
+            LOG(LOG_DBG, "Probe: Pending WORK_REQUEST message from %d", i);
+        }
 
-        MPI_Iprobe(i, TOKEN, MPI_COMM_WORLD, &flag,MPI_STATUS_IGNORE);
+        MPI_Iprobe(i, TOKEN, MPI_COMM_WORLD, &flag, MPI_STATUS_IGNORE);
 
         if(flag)
-            LOG(LOG_DBG, "Probe: Pending TOKEN message from %d",i);
+        {
+            LOG(LOG_DBG, "Probe: Pending TOKEN message from %d", i);
+        }
     }
 }
 
 /*! \brief Sends a no work reply to someone requesting work. */
-void CIRCLE_send_no_work(CIRCLE_state_st *st, int dest)
+void
+CIRCLE_send_no_work(CIRCLE_state_st *st, int dest)
 {
     int no_work[2];
 
     no_work[0] = 0;
     no_work[1] = 0;
 
-    LOG(LOG_DBG, "Received work request from %d, but have no work.",dest);
+    LOG(LOG_DBG, "Received work request from %d, but have no work.", dest);
 
     MPI_Request r;
-    MPI_Isend(&no_work, 1, MPI_INT, dest, WORK, MPI_COMM_WORLD,&r);
-    MPI_Wait(&r,MPI_STATUS_IGNORE);
+    MPI_Isend(&no_work, 1, MPI_INT, dest, WORK, MPI_COMM_WORLD, &r);
+    MPI_Wait(&r, MPI_STATUS_IGNORE);
 
-    LOG(LOG_DBG, "Response sent to %d, have no work.",dest);
+    LOG(LOG_DBG, "Response sent to %d, have no work.", dest);
 }
 
 /*! \brief Distributes a random amount of the local work queue to the n requestors */
-void CIRCLE_send_work_to_many(CIRCLE_queue_t *qp, CIRCLE_state_st *st,\
+void
+CIRCLE_send_work_to_many(CIRCLE_queue_t *qp, CIRCLE_state_st *st,\
                               int *requestors, int rcount)
 {
-    if(rcount <= 0) {
+    if(rcount <= 0)
+    {
         LOG(LOG_FATAL, "Something is wrong with the amount of work we think we have.");
         exit(EXIT_FAILURE);
     }
 
     /* Random number between rcount+1 and qp->count */
-    int total_amount = rand() % (qp->count-(rcount+1)) + rcount;
+    int total_amount = rand() % (qp->count - (rcount + 1)) + rcount;
 
-    LOG(LOG_DBG, "Queue size: %d, Total_amount: %d",qp->count,total_amount);
+    LOG(LOG_DBG, "Queue size: %d, Total_amount: %d", qp->count, total_amount);
 
     int i = 0;
 
@@ -451,32 +516,39 @@ void CIRCLE_send_work_to_many(CIRCLE_queue_t *qp, CIRCLE_state_st *st,\
     {
         total_amount -= increment;
         if(total_amount < increment)
+        {
             increment += total_amount;
+        }
         
         CIRCLE_send_work( qp, st, requestors[i], increment);
     }
 }
 
 /* \brief Sends work to a requestor */
-int CIRCLE_send_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st,\
+int
+CIRCLE_send_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st,\
                      int dest, int count )
 {
     /* For termination detection */
     if(dest < st->rank || dest == st->token_partner)
+    {
         st->token = BLACK;
+    }
 
     /* Base address of the buffer to be sent */
-    char * b = qp->strings[qp->count-count];
+    char *b = qp->strings[qp->count - count];
 
     /* Address of the beginning of the last string to be sent */
-    char * e = qp->strings[qp->count-1];
+    char *e = qp->strings[qp->count - 1];
 
     /* Distance between them */
-    size_t diff = e-b;
+    size_t diff = e - b;
     diff += strlen(e);
 
     if(qp->count < 10)
+    {
         CIRCLE_queue_print(qp);
+    }
 
     /* offsets[0] = number of strings */
     /* offsets[1] = number of chars being sent */
@@ -488,43 +560,46 @@ int CIRCLE_send_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st,\
         exit(EXIT_FAILURE);
     }
 
-    int j = qp->count-count;
+    int j = qp->count - count;
     int i = 0;
 
     for(i=0; i < st->request_offsets[0]; i++)
     {
-        st->request_offsets[i+2] = qp->strings[j++] - b;
+        st->request_offsets[i + 2] = qp->strings[j++] - b;
 
         LOG(LOG_DBG, "[j=%d] Base address: %p, String[%d] address: %p, " \
-            "String \"%s\" Offset: %u", j, b, i, qp->strings[j-1], \
-            qp->strings[j-1], st->request_offsets[i+2]);
+            "String \"%s\" Offset: %u", j, b, i, qp->strings[j - 1], \
+            qp->strings[j - 1], st->request_offsets[i + 2]);
     }
 
     /* offsets[qp->count - qp->count/2+2]  is the size of the last string */
-    st->request_offsets[count+2] = strlen(qp->strings[qp->count-1]);
+    st->request_offsets[count + 2] = strlen(qp->strings[qp->count - 1]);
 
-    LOG(LOG_DBG, "\tSending offsets for %d items to %d...",st->request_offsets[0],dest);
+    LOG(LOG_DBG, "\tSending offsets for %d items to %d...", \
+        st->request_offsets[0], dest);
 
-    MPI_Ssend(st->request_offsets, st->request_offsets[0]+2, MPI_INT, dest, WORK, MPI_COMM_WORLD);
+    MPI_Ssend(st->request_offsets, st->request_offsets[0]+2, \
+        MPI_INT, dest, WORK, MPI_COMM_WORLD);
 
     LOG(LOG_DBG, "done.");
-    LOG(LOG_DBG, "\tSending buffer to %d...",dest);
+    LOG(LOG_DBG, "\tSending buffer to %d...", dest);
 
-    MPI_Ssend(b, (diff+1)*sizeof(char), MPI_BYTE, dest, WORK, MPI_COMM_WORLD);
+    MPI_Ssend(b, (diff + 1) * sizeof(char), MPI_BYTE, dest, WORK, MPI_COMM_WORLD);
 
     LOG(LOG_DBG, "done.");
 
     qp->count = qp->count - count;
 
-    LOG(LOG_DBG, "sent %d items to %d.",st->request_offsets[0],dest);
+    LOG(LOG_DBG, "sent %d items to %d.", st->request_offsets[0], dest);
 
     return 0;
 }
 
 /*! \brief Checks for outstanding work requests */
-int CIRCLE_check_for_requests( CIRCLE_queue_t *qp, CIRCLE_state_st *st)
+int
+CIRCLE_check_for_requests(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
 {
-    int * requestors = (int *) calloc(st->size,sizeof(int));
+    int *requestors = (int *)calloc(st->size, sizeof(int));
     int i = 0;
     int rcount = 0;
 
@@ -537,7 +612,10 @@ int CIRCLE_check_for_requests( CIRCLE_queue_t *qp, CIRCLE_state_st *st)
         {
             if(i != st->rank)
             {
-                MPI_Recv_init(&st->request_recv_buf[i], 1, MPI_INT, i, WORK_REQUEST, MPI_COMM_WORLD, &st->mpi_state_st->request_request[i]);
+                MPI_Recv_init(&st->request_recv_buf[i], 1, MPI_INT, i, \
+                    WORK_REQUEST, MPI_COMM_WORLD, \
+                    &st->mpi_state_st->request_request[i]);
+
                 MPI_Start(&st->mpi_state_st->request_request[i]);
             }
         }
@@ -545,11 +623,15 @@ int CIRCLE_check_for_requests( CIRCLE_queue_t *qp, CIRCLE_state_st *st)
     }
 
     /* Test to see if any posted receive has completed */
-    for(i = 0; i < st->size; i++) {
+    for(i = 0; i < st->size; i++)
+    {
         if(i != st->rank)
         {
             st->request_flag[i] = 0;
-            if(MPI_Test(&st->mpi_state_st->request_request[i], &st->request_flag[i], &st->mpi_state_st->request_status[i]) != MPI_SUCCESS)
+            if(MPI_Test(&st->mpi_state_st->request_request[i], \
+                    &st->request_flag[i], \
+                    &st->mpi_state_st->request_status[i]) != MPI_SUCCESS)
+
                 exit(1);
 
             if(st->request_flag[i])
@@ -562,12 +644,16 @@ int CIRCLE_check_for_requests( CIRCLE_queue_t *qp, CIRCLE_state_st *st)
 
     /* If we didn't received any work request, no need to continue */
     if(rcount == 0)
+    {
         return 0;
+    }
 
-    if(qp->count <= rcount+1)
+    if(qp->count <= rcount + 1)
     {
         for(i = 0; i < rcount; i++)
+        {
             CIRCLE_send_no_work(st, requestors[i]);
+        }
     }
     else
     {
@@ -576,19 +662,24 @@ int CIRCLE_check_for_requests( CIRCLE_queue_t *qp, CIRCLE_state_st *st)
     }
 
     for(i = 0; i < rcount; i++)
+    {
         MPI_Start(&st->mpi_state_st->request_request[requestors[i]]);
+    }
 
     free(requestors);
 
     return 0;
 }
 
-void CIRCLE_print_offsets(unsigned int * offsets, int count)
+void
+CIRCLE_print_offsets(unsigned int *offsets, int count)
 {
     int i = 0;
 
     for(i = 0; i < count; i++)
-        LOG(LOG_DBG, "\t[%d] %d",i,offsets[i]);
+    {
+        LOG(LOG_DBG, "\t[%d] %d", i, offsets[i]);
+    }
 }
 
 /* EOF */

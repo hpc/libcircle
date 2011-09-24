@@ -1,13 +1,15 @@
 AC_PREREQ([2.68])
-
 AC_INIT([LibCircle], [0.1], [github-hpc@lanl.gov], [libcircle],
         [http://github.com/hpc/libcircle])
+
+# Keep artifacts in directories as much as possible.
 AC_CONFIG_AUX_DIR(auxdir)
 AC_CONFIG_MACRO_DIR([m4])
 
 AM_INIT_AUTOMAKE([1.10 -Wall no-define])
 AC_CONFIG_HEADERS([config.h])
 
+# Check for compilers.
 AC_PROG_CC
 AM_PROG_CC_C_O
 
@@ -26,6 +28,7 @@ AC_TYPE_SIZE_T
 AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
 AC_FUNC_MALLOC
 
+# Define the library version.
 AC_SUBST([LIBCIRCLE_SO_VERSION], [0:0:0])
 AC_SUBST([LIBCIRCLE_API_VERSION], [0.1])
 

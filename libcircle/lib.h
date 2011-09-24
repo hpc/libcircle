@@ -2,6 +2,7 @@
 #define LIB_H
 
 #include <config.h>
+
 #include "libcircle.h"
 #include "queue.h"
 

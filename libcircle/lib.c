@@ -5,9 +5,10 @@
 #include "lib.h"
 #include "worker.h"
 
-FILE *dbgstream;
-int  debug_level;
-int global_rank;
+FILE *CIRCLE_debug_stream;
+int  CIRCLE_debug_level;
+int  CIRCLE_global_rank;
+
 CIRCLE_input_st CIRCLE_INPUT_ST;
 
 /*
@@ -16,15 +17,16 @@ CIRCLE_input_st CIRCLE_INPUT_ST;
  */
 void CIRCLE_init(int argc, char *argv[])
 {
-    dbgstream = stderr;
-    debug_level = LIBCIRCLE_LOGLEVEL;
+    CIRCLE_debug_stream = stderr;
+    CIRCLE_debug_level = LIBCIRCLE_LOGLEVEL;
 
-    MPI_Init(&argc,&argv);
+    MPI_Init(&argc, &argv);
 }
 
 /*
  * Processing and creating work is done through callbacks. Here's how we tell
- * libcircle about our function which creates work.
+ * libcircle about our function which creates an initial workload. This call
+ * is optional.
  */
 void CIRCLE_cb_create(CIRCLE_cb func)
 {
@@ -60,8 +62,7 @@ void CIRCLE_begin(void)
  */
 void CIRCLE_finalize(void)
 {
-    fflush(dbgstream);
-    dbgstream = NULL;
+    CIRCLE_debug_stream = NULL;
 
     MPI_Finalize();
 }
