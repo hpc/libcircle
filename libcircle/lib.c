@@ -37,6 +37,11 @@ void CIRCLE_cb_create(CIRCLE_cb func)
  */
 void CIRCLE_cb_process(CIRCLE_cb func)
 {
+    if(CIRCLE_INPUT_ST.create_cb == NULL)
+    {
+        CIRCLE_INPUT_ST.create_cb = func;
+    }
+
     CIRCLE_INPUT_ST.process_cb = func;
 }
 

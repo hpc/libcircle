@@ -30,7 +30,7 @@ void CIRCLE_init(int argc, char *argv[]);
 
 /*
  * Processing and creating work is done through callbacks. Here's how we tell
- * libcircle about our function which creates work.
+ * libcircle about our function which creates work. This call is optional.
  */
 void CIRCLE_cb_create(CIRCLE_cb func);
 
