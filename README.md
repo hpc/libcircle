@@ -4,7 +4,6 @@ libcircle is an API for distributing embarrassingly parallel workloads using sel
 
 Dependencies
 ------------
-* OpenSSL <http://www.openssl.org/>
 * Open MPI  <http://www.open-mpi.org/>
 
 Compile and install
