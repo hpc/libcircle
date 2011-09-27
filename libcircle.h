@@ -24,9 +24,9 @@ typedef void (*CIRCLE_cb)(CIRCLE_handle *handle);
 
 /*
  * Initialize internal state needed by libcircle. This should be called before
- * any other libcircle API call.
+ * any other libcircle API call. This returns the MPI rank value.
  */
-void CIRCLE_init(int argc, char *argv[]);
+int CIRCLE_init(int argc, char *argv[]);
 
 /*
  * Processing and creating work is done through callbacks. Here's how we tell

@@ -15,12 +15,15 @@ CIRCLE_input_st CIRCLE_INPUT_ST;
  * Initialize internal state needed by libcircle. This should be called before
  * any other libcircle API call.
  */
-void CIRCLE_init(int argc, char *argv[])
+int CIRCLE_init(int argc, char *argv[])
 {
     CIRCLE_debug_stream = stderr;
     CIRCLE_debug_level = LIBCIRCLE_LOGLEVEL;
 
     MPI_Init(&argc, &argv);
+    MPI_Comm_rank(MPI_COMM_WORLD, &CIRCLE_global_rank);
+
+    return CIRCLE_global_rank;
 }
 
 /*
