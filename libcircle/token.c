@@ -389,7 +389,7 @@ CIRCLE_request_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
 
     LOG(LOG_DBG, "Received items. Queue size now %d", qp->count);
     
-    //printq(qp);
+    CIRCLE_queue_print(qp);
     return 0;
 }
 

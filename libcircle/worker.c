@@ -9,6 +9,7 @@
 #include "token.h"
 #include "lib.h"
 
+int CIRCLE_global_count;
 extern CIRCLE_input_st CIRCLE_INPUT_ST;
 
 int
@@ -21,6 +22,12 @@ int
 CIRCLE_dequeue(char *element)
 {
     return CIRCLE_queue_pop(CIRCLE_INPUT_ST.queue, element);
+}
+
+int
+CIRCLE_queue_count()
+{
+    return CIRCLE_INPUT_ST.queue->count;
 }
 
 int
@@ -41,12 +48,12 @@ CIRCLE_worker()
     /* Holds work elements */
     CIRCLE_queue_t queue;
     CIRCLE_INPUT_ST.queue = &queue;
+    queue.count = 0;
 
     /* Provides an interface to the queue. */
     CIRCLE_handle queue_handle;
     queue_handle.enqueue = &CIRCLE_enqueue;
     queue_handle.dequeue = &CIRCLE_dequeue;
-
     /* Memory for work queue */
     queue.base = (char*) malloc(sizeof(char) * CIRCLE_MAX_STRING_LEN * CIRCLE_INITIAL_QUEUE_SIZE);
     
@@ -54,10 +61,10 @@ CIRCLE_worker()
     queue.strings = (char **) malloc(sizeof(char*) * CIRCLE_INITIAL_QUEUE_SIZE);
     
     CIRCLE_queue_t * qp = &queue;
-    
+    CIRCLE_global_count = 0;
+    queue_handle.queue_size = &CIRCLE_global_count;
     queue.head = queue.base;
     queue.end = queue.base + (CIRCLE_MAX_STRING_LEN * CIRCLE_INITIAL_QUEUE_SIZE);
-    queue.count = 0;
     int rank = -1;
     int size = -1;
     int next_processor;

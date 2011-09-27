@@ -93,7 +93,6 @@ CIRCLE_queue_print(CIRCLE_queue_t *qp)
        LOG(LOG_DBG, "\t[%p][%d] %s", qp->strings[i], i, qp->strings[i]);
     }
 }
-
 /*
  * Push the specified string onto the work queue.
  */
