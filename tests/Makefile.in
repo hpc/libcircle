@@ -51,8 +51,7 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am_check_queue_OBJECTS = check_queue-check_queue.$(OBJEXT)
 check_queue_OBJECTS = $(am_check_queue_OBJECTS)
-check_queue_DEPENDENCIES =  \
-	$(top_builddir)/libcircle-@LIBCIRCLE_API_VERSION@.la
+check_queue_DEPENDENCIES = $(top_builddir)/libcircle.la
 check_queue_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(check_queue_CFLAGS) \
 	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
@@ -201,7 +200,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 check_queue_SOURCES = check_queue.c $(top_builddir)/libcircle.h
 check_queue_CFLAGS = -I$(top_builddir)/libcircle/ @CHECK_CFLAGS@
-check_queue_LDADD = $(top_builddir)/libcircle-@LIBCIRCLE_API_VERSION@.la @CHECK_LIBS@
+check_queue_LDADD = $(top_builddir)/libcircle.la @CHECK_LIBS@
 all: all-am
 
 .SUFFIXES:
