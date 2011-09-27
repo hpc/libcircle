@@ -35,4 +35,5 @@ mrproper: distclean-local clean
 	-(cd $(top_srcdir) && rm -rf config.status libtool stamp-h1)
 	-(cd $(top_srcdir)/auxdir && rm -rf mkinstalldirs)
 	-find $(top_srcdir)/ -name "Makefile" -exec rm {} \;
+	-find $(top_srcdir)/ -name ".dirstamp" -exec rm {} \;
 	-find $(top_srcdir) -depth -name ".deps" -exec rm -rf {} \;

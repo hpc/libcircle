@@ -77,7 +77,8 @@ int rank = CIRCLE_init(&argc, argv);
 
 /*
  * Processing and creating work is done through callbacks. Here's how we tell
- * libcircle about our function which creates work.
+ * libcircle about our function which creates the initial work. For MPI nerds,
+ * this is your rank 0 process.
  */
 CIRCLE_cb_create(&my_create_some_work);
 

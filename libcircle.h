@@ -5,7 +5,7 @@
  * The maximum length of a string value which is allowed to be placed on the
  * queue structure.
  */
-#define CIRCLE_MAX_STRING_LEN 2048 * sizeof(char)
+#define CIRCLE_MAX_STRING_LEN 4096*sizeof(char)
 
 /*
  * The interface to the work queue. This can be accessed from within the
