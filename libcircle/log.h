@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 #ifndef LIBCIRCLE_LOGLEVEL
-    #define LIBCIRCLE_LOGLEVEL 0
+    #define LIBCIRCLE_LOGLEVEL 5
 #endif
 
 #define LOG_FATAL (1)
