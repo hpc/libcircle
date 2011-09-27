@@ -503,7 +503,7 @@ CIRCLE_send_work_to_many(CIRCLE_queue_t *qp, CIRCLE_state_st *st,\
     }
 
     /* Random number between rcount+1 and qp->count */
-    int total_amount = rand() % (qp->count+1);
+    int total_amount = rand() % (qp->count)+1;
 
     LOG(LOG_DBG, "Queue size: %d, Total_amount: %d", qp->count, total_amount);
 
