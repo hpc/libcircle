@@ -70,9 +70,10 @@ void my_process_some_work(CIRCLE_handle *handle)
 /*
  * Initialize state required by libcircle. Arguments should be those passed in
  * by the launching process. argc is a pointer to the number of arguments,
- * argv is the argument vector.
+ * argv is the argument vector. The return value is the MPI rank of the current
+ * process.
  */
-CIRCLE_init(&argc, argv);
+int rank = CIRCLE_init(&argc, argv);
 
 /*
  * Processing and creating work is done through callbacks. Here's how we tell
