@@ -15,16 +15,13 @@
 typedef struct {
     int (*enqueue)(char *element);
     int (*dequeue)(char *element);
-    int * queue_size;
+    int (*local_queue_size)();
 } CIRCLE_handle;
 
 /*
  * The type for defining callbacks for create and process.
  */
 typedef void (*CIRCLE_cb)(CIRCLE_handle *handle);
-
-
-int CIRCLE_queue_count();
 
 /*
  * Initialize internal state needed by libcircle. This should be called before
