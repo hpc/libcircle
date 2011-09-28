@@ -25,7 +25,7 @@ CIRCLE_dequeue(char *element)
 }
 
 int
-CIRCLE_queue_count()
+CIRCLE_local_queue_size()
 {
     return CIRCLE_INPUT_ST.queue->count;
 }
@@ -54,6 +54,8 @@ CIRCLE_worker()
     CIRCLE_handle queue_handle;
     queue_handle.enqueue = &CIRCLE_enqueue;
     queue_handle.dequeue = &CIRCLE_dequeue;
+    queue_handle.local_queue_size = &CIRCLE_local_queue_size;
+
     /* Memory for work queue */
     queue.base = (char*) malloc(sizeof(char) * CIRCLE_MAX_STRING_LEN * CIRCLE_INITIAL_QUEUE_SIZE);
     
@@ -62,7 +64,6 @@ CIRCLE_worker()
     
     CIRCLE_queue_t * qp = &queue;
     CIRCLE_global_count = 0;
-    queue_handle.queue_size = &CIRCLE_global_count;
     queue.head = queue.base;
     queue.end = queue.base + (CIRCLE_MAX_STRING_LEN * CIRCLE_INITIAL_QUEUE_SIZE);
     int rank = -1;
