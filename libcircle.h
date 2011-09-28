@@ -16,6 +16,7 @@ typedef struct {
     int (*enqueue)(char *element);
     int (*dequeue)(char *element);
     int (*local_queue_size)();
+    int (*global_queue_size)();
 } CIRCLE_handle;
 
 /*

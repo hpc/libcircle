@@ -9,7 +9,6 @@
 #include "token.h"
 #include "lib.h"
 
-int CIRCLE_global_count;
 extern CIRCLE_input_st CIRCLE_INPUT_ST;
 
 int
@@ -63,7 +62,6 @@ CIRCLE_worker()
     queue.strings = (char **) malloc(sizeof(char*) * CIRCLE_INITIAL_QUEUE_SIZE);
     
     CIRCLE_queue_t * qp = &queue;
-    CIRCLE_global_count = 0;
     queue.head = queue.base;
     queue.end = queue.base + (CIRCLE_MAX_STRING_LEN * CIRCLE_INITIAL_QUEUE_SIZE);
     int rank = -1;
