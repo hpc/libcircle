@@ -82,4 +82,6 @@ void CIRCLE_send_work_to_many  ( CIRCLE_queue_t *queue, CIRCLE_state_st *state,\
 int  CIRCLE_send_work          ( CIRCLE_queue_t *queue, CIRCLE_state_st *state,\
                                  int dest, int count );
 
+void CIRCLE_bcast_abort(void);
+
 #endif /* TOKEN_H */

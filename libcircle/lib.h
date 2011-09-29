@@ -13,4 +13,8 @@ typedef struct CIRCLE_input_st
     CIRCLE_queue_t *queue;
 } CIRCLE_input_st;
 
+void CIRCLE_checkpoint(void);
+void CIRCLE_read_restarts(void);
+void CIRCLE_abort(void);
+
 #endif /* LIB_H */

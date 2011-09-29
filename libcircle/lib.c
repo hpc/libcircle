@@ -4,6 +4,7 @@
 #include "log.h"
 #include "lib.h"
 #include "worker.h"
+#include "token.h"
 
 FILE *CIRCLE_debug_stream;
 int  CIRCLE_debug_level;
@@ -62,7 +63,7 @@ void CIRCLE_begin(void)
 /*
  * Call this function to checkpoint libcircle's distributed queue.  Each rank writes a file called circle<rank>.txt
  */
-void CIRCLE_checkpoint()
+void CIRCLE_checkpoint(void)
 {
     _CIRCLE_checkpoint();
 }
@@ -70,7 +71,7 @@ void CIRCLE_checkpoint()
 /*
  * Used to read restart files.
  */
-void CIRCLE_read_restarts()
+void CIRCLE_read_restarts(void)
 {
     _CIRCLE_read_restarts();
 }

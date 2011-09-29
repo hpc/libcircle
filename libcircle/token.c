@@ -15,7 +15,7 @@
 
 extern int CIRCLE_ABORT_FLAG;
 
-void CIRCLE_bcast_abort()
+void CIRCLE_bcast_abort(void)
 {
     LOG(LOG_WARN,"Libcircle abort started from %d",CIRCLE_global_rank);
     int buffer = ABORT;
@@ -23,7 +23,6 @@ void CIRCLE_bcast_abort()
     int i = 0;
     int rank = -1;
     MPI_Comm_rank(MPI_COMM_WORLD,&rank);
-    MPI_Request request;
     MPI_Comm_size(MPI_COMM_WORLD,&size);
     CIRCLE_ABORT_FLAG = 1;
     for(i = 0; i < size; i++)

@@ -204,7 +204,6 @@ int CIRCLE_queue_read(CIRCLE_queue_t * qp, int rank)
         return -1;
     }
     LOG(LOG_DBG,"Checkpoint file opened.");
-    int i = 0;
     int len = 0;
     char str[CIRCLE_MAX_STRING_LEN];
     while(fgets(str,CIRCLE_MAX_STRING_LEN,checkpoint_file) != NULL)
@@ -235,7 +234,6 @@ int CIRCLE_queue_write(CIRCLE_queue_t * qp, int rank)
         LOG(LOG_ERR,"Unable to open checkpoint file %s",filename);
         return -1;
     }
-    int i = 0;
     char str[CIRCLE_MAX_STRING_LEN];
     while(qp->count > 0)
     {
