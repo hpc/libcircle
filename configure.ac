@@ -1,5 +1,4 @@
-AC_INIT([LibCircle], [0.1], [github-hpc@lanl.gov], [libcircle],
-        [http://github.com/hpc/libcircle])
+AC_INIT([LibCircle],[0.1],[github-hpc@lanl.gov],[libcircle],[http://github.com/hpc/libcircle])
 
 # Keep artifacts in directories as much as possible.
 AC_CONFIG_AUX_DIR(auxdir)
@@ -18,7 +17,8 @@ X_AC_LIBCIRCLE_LOGGING
 # Needed for tests
 X_AC_LIBCIRCLE_CHECK
 
-LT_INIT([disable-static])
+# Pull in libtool
+LT_INIT()
 
 # Checks for typedefs, structs, and compiler options.
 AC_TYPE_SIZE_T

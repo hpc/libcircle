@@ -17,7 +17,8 @@ enum tags {
     WORK_REQUEST,
     WORK,
     TOKEN,
-    SUCCESS
+    SUCCESS,
+    ABORT=-32
 };
 
 typedef struct options

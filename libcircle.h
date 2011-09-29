@@ -53,6 +53,16 @@ void CIRCLE_begin(void);
 void CIRCLE_abort(void);
 
 /*
+ * Call this function to checkpoint libcircle's distributed queue.  Each rank writes a file called circle<rank>.txt
+ */
+void CIRCLE_checkpoint();
+
+/*
+ * Call this function to initialize libcircle queues from restart files created by CIRCLE_checkpoint.
+ */
+void CIRCLE_read_restarts();
+
+/*
  * After your program has executed, give libcircle a chance to clean up after
  * itself by calling this. This should be called after all libcircle API calls.
  */

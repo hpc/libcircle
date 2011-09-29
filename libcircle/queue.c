@@ -11,6 +11,8 @@
 #include "queue.h"
 #include "log.h"
 
+extern int CIRCLE_ABORT_FLAG;
+
 CIRCLE_queue_t *
 CIRCLE_queue_init(void)
 {
@@ -99,6 +101,12 @@ CIRCLE_queue_print(CIRCLE_queue_t *qp)
 int
 CIRCLE_queue_push(CIRCLE_queue_t *qp, char *str)
 {
+    if(!str)
+    {
+        LOG(LOG_ERR,"Attempted to push null pointer.");
+        return -1;
+    }
+
     if(strlen(str) <= 0)
     {
         LOG(LOG_ERR, "Attempted to push an empty string onto a queue.");
@@ -176,34 +184,47 @@ CIRCLE_queue_pop(CIRCLE_queue_t *qp, char *str)
 
 int CIRCLE_queue_read(CIRCLE_queue_t * qp, int rank)
 {
+    if(!qp)
+    {
+        LOG(LOG_ERR,"Libcircle queue not initialized.");
+        return -1;
+    }
+    LOG(LOG_DBG,"Reading from checkpoint file %d.",rank);
     if(qp->count != 0)
     {
         LOG(LOG_WARN,"Warning: Reading items from checkpoint file into non-empty work queue.");
     }
     char filename[256];
     sprintf(filename,"circle%d.txt",rank);
+    LOG(LOG_DBG,"Attempting to open %s.",filename);
     FILE * checkpoint_file = fopen(filename,"r");
     if(checkpoint_file == NULL)
     {
         LOG(LOG_ERR,"Unable to open checkpoint file %s",filename);
         return -1;
     }
+    LOG(LOG_DBG,"Checkpoint file opened.");
     int i = 0;
+    int len = 0;
     char str[CIRCLE_MAX_STRING_LEN];
     while(fgets(str,CIRCLE_MAX_STRING_LEN,checkpoint_file) != NULL)
     {
+        len = strlen(str);
+        if(len > 0) str[len - 1] = '\0';
+        else continue;
         if(CIRCLE_queue_push(qp,str) < 0)
         {
             LOG(LOG_ERR,"Failed to push element on queue \"%s\"",str);
         }
+        LOG(LOG_DBG,"Pushed %s onto queue.",str);
     }
 
-    fclose(checkpoint_file);
-
+    return fclose(checkpoint_file);
 }
 
 int CIRCLE_queue_write(CIRCLE_queue_t * qp, int rank)
 {
+    LOG(LOG_INFO,"Writing checkpoint file with %d elements.",qp->count);
     if(qp->count == 0)
         return 0;
     char filename[256];
@@ -216,7 +237,7 @@ int CIRCLE_queue_write(CIRCLE_queue_t * qp, int rank)
     }
     int i = 0;
     char str[CIRCLE_MAX_STRING_LEN];
-    for(i = 0; i < qp->count; i++)
+    while(qp->count > 0)
     {
         if(CIRCLE_queue_pop(qp,str) < 0)
         {
@@ -230,7 +251,7 @@ int CIRCLE_queue_write(CIRCLE_queue_t * qp, int rank)
         }
     }
 
-    fclose(checkpoint_file);
+    return fclose(checkpoint_file);
 
 }
 
