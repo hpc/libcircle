@@ -603,7 +603,7 @@ CIRCLE_send_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st,\
     int j = qp->count - count;
     int i = 0;
 
-    for(i=0; i < st->request_offsets[0]; i++)
+    for(i=0; i < (int)st->request_offsets[0]; i++)
     {
         st->request_offsets[i + 2] = qp->strings[j++] - b;
 
