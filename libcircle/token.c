@@ -13,6 +13,32 @@
 #include "token.h"
 #include "queue.h"
 
+extern int CIRCLE_ABORT_FLAG;
+
+void CIRCLE_bcast_abort()
+{
+    LOG(LOG_WARN,"Libcircle abort started from %d",CIRCLE_global_rank);
+    int buffer = ABORT;
+    int size = 0;
+    int i = 0;
+    int rank = -1;
+    MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+    MPI_Request request;
+    MPI_Comm_size(MPI_COMM_WORLD,&size);
+    CIRCLE_ABORT_FLAG = 1;
+    for(i = 0; i < size; i++)
+    {
+     //   if(i != CIRCLE_global_rank) MPI_Send(&buffer, 1, MPI_INT, i, TOKEN, MPI_COMM_WORLD);
+        if(i != rank)
+        {
+            MPI_Send(&buffer, 1, MPI_INT, i, \
+                WORK_REQUEST, MPI_COMM_WORLD);
+            LOG(LOG_WARN,"Libcircle abort message sent to %d",i);
+        }
+    }
+
+return; 
+}
 /*! \brief Checks for incoming tokens, determines termination conditions.
  * 
  * When the master rank is idle, it generates a token that is initially white.
@@ -105,11 +131,11 @@ CIRCLE_check_for_term(CIRCLE_state_st *st)
         {
             return 0;
         }
-
+        
         /* If I get here, then I received the token */
         st->term_pending_receive = 0;
         st->have_token = 1;
-
+        LOG(LOG_DBG,"Received token %d\n",st->incoming_token);
         /* Check for termination */
         if(st->incoming_token == TERMINATE)
         {
@@ -123,7 +149,11 @@ CIRCLE_check_for_term(CIRCLE_state_st *st)
 
             return TERMINATE;
         }
-
+        /*if(st->incoming_token == ABORT)
+        {
+            LOG(LOG_DBG, "Received abort token.");
+            return ABORT;
+        }*/
         if(st->token == BLACK && st->incoming_token == BLACK)
         {
             st->token = WHITE;
@@ -271,6 +301,8 @@ int
 CIRCLE_request_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
 {
     int temp_buffer = 3;
+    if(CIRCLE_ABORT_FLAG)
+        temp_buffer = ABORT;
 
     LOG(LOG_DBG, "Sending work request to %d...",st->next_processor);
 
@@ -300,7 +332,7 @@ CIRCLE_request_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
         return 0;
     }
 
-    LOG(LOG_DBG, "Received message with %d elements.", size);
+    LOG(LOG_DBG, "Received message with %d characters.", size);
 
     /* If we get here, there was definitely an answer.  Receives the offsets then */
     MPI_Recv(st->work_offsets, size, MPI_INT, st->next_processor, \
@@ -323,6 +355,12 @@ CIRCLE_request_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
     {
         LOG(LOG_DBG, "Received no work.");
         return 0;
+    }
+    else if(items == ABORT)
+    {
+        CIRCLE_ABORT_FLAG = 1;
+        LOG(LOG_DBG, "I am now POISONED");
+        return ABORT;
     }
 
     LOG(LOG_DBG, "Getting work from %d, %d items.", source, items);
@@ -479,10 +517,13 @@ CIRCLE_send_no_work(CIRCLE_state_st *st, int dest)
 {
     int no_work[2];
 
-    no_work[0] = 0;
+    no_work[0] = (CIRCLE_ABORT_FLAG)?ABORT:0;
     no_work[1] = 0;
 
-    LOG(LOG_DBG, "Received work request from %d, but have no work.", dest);
+    if(CIRCLE_ABORT_FLAG)
+        LOG(LOG_DBG, "Received work request from %d, but am POISONED!", dest);
+    else
+        LOG(LOG_DBG, "Received work request from %d, but have no work.", dest);
 
     MPI_Request r;
     MPI_Isend(&no_work, 1, MPI_INT, dest, WORK, MPI_COMM_WORLD, &r);
@@ -616,6 +657,7 @@ CIRCLE_check_for_requests(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
         {
             if(i != st->rank)
             {
+                st->request_recv_buf[i] = 0;
                 MPI_Recv_init(&st->request_recv_buf[i], 1, MPI_INT, i, \
                     WORK_REQUEST, MPI_COMM_WORLD, \
                     &st->mpi_state_st->request_request[i]);
@@ -640,6 +682,12 @@ CIRCLE_check_for_requests(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
 
             if(st->request_flag[i])
             {
+                if(st->request_recv_buf[i] == ABORT)
+                {
+                    CIRCLE_ABORT_FLAG = 1;
+                    LOG(LOG_DBG,"I am now POISONED.");
+                    return ABORT;
+                }
                 requestors[rcount++] = i;
                 st->request_flag[i] = 0;
             }
@@ -652,13 +700,14 @@ CIRCLE_check_for_requests(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
         return 0;
     }
 
-    if(qp->count == 0)
+    if(qp->count == 0 || CIRCLE_ABORT_FLAG)
     {
         for(i = 0; i < rcount; i++)
         {
             CIRCLE_send_no_work(st, requestors[i]);
         }
     }
+    /* If you get here, then you have work to send AND the CIRCLE_ABORT_FLAG is not set */
     else
     {
         LOG(LOG_DBG, "Got work requests from %d ranks.",rcount);

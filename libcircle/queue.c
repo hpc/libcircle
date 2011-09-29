@@ -11,6 +11,8 @@
 #include "queue.h"
 #include "log.h"
 
+extern int CIRCLE_ABORT_FLAG;
+
 CIRCLE_queue_t *
 CIRCLE_queue_init(void)
 {
@@ -99,6 +101,12 @@ CIRCLE_queue_print(CIRCLE_queue_t *qp)
 int
 CIRCLE_queue_push(CIRCLE_queue_t *qp, char *str)
 {
+    if(!str)
+    {
+        LOG(LOG_ERR,"Attempted to push null pointer.");
+        return -1;
+    }
+
     if(strlen(str) <= 0)
     {
         LOG(LOG_ERR, "Attempted to push an empty string onto a queue.");
@@ -197,9 +205,13 @@ int CIRCLE_queue_read(CIRCLE_queue_t * qp, int rank)
     }
     LOG(LOG_DBG,"Checkpoint file opened.");
     int i = 0;
+    int len = 0;
     char str[CIRCLE_MAX_STRING_LEN];
     while(fgets(str,CIRCLE_MAX_STRING_LEN,checkpoint_file) != NULL)
     {
+        len = strlen(str);
+        if(len > 0) str[len - 1] = '\0';
+        else continue;
         if(CIRCLE_queue_push(qp,str) < 0)
         {
             LOG(LOG_ERR,"Failed to push element on queue \"%s\"",str);
@@ -207,8 +219,7 @@ int CIRCLE_queue_read(CIRCLE_queue_t * qp, int rank)
         LOG(LOG_DBG,"Pushed %s onto queue.",str);
     }
 
-    fclose(checkpoint_file);
-
+    return fclose(checkpoint_file);
 }
 
 int CIRCLE_queue_write(CIRCLE_queue_t * qp, int rank)
@@ -240,7 +251,7 @@ int CIRCLE_queue_write(CIRCLE_queue_t * qp, int rank)
         }
     }
 
-    fclose(checkpoint_file);
+    return fclose(checkpoint_file);
 
 }
 
