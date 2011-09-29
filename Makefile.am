@@ -1,3 +1,5 @@
+include $(top_srcdir)/common.mk
+
 SUBDIRS = tests
 
 AUTOMAKE_OPTIONS = subdir-objects foreign
