@@ -173,4 +173,65 @@ CIRCLE_queue_pop(CIRCLE_queue_t *qp, char *str)
     return 0;
 }
 
+
+int CIRCLE_queue_read(CIRCLE_queue_t * qp, int rank)
+{
+    if(qp->count != 0)
+    {
+        LOG(LOG_WARN,"Warning: Reading items from checkpoint file into non-empty work queue.");
+    }
+    char filename[256];
+    sprintf(filename,"circle%d.txt",rank);
+    FILE * checkpoint_file = fopen(filename,"r");
+    if(checkpoint_file == NULL)
+    {
+        LOG(LOG_ERR,"Unable to open checkpoint file %s",filename);
+        return -1;
+    }
+    int i = 0;
+    char str[CIRCLE_MAX_STRING_LEN];
+    while(fgets(str,CIRCLE_MAX_STRING_LEN,checkpoint_file) != NULL)
+    {
+        if(CIRCLE_queue_push(qp,str) < 0)
+        {
+            LOG(LOG_ERR,"Failed to push element on queue \"%s\"",str);
+        }
+    }
+
+    fclose(checkpoint_file);
+
+}
+
+int CIRCLE_queue_write(CIRCLE_queue_t * qp, int rank)
+{
+    if(qp->count == 0)
+        return 0;
+    char filename[256];
+    sprintf(filename,"circle%d.txt",rank);
+    FILE * checkpoint_file = fopen(filename,"w");
+    if(checkpoint_file == NULL)
+    {
+        LOG(LOG_ERR,"Unable to open checkpoint file %s",filename);
+        return -1;
+    }
+    int i = 0;
+    char str[CIRCLE_MAX_STRING_LEN];
+    for(i = 0; i < qp->count; i++)
+    {
+        if(CIRCLE_queue_pop(qp,str) < 0)
+        {
+            LOG(LOG_ERR,"Failed to pop item off queue.");
+            return -1;
+        }
+        if(fprintf(checkpoint_file,"%s\n",str)< 0)
+        {
+            LOG(LOG_ERR,"Failed to write \"%s\" to file.",str);
+            return -1;
+        }
+    }
+
+    fclose(checkpoint_file);
+
+}
+
 /* EOF */

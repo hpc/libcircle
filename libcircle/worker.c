@@ -30,6 +30,12 @@ CIRCLE_local_queue_size()
 }
 
 int
+CIRCLE_checkpoint()
+{
+    return CIRCLE_queue_write(CIRCLE_INPUT_ST.queue, CIRCLE_global_rank);
+}
+
+int
 CIRCLE_worker()
 {
     double start_time;
@@ -67,9 +73,7 @@ CIRCLE_worker()
     int rank = -1;
     int size = -1;
     int next_processor;
-    //int cycles = 0;
     
-    /* Get MPI info */
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     srand(rank);
     rank = CIRCLE_global_rank;
@@ -119,8 +123,6 @@ CIRCLE_worker()
         if(qp->count == 0)
         {
             LOG(LOG_DBG, "Requesting work...");
-
-            //cleanup_work_messages(sptr);
             if(CIRCLE_request_work(qp,sptr) == TERMINATE)
                 token = DONE;
             if(token == DONE)
@@ -139,7 +141,6 @@ CIRCLE_worker()
                 token = DONE;
             if(token == DONE)
                 LOG(LOG_DBG,"Received termination signal.");
-            LOG(LOG_DBG, "done");
         }
     }
 

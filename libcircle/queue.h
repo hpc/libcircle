@@ -46,4 +46,14 @@ int CIRCLE_queue_push(CIRCLE_queue_t *qp, char *str);
  */
 int CIRCLE_queue_pop(CIRCLE_queue_t * qp, char *str);
 
+/*
+ * Write a queue to a file named circle<rank>.txt
+ */
+int CIRCLE_queue_write(CIRCLE_queue_t * qp, int rank);
+
+/*
+ * Read a queue from a checkpoint file named circle<rank>.txt 
+ */
+int CIRCLE_queue_read(CIRCLE_queue_t * qp, int rank);
+
 #endif /* QUEUE_H */

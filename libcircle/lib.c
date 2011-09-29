@@ -65,7 +65,7 @@ void CIRCLE_begin(void)
 void CIRCLE_abort(void)
 {
     CIRCLE_checkpoint();
-    MPI_Abort(MPI_COMM_WORLD);
+    MPI_Abort(MPI_COMM_WORLD,-1);
 }
 
 /*
