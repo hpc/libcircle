@@ -8,6 +8,18 @@
 #define CIRCLE_MAX_STRING_LEN 4096*sizeof(char)
 
 /*
+ * The various logging levels that libcircle will output.
+ */
+typedef enum CIRCLE_loglevel
+{
+    LOG_FATAL = 1,
+    LOG_ERR   = 2,
+    LOG_WARN  = 3,
+    LOG_INFO  = 4,
+    LOG_DBG   = 5
+} CIRCLE_loglevel;
+
+/*
  * The interface to the work queue. This can be accessed from within the
  * process and create work callbacks. The type of element must be a NULL
  * terminated string.
@@ -67,5 +79,10 @@ void CIRCLE_read_restarts();
  * itself by calling this. This should be called after all libcircle API calls.
  */
 void CIRCLE_finalize(void);
+
+/*
+ * Define the detail of logging that libcircle should output.
+ */
+void CIRCLE_enable_logging(enum CIRCLE_loglevel level);
 
 #endif /* LIBCIRCLE_H */

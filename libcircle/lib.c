@@ -18,7 +18,8 @@ CIRCLE_input_st CIRCLE_INPUT_ST;
 int CIRCLE_init(int argc, char *argv[])
 {
     CIRCLE_debug_stream = stdout;
-    CIRCLE_debug_level = LIBCIRCLE_LOGLEVEL;
+    CIRCLE_debug_level = LOG_FATAL;
+
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &CIRCLE_global_rank);
     CIRCLE_INPUT_ST.queue = CIRCLE_queue_init();
@@ -90,6 +91,14 @@ void CIRCLE_finalize(void)
     CIRCLE_debug_stream = NULL;
 
     MPI_Finalize();
+}
+
+/*
+ * Set the logging level that libcircle should use.
+ */
+void CIRCLE_enable_logging(enum CIRCLE_loglevel level)
+{
+    CIRCLE_debug_level = level;
 }
 
 /* EOF */

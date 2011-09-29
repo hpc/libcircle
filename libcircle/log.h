@@ -3,16 +3,6 @@
 
 #include <stdio.h>
 
-#ifndef LIBCIRCLE_LOGLEVEL
-    #define LIBCIRCLE_LOGLEVEL 5
-#endif
-
-#define LOG_FATAL (1)
-#define LOG_ERR   (2)
-#define LOG_WARN  (3)
-#define LOG_INFO  (4)
-#define LOG_DBG   (5)
-
 #define LOG(level, ...) do {  \
         if (level <= CIRCLE_debug_level) { \
             fprintf(CIRCLE_debug_stream, "%d %d:%s:%d:", time(NULL),CIRCLE_global_rank, \
