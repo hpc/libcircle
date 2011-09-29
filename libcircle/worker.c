@@ -175,7 +175,7 @@ CIRCLE_worker()
                 MPI_Abort(MPI_COMM_WORLD,LIBCIRCLE_MPI_ERROR);
             if(sptr->request_flag[i])
             {
-                CIRCLE_send_no_work(sptr, i);
+                CIRCLE_send_no_work(i);
                 MPI_Start(&sptr->mpi_state_st->request_request[i]);
             }
         }

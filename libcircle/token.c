@@ -178,7 +178,7 @@ CIRCLE_check_for_term(CIRCLE_state_st *st)
  * This returns a random rank (not yourself)
  */
 int
-CIRCLE_get_next_proc(int current, int rank, int size)
+CIRCLE_get_next_proc(int rank, int size)
 {
     int result = rand() % size;
 
@@ -234,9 +234,7 @@ CIRCLE_wait_on_mpi_request( MPI_Request * req, MPI_Status * stat, int timeout, i
     int size = wait_on_probe(st, st->next_processor, WORK,1,-1, 1);
  */
 int
-CIRCLE_wait_on_probe(CIRCLE_state_st *st, int source, int tag, \
-                     int timeout, int reject_requests, \
-                     int exclude_rank)
+CIRCLE_wait_on_probe(CIRCLE_state_st *st, int source, int tag)
 {
     int flag = 0;
     int i = 0;
@@ -259,7 +257,7 @@ CIRCLE_wait_on_probe(CIRCLE_state_st *st, int source, int tag, \
                 {
                     if(st->request_flag[i])
                     {
-                        CIRCLE_send_no_work(st, i);
+                        CIRCLE_send_no_work(i);
                         MPI_Start(&st->mpi_state_st->request_request[i]);
                     }
 
@@ -315,7 +313,7 @@ CIRCLE_request_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
     st->work_offsets[0] = 0;
 
     /* Wait for an answer... */
-    int size = CIRCLE_wait_on_probe(st, st->next_processor, WORK, 1, -1, -1);
+    int size = CIRCLE_wait_on_probe(st, st->next_processor, WORK);
     
     if(size == TERMINATE)
     {
@@ -325,8 +323,7 @@ CIRCLE_request_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
     if(size == 0)
     {
         LOG(LOG_DBG, "No response from %d", st->next_processor);
-        st->next_processor = CIRCLE_get_next_proc(st->next_processor, \
-            st->rank, st->size);
+        st->next_processor = CIRCLE_get_next_proc(st->rank, st->size);
 
         return 0;
     }
@@ -340,8 +337,7 @@ CIRCLE_request_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
     /* We'll ask somebody else next time */
     int source = st->next_processor;
 
-    st->next_processor = CIRCLE_get_next_proc(st->next_processor, \
-        st->rank, st->size);
+    st->next_processor = CIRCLE_get_next_proc(st->rank, st->size);
 
     int chars = st->work_offsets[1];
     int items = st->work_offsets[0];
@@ -365,7 +361,7 @@ CIRCLE_request_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
     LOG(LOG_DBG, "Getting work from %d, %d items.", source, items);
     
     /* Wait and see if they sent the work over */
-    size = CIRCLE_wait_on_probe(st, source, WORK, -1, -1, 1000000);
+    size = CIRCLE_wait_on_probe(st, source, WORK);
 
     if(size == TERMINATE)
     {
@@ -512,7 +508,7 @@ void CIRCLE_probe_messages(CIRCLE_state_st *st)
 
 /*! \brief Sends a no work reply to someone requesting work. */
 void
-CIRCLE_send_no_work(CIRCLE_state_st *st, int dest)
+CIRCLE_send_no_work(int dest)
 {
     int no_work[2];
 
@@ -703,7 +699,7 @@ CIRCLE_check_for_requests(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
     {
         for(i = 0; i < rcount; i++)
         {
-            CIRCLE_send_no_work(st, requestors[i]);
+            CIRCLE_send_no_work(requestors[i]);
         }
     }
     /* If you get here, then you have work to send AND the CIRCLE_ABORT_FLAG is not set */
