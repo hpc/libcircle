@@ -11,9 +11,6 @@ AC_CONFIG_HEADERS([config.h])
 AC_PROG_CC
 AM_PROG_CC_C_O
 
-# Check for logging options
-X_AC_LIBCIRCLE_LOGGING
-
 # Needed for tests
 X_AC_LIBCIRCLE_CHECK
 
@@ -45,7 +42,6 @@ echo "External Library Support:"
 echo "  MPI ............................................ $have_C_mpi"
 echo
 echo "Build Options:"
-echo "  Logging level .................................. $loglevel"
 echo "  Unit tests ..................................... $x_ac_libcircle_check"
 echo "========================================================"
 echo

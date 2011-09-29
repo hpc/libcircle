@@ -83,7 +83,13 @@ fi
 mkdir auxdir 2>/dev/null
 
 # Remove config.h.in to make sure it is rebuilt
-rm -f config.h.in
+rm -f ./config.h.in
+
+# Make sure we get a fresh aclocal.m4
+rm -f ./aclocal.m4
+
+# Remove any m4 cache we might have
+rm -rf ./autom4te*.cache
 
 set -x
 autoreconf --force --install
