@@ -8,9 +8,21 @@
 #include "libcircle.h"
 #include "token.h"
 #include "lib.h"
+#include "worker.h"
 
 extern CIRCLE_input_st CIRCLE_INPUT_ST;
 
+
+void
+CIRCLE_MPI_error_handler(MPI_Comm *comm, int *err, ...)
+{
+    if(*err == LIBCIRCLE_MPI_ERROR)
+        LOG(LOG_ERR,"Libcircle received abort signal, checkpointing.");
+    else
+        LOG(LOG_ERR,"Libcircle received MPI error, checkpointing.");
+    CIRCLE_checkpoint();
+    return;
+}
 int
 CIRCLE_enqueue(char *element)
 {
@@ -75,6 +87,11 @@ CIRCLE_worker()
     int next_processor;
     
     MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Errhandler circle_err;
+    MPI_Comm_create_errhandler(CIRCLE_MPI_error_handler,&circle_err);
+    MPI_Comm_set_errhandler(MPI_COMM_WORLD,circle_err);
+
+    
     srand(rank);
     rank = CIRCLE_global_rank;
     s.rank = rank;
