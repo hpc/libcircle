@@ -19,7 +19,7 @@ int CIRCLE_init(int argc, char *argv[])
 {
     CIRCLE_debug_stream = stderr;
     CIRCLE_debug_level = LIBCIRCLE_LOGLEVEL;
-
+    CIRCLE_INPUT_ST.queue = CIRCLE_queue_init();
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &CIRCLE_global_rank);
 
@@ -58,7 +58,21 @@ void CIRCLE_begin(void)
 {
     CIRCLE_worker();
 }
+/*
+ * Call this function to checkpoint libcircle's distributed queue.  Each rank writes a file called circle<rank>.txt
+ */
+void CIRCLE_checkpoint()
+{
+    _CIRCLE_checkpoint();
+}
 
+/*
+ * Used to read restart files.
+ */
+void CIRCLE_read_restarts()
+{
+    _CIRCLE_read_restarts();
+}
 /*
  * Call this function to have all ranks dump a checkpoint file and exit. 
  */

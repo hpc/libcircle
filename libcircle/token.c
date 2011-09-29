@@ -531,7 +531,6 @@ CIRCLE_send_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st,\
 {
     if(count <= 0)
     {
-        LOG(LOG_ERR,"Something is wrong with the amount of work we think we have.");
         return 0;
     }
 /* For termination detection */

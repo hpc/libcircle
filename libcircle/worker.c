@@ -16,6 +16,8 @@ extern CIRCLE_input_st CIRCLE_INPUT_ST;
 void
 CIRCLE_MPI_error_handler(MPI_Comm *comm, int *err, ...)
 {
+    fprintf(stderr,"Aborting...\n");
+    fflush(stderr);
     if(*err == LIBCIRCLE_MPI_ERROR)
         LOG(LOG_ERR,"Libcircle received abort signal, checkpointing.");
     else
@@ -42,7 +44,12 @@ CIRCLE_local_queue_size()
 }
 
 int
-CIRCLE_checkpoint()
+_CIRCLE_read_restarts()
+{
+    return CIRCLE_queue_read(CIRCLE_INPUT_ST.queue, CIRCLE_global_rank);
+}
+int
+_CIRCLE_checkpoint()
 {
     return CIRCLE_queue_write(CIRCLE_INPUT_ST.queue, CIRCLE_global_rank);
 }
@@ -63,25 +70,25 @@ CIRCLE_worker()
     s.mpi_state_st = &mpi_s;
 
     /* Holds work elements */
-    CIRCLE_queue_t queue;
-    CIRCLE_INPUT_ST.queue = &queue;
-    queue.count = 0;
+  //  CIRCLE_queue_t queue;
+//    CIRCLE_INPUT_ST.queue = &queue;
+   // queue.count = 0;
 
     /* Provides an interface to the queue. */
     CIRCLE_handle queue_handle;
     queue_handle.enqueue = &CIRCLE_enqueue;
     queue_handle.dequeue = &CIRCLE_dequeue;
     queue_handle.local_queue_size = &CIRCLE_local_queue_size;
-
+  
     /* Memory for work queue */
-    queue.base = (char*) malloc(sizeof(char) * CIRCLE_MAX_STRING_LEN * CIRCLE_INITIAL_QUEUE_SIZE);
+//    queue.base = (char*) malloc(sizeof(char) * CIRCLE_MAX_STRING_LEN * CIRCLE_INITIAL_QUEUE_SIZE);
     
     /* A pointer to each string in the queue */
-    queue.strings = (char **) malloc(sizeof(char*) * CIRCLE_INITIAL_QUEUE_SIZE);
+  //  queue.strings = (char **) malloc(sizeof(char*) * CIRCLE_INITIAL_QUEUE_SIZE);
     
-    CIRCLE_queue_t * qp = &queue;
-    queue.head = queue.base;
-    queue.end = queue.base + (CIRCLE_MAX_STRING_LEN * CIRCLE_INITIAL_QUEUE_SIZE);
+// CIRCLE_queue_t * qp = &queue;
+   // queue.head = queue.base;
+   // queue.end = queue.base + (CIRCLE_MAX_STRING_LEN * CIRCLE_INITIAL_QUEUE_SIZE);
     int rank = -1;
     int size = -1;
     int next_processor;
@@ -134,20 +141,20 @@ CIRCLE_worker()
     {
         /* Check for and service work requests */
         LOG(LOG_DBG, "Checking for requests...");
-        CIRCLE_check_for_requests(qp,sptr);
+        CIRCLE_check_for_requests(CIRCLE_INPUT_ST.queue,sptr);
         LOG(LOG_DBG, "done");
 
-        if(qp->count == 0)
+        if(CIRCLE_INPUT_ST.queue->count == 0)
         {
             LOG(LOG_DBG, "Requesting work...");
-            if(CIRCLE_request_work(qp,sptr) == TERMINATE)
+            if(CIRCLE_request_work(CIRCLE_INPUT_ST.queue,sptr) == TERMINATE)
                 token = DONE;
             if(token == DONE)
                 LOG(LOG_DBG,"Received termination signal.");
             LOG(LOG_DBG, "Done requesting work");
         }
 
-        if(qp->count > 0)
+        if(CIRCLE_INPUT_ST.queue->count > 0)
         {
             (*(CIRCLE_INPUT_ST.process_cb))(&queue_handle);
         }
@@ -171,7 +178,7 @@ CIRCLE_worker()
             if(MPI_Test(&sptr->mpi_state_st->request_request[i], \
                     &sptr->request_flag[i], &sptr->mpi_state_st->request_status[i]) \
                     != MPI_SUCCESS)
-                MPI_Abort(MPI_COMM_WORLD,-1);
+                MPI_Abort(MPI_COMM_WORLD,LIBCIRCLE_MPI_ERROR);
             if(sptr->request_flag[i])
             {
                 CIRCLE_send_no_work(sptr, i);
