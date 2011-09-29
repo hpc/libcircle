@@ -2,10 +2,11 @@
 #define LOG_H
 
 #include <stdio.h>
+#include <time.h>
 
 #define LOG(level, ...) do {  \
         if (level <= CIRCLE_debug_level) { \
-            fprintf(CIRCLE_debug_stream, "%d %d:%s:%d:", time(NULL),CIRCLE_global_rank, \
+            fprintf(CIRCLE_debug_stream, "%d:%d:%s:%d:", time(NULL) ,CIRCLE_global_rank, \
                 __FILE__, __LINE__); \
             fprintf(CIRCLE_debug_stream, __VA_ARGS__); \
             fprintf(CIRCLE_debug_stream, "\n"); \
