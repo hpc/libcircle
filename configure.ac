@@ -1,4 +1,3 @@
-AC_PREREQ([2.68])
 AC_INIT([LibCircle], [0.1], [github-hpc@lanl.gov], [libcircle],
         [http://github.com/hpc/libcircle])
 
@@ -6,7 +5,7 @@ AC_INIT([LibCircle], [0.1], [github-hpc@lanl.gov], [libcircle],
 AC_CONFIG_AUX_DIR(auxdir)
 AC_CONFIG_MACRO_DIR([m4])
 
-AM_INIT_AUTOMAKE([1.10 -Wall no-define])
+AM_INIT_AUTOMAKE([-Wall no-define])
 AC_CONFIG_HEADERS([config.h])
 
 # Check for compilers.
@@ -17,7 +16,6 @@ AM_PROG_CC_C_O
 X_AC_LIBCIRCLE_LOGGING
 
 # Needed for tests
-PKG_CHECK_MODULES([CHECK], [check >= 0.9.4])
 
 LT_INIT([disable-static])
 

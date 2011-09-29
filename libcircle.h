@@ -48,6 +48,11 @@ void CIRCLE_cb_process(CIRCLE_cb func);
 void CIRCLE_begin(void);
 
 /*
+ * Call this function to have all ranks dump a checkpoint file and exit. 
+ */
+void CIRCLE_abort(void);
+
+/*
  * After your program has executed, give libcircle a chance to clean up after
  * itself by calling this. This should be called after all libcircle API calls.
  */
