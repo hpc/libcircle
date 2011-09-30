@@ -128,7 +128,7 @@ CIRCLE_queue_push(CIRCLE_queue_t *qp, char *str)
         return -1;
     }
 
-    LOG(LOG_DBG, "Pushing \"%s\" onto a queue of count %d.", str, qp->count);
+    //LOG(LOG_DBG, "Pushing \"%s\" onto a queue of count %d.", str, qp->count);
 
     /* Set our write location to the end of the current strings array. */
     qp->strings[qp->count] = qp->head;
@@ -176,7 +176,7 @@ CIRCLE_queue_pop(CIRCLE_queue_t *qp, char *str)
     strcpy(str, qp->strings[qp->count-1]);
     qp->count = qp->count - 1;
 
-    LOG(LOG_DBG, "Poping a string from the queue: \"%s\".", str);
+    //LOG(LOG_DBG, "Poping a string from the queue: \"%s\".", str);
 
     return 0;
 }

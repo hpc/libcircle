@@ -1,5 +1,7 @@
 #include <mpi.h>
-
+#ifndef __GNUC__
+#define __inline__ inline
+#endif
 #include "libcircle.h"
 #include "log.h"
 #include "lib.h"
@@ -16,15 +18,13 @@ CIRCLE_input_st CIRCLE_INPUT_ST;
  * Initialize internal state needed by libcircle. This should be called before
  * any other libcircle API call.
  */
-int CIRCLE_init(int argc, char *argv[])
+__inline__ int CIRCLE_init(int argc, char *argv[])
 {
     CIRCLE_debug_stream = stdout;
     CIRCLE_debug_level = LOG_FATAL;
-
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &CIRCLE_global_rank);
     CIRCLE_INPUT_ST.queue = CIRCLE_queue_init();
-
     return CIRCLE_global_rank;
 }
 
@@ -33,7 +33,7 @@ int CIRCLE_init(int argc, char *argv[])
  * libcircle about our function which creates an initial workload. This call
  * is optional.
  */
-void CIRCLE_cb_create(CIRCLE_cb func)
+__inline__ void CIRCLE_cb_create(CIRCLE_cb func)
 {
     CIRCLE_INPUT_ST.create_cb = func;
 }
@@ -42,13 +42,12 @@ void CIRCLE_cb_create(CIRCLE_cb func)
  * After you give libcircle a way to create work, you need to tell it how that
  * work should be processed.
  */
-void CIRCLE_cb_process(CIRCLE_cb func)
+__inline__ void CIRCLE_cb_process(CIRCLE_cb func)
 {
     if(CIRCLE_INPUT_ST.create_cb == NULL)
     {
         CIRCLE_INPUT_ST.create_cb = func;
     }
-
     CIRCLE_INPUT_ST.process_cb = func;
 }
 
@@ -56,14 +55,14 @@ void CIRCLE_cb_process(CIRCLE_cb func)
  * Once you've defined and told libcircle about your callbacks, use this to
  * execute your program.
  */
-void CIRCLE_begin(void)
+__inline__ void CIRCLE_begin(void)
 {
     CIRCLE_worker();
 }
 /*
  * Call this function to checkpoint libcircle's distributed queue.  Each rank writes a file called circle<rank>.txt
  */
-void CIRCLE_checkpoint(void)
+__inline__ void CIRCLE_checkpoint(void)
 {
     _CIRCLE_checkpoint();
 }
@@ -71,14 +70,14 @@ void CIRCLE_checkpoint(void)
 /*
  * Used to read restart files.
  */
-void CIRCLE_read_restarts(void)
+__inline__ void CIRCLE_read_restarts(void)
 {
     _CIRCLE_read_restarts();
 }
 /*
  * Call this function to have all ranks dump a checkpoint file and exit. 
  */
-void CIRCLE_abort(void)
+__inline__ void CIRCLE_abort(void)
 {
     CIRCLE_bcast_abort();
 }
@@ -87,17 +86,16 @@ void CIRCLE_abort(void)
  * After your program has executed, give libcircle a chance to clean up after
  * itself by calling this. This should be called after all libcircle API calls.
  */
-void CIRCLE_finalize(void)
+__inline__ void CIRCLE_finalize(void)
 {
     CIRCLE_debug_stream = NULL;
-
     MPI_Finalize();
 }
 
 /*
  * Set the logging level that libcircle should use.
  */
-void CIRCLE_enable_logging(enum CIRCLE_loglevel level)
+__inline__ void CIRCLE_enable_logging(enum CIRCLE_loglevel level)
 {
     CIRCLE_debug_level = level;
 }

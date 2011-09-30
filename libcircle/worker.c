@@ -56,17 +56,16 @@ _CIRCLE_checkpoint()
 int
 CIRCLE_worker()
 {
-    double start_time;
     int token = WHITE;
     int token_partner;
     
     /* Holds all worker state */
-    CIRCLE_state_st s;
-    CIRCLE_state_st * sptr = &s;
+    CIRCLE_state_st local_state;
+    CIRCLE_state_st * sptr = &local_state;
 
     /* Holds all mpi state */
     CIRCLE_mpi_state_st mpi_s;
-    s.mpi_state_st = &mpi_s;
+    local_state.mpi_state_st = &mpi_s;
 
     /* Holds work elements */
 
@@ -87,73 +86,73 @@ CIRCLE_worker()
     MPI_Errhandler circle_err;
     MPI_Comm_create_errhandler(CIRCLE_MPI_error_handler,&circle_err);
     MPI_Comm_set_errhandler(MPI_COMM_WORLD,circle_err);
-
     
     srand(rank);
     rank = CIRCLE_global_rank;
-    s.rank = rank;
-    s.size = size;
-    s.token = WHITE;
+    local_state.rank = rank;
+    local_state.size = size;
+    local_state.token = WHITE;
     next_processor = (rank+1) % size;
     token_partner = (rank-1)%size;
-    s.next_processor = (rank+1) % size;
-    s.token_partner = (rank-1)%size;
+    local_state.next_processor = (rank+1) % size;
+    local_state.token_partner = (rank-1)%size;
     if(token_partner < 0) token_partner = size-1;
    
-    /* Initial state */
-    s.have_token = 0;
-    s.term_flag = 0;
-    s.work_flag = 0;
-    s.work_pending_request = 0;
-    s.request_pending_receive = 0;
-    s.term_pending_receive = 0;
-    s.incoming_token = BLACK;
-    s.request_offsets = (unsigned int*) calloc(CIRCLE_INITIAL_QUEUE_SIZE,sizeof(unsigned int));
-    s.work_offsets = (unsigned int*) calloc(CIRCLE_INITIAL_QUEUE_SIZE,sizeof(unsigned int));
-    s.mpi_state_st->request_status = (MPI_Status *) malloc(sizeof(MPI_Status)*size);
+    /* Initial local state */
+    local_state.have_token = 0;
+    local_state.term_flag = 0;
+    local_state.work_flag = 0;
+    local_state.work_pending_request = 0;
+    local_state.request_pending_receive = 0;
+    local_state.term_pending_receive = 0;
+    local_state.incoming_token = BLACK;
+    local_state.request_offsets = (unsigned int*) calloc(CIRCLE_INITIAL_QUEUE_SIZE,sizeof(unsigned int));
+    local_state.work_offsets = (unsigned int*) calloc(CIRCLE_INITIAL_QUEUE_SIZE,sizeof(unsigned int));
+    local_state.mpi_state_st->request_status = (MPI_Status *) malloc(sizeof(MPI_Status)*size);
     int i = 0;
-    s.request_flag = (int *) calloc(size,sizeof(int));
-    s.request_recv_buf = (int *) calloc(size,sizeof(int));
-    s.mpi_state_st->request_request = (MPI_Request*) malloc(sizeof(MPI_Request)*size);
+    local_state.request_flag = (int *) calloc(size,sizeof(int));
+    local_state.request_recv_buf = (int *) calloc(size,sizeof(int));
+    local_state.mpi_state_st->request_request = (MPI_Request*) malloc(sizeof(MPI_Request)*size);
     for(i = 0; i < size; i++)
-        s.mpi_state_st->request_request[i] = MPI_REQUEST_NULL;
-    s.work_request_tries = 0;
+        local_state.mpi_state_st->request_request[i] = MPI_REQUEST_NULL;
+    local_state.work_request_tries = 0;
     
     /* Master rank starts out with the initial data creation */
     if(rank == 0)
     {
         (*(CIRCLE_INPUT_ST.create_cb))(&queue_handle);
-        s.have_token = 1;
+        local_state.have_token = 1;
     }
-    start_time = MPI_Wtime();
     /* Loop until done */
     while(token != DONE)
     {
         /* Check for and service work requests */
-        LOG(LOG_DBG, "Checking for requests...");
+        //LOG(LOG_DBG, "Checking for requestlocal_state...");
         CIRCLE_check_for_requests(CIRCLE_INPUT_ST.queue,sptr);
 
+        /* If I have no work, request work from another rank */
         if(CIRCLE_INPUT_ST.queue->count == 0)
         {
-            LOG(LOG_DBG, "Requesting work...");
+          //  LOG(LOG_DBG, "Requesting work...");
             work_status = CIRCLE_request_work(CIRCLE_INPUT_ST.queue,sptr);
             if(work_status == TERMINATE)
             {
                 token = DONE;
                 LOG(LOG_DBG,"Received termination signal.");
             }
-            LOG(LOG_DBG, "Done requesting work");
+            //LOG(LOG_DBG, "Done requesting work");
         }
-
+        
+        /* If I have some work, process one work item */
         if(CIRCLE_INPUT_ST.queue->count > 0 && !CIRCLE_ABORT_FLAG)
         {
-            LOG(LOG_DBG,"Calling user callback.");
+           // LOG(LOG_DBG,"Calling user callback.");
             (*(CIRCLE_INPUT_ST.process_cb))(&queue_handle);
         }
-        /* If you get here, then you have no work.  You are idle. */
+        /* If I don't have work, check for termination */
         else if(token != DONE)
         {
-            LOG(LOG_DBG, "Checking for termination...");
+           // LOG(LOG_DBG, "Checking for termination...");
             term_status = CIRCLE_check_for_term(sptr);
             if(term_status == TERMINATE)
             {
@@ -163,7 +162,7 @@ CIRCLE_worker()
         }
     }
 
-      
+    /* Make sure that all pending work requests are answered. */
     for(j = 0; j < sptr->size; j++)
      for(i = 0; i < sptr->size; i++)
         if(i != sptr->rank)
