@@ -14,8 +14,9 @@ AM_PROG_CC_C_O
 # Needed for tests
 X_AC_LIBCIRCLE_CHECK
 
-# Pull in libtool
-LT_INIT()
+# Pull in libtool. We need to support ancient autotools, so don't use LT_INIT.
+#LT_INIT
+AC_PROG_LIBTOOL
 
 # Checks for typedefs, structs, and compiler options.
 AC_TYPE_SIZE_T
