@@ -15,7 +15,7 @@
     } while (0)
 
 extern FILE *CIRCLE_debug_stream;
-extern int CIRCLE_debug_level;
+extern enum CIRCLE_loglevel CIRCLE_debug_level;
 extern int CIRCLE_global_rank;
 
 #endif /* LOG_H */

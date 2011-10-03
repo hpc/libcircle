@@ -67,9 +67,8 @@ typedef struct CIRCLE_state_st
     int work_request_tries;
 } CIRCLE_state_st;
 
-void CIRCLE_probe_messages        ( CIRCLE_state_st *st);
+int  CIRCLE_get_next_proc         ( int rank, int size );
 void CIRCLE_send_no_work          ( int dest);
-void CIRCLE_cleanup_work_messages ( CIRCLE_state_st *st );
 int  CIRCLE_check_for_term        ( CIRCLE_state_st *st );
 int  CIRCLE_wait_on_probe         ( CIRCLE_state_st *st, int source, int tag);
 
