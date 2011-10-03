@@ -82,17 +82,17 @@ fi
 # make sure that auxdir exists
 mkdir auxdir 2>/dev/null
 
-# Remove config.h.in to make sure it is rebuilt
-rm -f ./config.h.in
-
-# Make sure we get a fresh aclocal.m4
-rm -f ./aclocal.m4
-
-# Remove any m4 cache we might have
-rm -rf ./autom4te*.cache
-
 set -x
-autoreconf --force --install
+
+rm -f ./config.h.in
+rm -f ./aclocal.m4
+rm -rf ./autom4te*.cache
+aclocal -I m4 -I auxdir $ACLOCAL_FLAGS || exit 1
+libtoolize --automake --copy --force || exit 1
+autoheader || exit 1
+automake --add-missing --copy --force-missing || exit 1
+autoconf --force --warnings=no-obsolete || exit 1
+
 set +x
 
 if [ -e config.status ]; then
