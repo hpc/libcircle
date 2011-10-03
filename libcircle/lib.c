@@ -9,7 +9,7 @@
 #include "token.h"
 
 FILE *CIRCLE_debug_stream;
-int  CIRCLE_debug_level;
+enum CIRCLE_loglevel CIRCLE_debug_level;
 int  CIRCLE_global_rank;
 
 CIRCLE_input_st CIRCLE_INPUT_ST;
@@ -21,7 +21,7 @@ CIRCLE_input_st CIRCLE_INPUT_ST;
 __inline__ int CIRCLE_init(int argc, char *argv[])
 {
     CIRCLE_debug_stream = stdout;
-    CIRCLE_debug_level = LOG_FATAL;
+    CIRCLE_debug_level = CIRCLE_LOG_FATAL;
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &CIRCLE_global_rank);
     CIRCLE_INPUT_ST.queue = CIRCLE_queue_init();

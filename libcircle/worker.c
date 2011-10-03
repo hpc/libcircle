@@ -18,9 +18,9 @@ void
 CIRCLE_MPI_error_handler(MPI_Comm *comm, int *err, ...)
 {
     if(*err == LIBCIRCLE_MPI_ERROR)
-        LOG(LOG_ERR,"Libcircle received abort signal, checkpointing.");
+        LOG(CIRCLE_LOG_ERR,"Libcircle received abort signal, checkpointing.");
     else
-        LOG(LOG_ERR,"Libcircle received MPI error, checkpointing.");
+        LOG(CIRCLE_LOG_ERR,"Libcircle received MPI error, checkpointing.");
     CIRCLE_checkpoint();
     return;
 }
@@ -87,37 +87,37 @@ CIRCLE_work_loop(CIRCLE_state_st * sptr,CIRCLE_handle * queue_handle)
     while(token != DONE)
     {
         /* Check for and service work requests */
-        //LOG(LOG_DBG, "Checking for requestlocal_state...");
+        //LOG(CIRCLE_LOG_DBG, "Checking for requestlocal_state...");
         CIRCLE_check_for_requests(CIRCLE_INPUT_ST.queue,sptr);
 
         /* If I have no work, request work from another rank */
         if(CIRCLE_INPUT_ST.queue->count == 0)
         {
-          //  LOG(LOG_DBG, "Requesting work...");
+          //  LOG(CIRCLE_LOG_DBG, "Requesting work...");
             work_status = CIRCLE_request_work(CIRCLE_INPUT_ST.queue,sptr);
             if(work_status == TERMINATE)
             {
                 token = DONE;
-                LOG(LOG_DBG,"Received termination signal.");
+                LOG(CIRCLE_LOG_DBG,"Received termination signal.");
             }
-            //LOG(LOG_DBG, "Done requesting work");
+            //LOG(CIRCLE_LOG_DBG, "Done requesting work");
         }
         
         /* If I have some work, process one work item */
         if(CIRCLE_INPUT_ST.queue->count > 0 && !CIRCLE_ABORT_FLAG)
         {
-           // LOG(LOG_DBG,"Calling user callback.");
+           // LOG(CIRCLE_LOG_DBG,"Calling user callback.");
             (*(CIRCLE_INPUT_ST.process_cb))(queue_handle);
         }
         /* If I don't have work, check for termination */
         else if(token != DONE)
         {
-           // LOG(LOG_DBG, "Checking for termination...");
+           // LOG(CIRCLE_LOG_DBG, "Checking for termination...");
             term_status = CIRCLE_check_for_term(sptr);
             if(term_status == TERMINATE)
             {
                 token = DONE;
-                LOG(LOG_DBG,"Received termination signal.");
+                LOG(CIRCLE_LOG_DBG,"Received termination signal.");
             }
         }
     }
@@ -197,7 +197,7 @@ CIRCLE_worker()
     if(CIRCLE_ABORT_FLAG)
         CIRCLE_checkpoint();
     MPI_Barrier(MPI_COMM_WORLD);
-    LOG(LOG_DBG,"Exiting.");
+    LOG(CIRCLE_LOG_DBG,"Exiting.");
     return 0;
 }
 

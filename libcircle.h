@@ -11,11 +11,11 @@
  */
 typedef enum CIRCLE_loglevel
 {
-    LOG_FATAL = 1,
-    LOG_ERR   = 2,
-    LOG_WARN  = 3,
-    LOG_INFO  = 4,
-    LOG_DBG   = 5
+    CIRCLE_LOG_FATAL = 1,
+    CIRCLE_LOG_ERR   = 2,
+    CIRCLE_LOG_WARN  = 3,
+    CIRCLE_LOG_INFO  = 4,
+    CIRCLE_LOG_DBG   = 5
 } CIRCLE_loglevel;
 
 /*
