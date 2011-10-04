@@ -193,6 +193,7 @@ CIRCLE_worker()
     int size = -1;
     int next_processor = -1;
     int token_partner = -1;
+    int i = -1;
     /* Holds all worker state */
     CIRCLE_state_st local_state;
     CIRCLE_state_st * sptr = &local_state;
@@ -237,6 +238,12 @@ CIRCLE_worker()
     CIRCLE_cleanup_mpi_messages(sptr);
     if(CIRCLE_ABORT_FLAG)
         CIRCLE_checkpoint();
+    int * total_objects_processed_array = (int *) malloc(sizeof(int) * size);
+    MPI_Gather(local_objects_processed,1,MPI_INT, &total_objects_processed_array,1,MPI_INT,0,MPI_COMM_WORLD);
+    for(i = 0; i < size; i++)
+    {
+        LOG(CIRCLE_LOG_INFO,"Rank %d\tObjects Processed %d\t%lf%%\n",i,total_objects_processed_array[i],(double)total_objects_processed/(double)total_objects_processed_array[i]*100.0);
+    }
     MPI_Reduce(&local_objects_processed,&total_objects_processed,1,MPI_INT,MPI_SUM,0,MPI_COMM_WORLD);
     if(rank == 0)
         LOG(CIRCLE_LOG_INFO,"Total Objects Processed: %d\n",total_objects_processed);
