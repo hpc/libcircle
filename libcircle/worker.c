@@ -229,6 +229,7 @@ CIRCLE_worker()
     total_objects_processed = 0;
     CIRCLE_init_local_state(sptr,size);
     /* Master rank starts out with the initial data creation */
+    int * total_objects_processed_array = (int *) calloc(size,sizeof(int));
     if(rank == 0)
     {
         (*(CIRCLE_INPUT_ST.create_cb))(&queue_handle);
@@ -238,13 +239,15 @@ CIRCLE_worker()
     CIRCLE_cleanup_mpi_messages(sptr);
     if(CIRCLE_ABORT_FLAG)
         CIRCLE_checkpoint();
-    int * total_objects_processed_array = (int *) malloc(sizeof(int) * size);
-    MPI_Gather(local_objects_processed,1,MPI_INT, &total_objects_processed_array,1,MPI_INT,0,MPI_COMM_WORLD);
-    for(i = 0; i < size; i++)
-    {
-        LOG(CIRCLE_LOG_INFO,"Rank %d\tObjects Processed %d\t%lf%%\n",i,total_objects_processed_array[i],(double)total_objects_processed/(double)total_objects_processed_array[i]*100.0);
-    }
+    MPI_Gather(&local_objects_processed,1,MPI_INT, &total_objects_processed_array[0],1,MPI_INT,0,MPI_COMM_WORLD);
     MPI_Reduce(&local_objects_processed,&total_objects_processed,1,MPI_INT,MPI_SUM,0,MPI_COMM_WORLD);
+    if(rank == 0)
+    {
+        for(i = 0; i < size; i++)
+        {
+            LOG(CIRCLE_LOG_INFO,"Rank %d\tObjects Processed %d\t%lf%%\n",i,total_objects_processed_array[i],(double)total_objects_processed_array[i]/(double)total_objects_processed*100.0);
+        }
+    }
     if(rank == 0)
         LOG(CIRCLE_LOG_INFO,"Total Objects Processed: %d\n",total_objects_processed);
     return 0;
