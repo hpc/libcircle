@@ -11,6 +11,8 @@
 #include "worker.h"
 
 extern CIRCLE_input_st CIRCLE_INPUT_ST;
+int local_objects_processed = 0;
+int total_objects_processed = 0;
 
 int CIRCLE_ABORT_FLAG = 0;
 
@@ -108,6 +110,7 @@ CIRCLE_work_loop(CIRCLE_state_st * sptr,CIRCLE_handle * queue_handle)
         {
            // LOG(CIRCLE_LOG_DBG,"Calling user callback.");
             (*(CIRCLE_INPUT_ST.process_cb))(queue_handle);
+            local_objects_processed++;
         }
         /* If I don't have work, check for termination */
         else if(token != DONE)
@@ -185,6 +188,8 @@ CIRCLE_worker()
     local_state.token_partner = (rank-1)%size;
     if(token_partner < 0) token_partner = size-1;
      /* Initial local state */
+    local_objects_processed = 0;
+    total_objects_processed = 0;
     CIRCLE_init_local_state(sptr,size);
     /* Master rank starts out with the initial data creation */
     if(rank == 0)
@@ -196,7 +201,9 @@ CIRCLE_worker()
     CIRCLE_cleanup_mpi_messages(sptr);
     if(CIRCLE_ABORT_FLAG)
         CIRCLE_checkpoint();
-    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Reduce(&local_objects_processed,&total_objects_processed,1,MPI_INT,MPI_SUM,0,MPI_COMM_WORLD);
+    if(rank == 0)
+        LOG(CIRCLE_LOG_INFO,"Total Objects Processed: %d\n",total_objects_processed);
     LOG(CIRCLE_LOG_DBG,"Exiting.");
     return 0;
 }

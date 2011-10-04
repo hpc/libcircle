@@ -238,11 +238,11 @@ CIRCLE_wait_on_probe(CIRCLE_state_st *st, int source, int tag)
 int
 CIRCLE_request_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
 {
+    LOG(CIRCLE_LOG_DBG, "Sending work request to %d...",st->next_processor);
+
     int temp_buffer = 3;
     if(CIRCLE_ABORT_FLAG)
         temp_buffer = ABORT;
-
-    //LOG(CIRCLE_LOG_DBG, "Sending work request to %d...",st->next_processor);
 
     /* Send work request. */
     MPI_Send(&temp_buffer, 1, MPI_INT, st->next_processor, \
@@ -289,7 +289,7 @@ CIRCLE_request_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
     }
     else if(items == 0)
     {
-        //LOG(CIRCLE_LOG_DBG, "Received no work.");
+        LOG(CIRCLE_LOG_DBG, "Received no work.");
         return 0;
     }
     else if(items == ABORT)
@@ -299,7 +299,7 @@ CIRCLE_request_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
         return ABORT;
     }
 
-    //LOG(CIRCLE_LOG_DBG, "Getting work from %d, %d items.", source, items);
+    LOG(CIRCLE_LOG_DBG, "Getting work from %d, %d items.", source, items);
     
     /* Wait and see if they sent the work over */
     size = CIRCLE_wait_on_probe(st, source, WORK);
@@ -367,7 +367,7 @@ CIRCLE_send_no_work(int dest)
     MPI_Isend(&no_work, 1, MPI_INT, dest, WORK, MPI_COMM_WORLD, &r);
     MPI_Wait(&r, MPI_STATUS_IGNORE);
 
-    //LOG(CIRCLE_LOG_DBG, "Response sent to %d, have no work.", dest);
+    LOG(CIRCLE_LOG_DBG, "Response sent to %d, have no work.", dest);
 }
 
 /*! \brief Distributes a random amount of the local work queue to the n requestors */
@@ -385,7 +385,7 @@ CIRCLE_send_work_to_many(CIRCLE_queue_t *qp, CIRCLE_state_st *st,\
     /* Random number between rcount+1 and qp->count */
     int total_amount = rand() % (qp->count)+1;
 
-    //LOG(CIRCLE_LOG_DBG, "Queue size: %d, Total_amount: %d", qp->count, total_amount);
+    LOG(CIRCLE_LOG_DBG, "Queue size: %d, Total_amount: %d", qp->count, total_amount);
     /* Get size of chunk */
     int increment = total_amount / rcount;
 
@@ -407,6 +407,7 @@ CIRCLE_send_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st,\
 {
     if(count <= 0)
     {
+        CIRCLE_send_no_work(dest);
         return 0;
     }
     /* For termination detection */
@@ -453,7 +454,7 @@ CIRCLE_send_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st,\
     /* offsets[qp->count - qp->count/2+2]  is the size of the last string */
     st->request_offsets[count + 2] = strlen(qp->strings[qp->count - 1]);
 
-    //LOG(CIRCLE_LOG_DBG, "\tSending offsets for %d items to %d...",st->request_offsets[0], dest);
+    LOG(CIRCLE_LOG_DBG, "\tSending offsets for %d items to %d...",st->request_offsets[0], dest);
 
     MPI_Ssend(st->request_offsets, st->request_offsets[0]+2, \
         MPI_INT, dest, WORK, MPI_COMM_WORLD);
@@ -463,7 +464,7 @@ CIRCLE_send_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st,\
     MPI_Ssend(b, (diff + 1) * sizeof(char), MPI_BYTE, dest, WORK, MPI_COMM_WORLD);
     qp->count = qp->count - count;
 
-    //LOG(CIRCLE_LOG_DBG, "sent %d items to %d.", st->request_offsets[0], dest);
+    LOG(CIRCLE_LOG_DBG, "Sent %d items to %d.", st->request_offsets[0], dest);
 
     return 0;
 }
@@ -515,6 +516,7 @@ CIRCLE_check_for_requests(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
                     //LOG(CIRCLE_LOG_DBG,"I am now POISONED.");
                     return ABORT;
                 }
+                LOG(CIRCLE_LOG_DBG,"Received work request from %d\n",i);
                 requestors[rcount++] = i;
                 st->request_flag[i] = 0;
             }
