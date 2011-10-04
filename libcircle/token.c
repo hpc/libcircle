@@ -294,11 +294,6 @@ CIRCLE_request_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
         return ABORT;
     }
 
-<<<<<<< HEAD:libcircle/token.c
-    LOG(CIRCLE_LOG_DBG, "Getting work from %d, %d items.", source, items);
-    
-=======
->>>>>>> d96a5856495e4fb17ee414e2f2a580f0c19edd66:libcircle/token.c
     /* Wait and see if they sent the work over */
     size = CIRCLE_wait_on_probe(st, source, WORK);
 
@@ -356,10 +351,6 @@ CIRCLE_send_no_work(int dest)
     MPI_Isend(&no_work, 1, MPI_INT, dest, WORK, MPI_COMM_WORLD, &r);
     MPI_Wait(&r, MPI_STATUS_IGNORE);
 
-<<<<<<< HEAD:libcircle/token.c
-    LOG(CIRCLE_LOG_DBG, "Response sent to %d, have no work.", dest);
-=======
->>>>>>> d96a5856495e4fb17ee414e2f2a580f0c19edd66:libcircle/token.c
 }
 
 /*! \brief Distributes a random amount of the local work queue to the n requestors */
@@ -376,10 +367,6 @@ CIRCLE_send_work_to_many(CIRCLE_queue_t *qp, CIRCLE_state_st *st,\
 
     int total_amount = rand() % (qp->count)+1;
 
-<<<<<<< HEAD:libcircle/token.c
-    LOG(CIRCLE_LOG_DBG, "Queue size: %d, Total_amount: %d", qp->count, total_amount);
-=======
->>>>>>> d96a5856495e4fb17ee414e2f2a580f0c19edd66:libcircle/token.c
     /* Get size of chunk */
     int increment = total_amount / rcount;
 
@@ -446,23 +433,14 @@ CIRCLE_send_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st,\
     /* offsets[qp->count - qp->count/2+2]  is the size of the last string */
     st->request_offsets[count + 2] = strlen(qp->strings[qp->count - 1]);
 
-<<<<<<< HEAD:libcircle/token.c
-    LOG(CIRCLE_LOG_DBG, "\tSending offsets for %d items to %d...",st->request_offsets[0], dest);
 
-=======
->>>>>>> d96a5856495e4fb17ee414e2f2a580f0c19edd66:libcircle/token.c
     MPI_Ssend(st->request_offsets, st->request_offsets[0]+2, \
         MPI_INT, dest, WORK, MPI_COMM_WORLD);
 
 
     MPI_Ssend(b, (diff + 1) * sizeof(char), MPI_BYTE, dest, WORK, MPI_COMM_WORLD);
     qp->count = qp->count - count;
-
-<<<<<<< HEAD:libcircle/token.c
-    LOG(CIRCLE_LOG_DBG, "Sent %d items to %d.", st->request_offsets[0], dest);
-
-=======
->>>>>>> d96a5856495e4fb17ee414e2f2a580f0c19edd66:libcircle/token.c
+//    LOG(CIRCLE_LOG_DBG, "Sent %d items to %d.", st->request_offsets[0], dest);
     return 0;
 }
 
@@ -512,7 +490,7 @@ CIRCLE_check_for_requests(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
                     CIRCLE_ABORT_FLAG = 1;
                     return ABORT;
                 }
-                LOG(CIRCLE_LOG_DBG,"Received work request from %d\n",i);
+//                LOG(CIRCLE_LOG_DBG,"Received work request from %d\n",i);
                 requestors[rcount++] = i;
                 st->request_flag[i] = 0;
             }
