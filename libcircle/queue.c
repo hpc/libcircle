@@ -1,4 +1,5 @@
-/*
+/*! \file queue.c
+ *  \authors Jharrod LaFon, Jon Bringhurst
  * This file contains functions related to the local queue structure.
  */
 
