@@ -21,7 +21,7 @@ CIRCLE_input_st CIRCLE_INPUT_ST;
 __inline__ int CIRCLE_init(int argc, char *argv[])
 {
     CIRCLE_debug_stream = stdout;
-    CIRCLE_debug_level = CIRCLE_LOG_FATAL;
+    CIRCLE_debug_level = CIRCLE_LOG_INFO;
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &CIRCLE_global_rank);
     CIRCLE_INPUT_ST.queue = CIRCLE_queue_init();

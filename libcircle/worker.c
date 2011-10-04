@@ -1,3 +1,6 @@
+/*! \file worker.c
+ *  \authors Jon Bringhurst, Jharrod LaFon
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <dirent.h>
@@ -11,9 +14,17 @@
 #include "worker.h"
 
 extern CIRCLE_input_st CIRCLE_INPUT_ST;
+int local_objects_processed = 0;
+int total_objects_processed = 0;
 
 int CIRCLE_ABORT_FLAG = 0;
 
+/* 
+ * \brief Function to be called in the event of an MPI error.
+ * This function get registered with MPI to be called
+ * in the event of an MPI Error.  It attempts
+ * to checkpoint.
+ */
 void
 CIRCLE_MPI_error_handler(MPI_Comm *comm, int *err, ...)
 {
@@ -24,35 +35,43 @@ CIRCLE_MPI_error_handler(MPI_Comm *comm, int *err, ...)
     CIRCLE_checkpoint();
     return;
 }
+
+/* \brief Wrapper for pushing an element on the queue */
 int
 CIRCLE_enqueue(char *element)
 {
     return CIRCLE_queue_push(CIRCLE_INPUT_ST.queue, element);
 }
 
+/* \brief Wrapper for popping an element */
 int
 CIRCLE_dequeue(char *element)
 {
     return CIRCLE_queue_pop(CIRCLE_INPUT_ST.queue, element);
 }
 
+/* \brief Wrapper for getting the local queue size */
 int
 CIRCLE_local_queue_size()
 {
     return CIRCLE_INPUT_ST.queue->count;
 }
 
+/* \brief Wrapper for reading in restart files */
 int
 _CIRCLE_read_restarts()
 {
     return CIRCLE_queue_read(CIRCLE_INPUT_ST.queue, CIRCLE_global_rank);
 }
+
+/* \brief Wrapper for checkpointing */
 int
 _CIRCLE_checkpoint()
 {
     return CIRCLE_queue_write(CIRCLE_INPUT_ST.queue, CIRCLE_global_rank);
 }
 
+/* \brief Initializes all variables local to a rank */
 void 
 CIRCLE_init_local_state(CIRCLE_state_st * local_state,int size)
 {
@@ -77,6 +96,16 @@ CIRCLE_init_local_state(CIRCLE_state_st * local_state,int size)
     return;
 }
 
+/* 
+ * \brief Function that actually does work, calls user callback.
+ * This is the main body of execution.  
+ * For every work loop execution, the following happens:
+ * 1) Check for work requests from other ranks.
+ * 2) If this rank has work, call the user callback function.
+ *    If this rank doesn't have work, ask a random rank for work.
+ * 3) If after requesting work, this rank still doesn't have any,
+ *    check for termination conditions.
+ */
 void
 CIRCLE_work_loop(CIRCLE_state_st * sptr,CIRCLE_handle * queue_handle)
 {
@@ -93,26 +122,22 @@ CIRCLE_work_loop(CIRCLE_state_st * sptr,CIRCLE_handle * queue_handle)
         /* If I have no work, request work from another rank */
         if(CIRCLE_INPUT_ST.queue->count == 0)
         {
-          //  LOG(CIRCLE_LOG_DBG, "Requesting work...");
             work_status = CIRCLE_request_work(CIRCLE_INPUT_ST.queue,sptr);
             if(work_status == TERMINATE)
             {
                 token = DONE;
                 LOG(CIRCLE_LOG_DBG,"Received termination signal.");
             }
-            //LOG(CIRCLE_LOG_DBG, "Done requesting work");
         }
-        
         /* If I have some work, process one work item */
         if(CIRCLE_INPUT_ST.queue->count > 0 && !CIRCLE_ABORT_FLAG)
         {
-           // LOG(CIRCLE_LOG_DBG,"Calling user callback.");
             (*(CIRCLE_INPUT_ST.process_cb))(queue_handle);
+            local_objects_processed++;
         }
         /* If I don't have work, check for termination */
         else if(token != DONE)
         {
-           // LOG(CIRCLE_LOG_DBG, "Checking for termination...");
             term_status = CIRCLE_check_for_term(sptr);
             if(term_status == TERMINATE)
             {
@@ -123,6 +148,12 @@ CIRCLE_work_loop(CIRCLE_state_st * sptr,CIRCLE_handle * queue_handle)
     }
     return;
 }
+
+/* 
+ * \brief Responds with no_work to pending work requests.
+ * Answers any pending work requests in case a rank is blocking,
+ * waiting for a response.
+ */
 void 
 CIRCLE_cleanup_mpi_messages(CIRCLE_state_st * sptr)
 {
@@ -146,10 +177,23 @@ CIRCLE_cleanup_mpi_messages(CIRCLE_state_st * sptr)
         }
     return;
 }
+
+/*
+ * \brief Sets up libcircle, calls work loop function
+ * Main worker function.  This function:
+ * Initializes MPI
+ * Initializes internal libcircle data structures
+ * Calls libcircle's main work loop function.
+ * Checkpoints if CIRCLE_abort has been called by a rank. 
+ */
 int
 CIRCLE_worker()
 {
-    int token_partner;
+    int rank = -1;
+    int size = -1;
+    int next_processor = -1;
+    int token_partner = -1;
+    int i = -1;
     /* Holds all worker state */
     CIRCLE_state_st local_state;
     CIRCLE_state_st * sptr = &local_state;
@@ -166,10 +210,6 @@ CIRCLE_worker()
     queue_handle.dequeue = &CIRCLE_dequeue;
     queue_handle.local_queue_size = &CIRCLE_local_queue_size;
   
-    int rank = -1;
-    int size = -1;
-    int next_processor;
-
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Errhandler circle_err;
     MPI_Comm_create_errhandler(CIRCLE_MPI_error_handler,&circle_err);
@@ -180,13 +220,16 @@ CIRCLE_worker()
     local_state.rank = rank;
     local_state.size = size;
     next_processor = (rank+1) % size;
-    token_partner = (rank-1)%size;
+    token_partner = (rank-1) % size;
     local_state.next_processor = (rank+1) % size;
-    local_state.token_partner = (rank-1)%size;
+    local_state.token_partner = (rank-1) % size;
     if(token_partner < 0) token_partner = size-1;
      /* Initial local state */
+    local_objects_processed = 0;
+    total_objects_processed = 0;
     CIRCLE_init_local_state(sptr,size);
     /* Master rank starts out with the initial data creation */
+    int * total_objects_processed_array = (int *) calloc(size,sizeof(int));
     if(rank == 0)
     {
         (*(CIRCLE_INPUT_ST.create_cb))(&queue_handle);
@@ -196,8 +239,17 @@ CIRCLE_worker()
     CIRCLE_cleanup_mpi_messages(sptr);
     if(CIRCLE_ABORT_FLAG)
         CIRCLE_checkpoint();
-    MPI_Barrier(MPI_COMM_WORLD);
-    LOG(CIRCLE_LOG_DBG,"Exiting.");
+    MPI_Gather(&local_objects_processed,1,MPI_INT, &total_objects_processed_array[0],1,MPI_INT,0,MPI_COMM_WORLD);
+    MPI_Reduce(&local_objects_processed,&total_objects_processed,1,MPI_INT,MPI_SUM,0,MPI_COMM_WORLD);
+    if(rank == 0)
+    {
+        for(i = 0; i < size; i++)
+        {
+            LOG(CIRCLE_LOG_INFO,"Rank %d\tObjects Processed %d\t%lf%%\n",i,total_objects_processed_array[i],(double)total_objects_processed_array[i]/(double)total_objects_processed*100.0);
+        }
+    }
+    if(rank == 0)
+        LOG(CIRCLE_LOG_INFO,"Total Objects Processed: %d\n",total_objects_processed);
     return 0;
 }
 
