@@ -14,6 +14,14 @@ AM_PROG_CC_C_O
 # Needed for tests
 X_AC_LIBCIRCLE_CHECK
 
+# Needed for docs
+##AC_CHECK_PROGS([DOXYGEN], [doxygen])
+##if test -z "$DOXYGEN";
+##   then AC_MSG_WARN([Doxygen not found - continuing without Doxygen support])
+##fi
+##AM_CONDITIONAL([HAVE_DOXYGEN], 
+##    [test -n "$DOXYGEN"])AM_COND_IF([HAVE_DOXYGEN], [AC_CONFIG_FILES([doc/Doxyfile])])
+
 # Pull in libtool. We need to support ancient autotools, so don't use LT_INIT.
 #LT_INIT
 AC_PROG_LIBTOOL
