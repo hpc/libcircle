@@ -40,6 +40,8 @@ __inline__ int CIRCLE_init(int argc, char *argv[])
  * Processing and creating work is done through callbacks. Here's how we tell
  * libcircle about our function which creates an initial workload. This call
  * is optional.
+ *
+ * @param func the callback to be used in the creation stage.
  */
 __inline__ void CIRCLE_cb_create(CIRCLE_cb func)
 {
@@ -49,6 +51,8 @@ __inline__ void CIRCLE_cb_create(CIRCLE_cb func)
 /**
  * After you give libcircle a way to create work, you need to tell it how that
  * work should be processed.
+ *
+ * @param func the callback to be used in the process stage.
  */
 __inline__ void CIRCLE_cb_process(CIRCLE_cb func)
 {
@@ -105,6 +109,8 @@ __inline__ void CIRCLE_finalize(void)
 
 /**
  * Set the logging level that libcircle should use.
+ *
+ * @param level the logging level that libcircle should output.
  */
 __inline__ void CIRCLE_enable_logging(enum CIRCLE_loglevel level)
 {
