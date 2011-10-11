@@ -4,9 +4,6 @@
  */
 
 #include <mpi.h>
-#ifndef __GNUC__
-#define __inline__ inline
-#endif
 #include "libcircle.h"
 #include "log.h"
 #include "lib.h"

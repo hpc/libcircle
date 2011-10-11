@@ -23,6 +23,7 @@ AC_PROG_LIBTOOL
 
 # Checks for typedefs, structs, and compiler options.
 AC_TYPE_SIZE_T
+AC_C_INLINE
 
 # Checks for library functs.
 AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
