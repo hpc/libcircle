@@ -179,12 +179,10 @@ int CIRCLE_check_for_term(CIRCLE_state_st *st)
     return 0;
 }
 
-/*! \brief Generates a random rank
- *
- * This returns a random rank (not yourself)
+/**
+ * This returns a random rank (not yourself).
  */
-inline int
-CIRCLE_get_next_proc(int rank, int size)
+inline int CIRCLE_get_next_proc(int rank, int size)
 {
     int result = rand() % size;
 
@@ -196,15 +194,15 @@ CIRCLE_get_next_proc(int rank, int size)
     return result;
 }
 
-/*! \brief Waits on an incoming message.
+/**
+ * @brief Waits on an incoming message.
  * 
  * This function will spin lock waiting on a message to arrive from the
  * given source, with the given tag.  It does *not* receive the message.
  * If a message is pending, it will return it's size.  Otherwise
  * it returns 0.
  */
-int
-CIRCLE_wait_on_probe(CIRCLE_state_st *st, int source, int tag)
+int CIRCLE_wait_on_probe(CIRCLE_state_st *st, int source, int tag)
 {
     int flag = 0;
     int i = 0;
@@ -243,14 +241,14 @@ CIRCLE_wait_on_probe(CIRCLE_state_st *st, int source, int tag)
     }
 }
 
-/*! \brief Requests work from other ranks 
+/**
+ * @brief Requests work from other ranks.
  * 
  * Somewhat complicated, but essentially it requests work from a random 
  * rank.  If it doesn't receive work, a different rank will be asked during
  * the next iteration.
  */
-int
-CIRCLE_request_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
+int CIRCLE_request_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
 {
     LOG(CIRCLE_LOG_DBG, "Sending work request to %d...",st->next_processor);
 
@@ -348,9 +346,11 @@ CIRCLE_request_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
     CIRCLE_queue_print(qp);
     return 0;
 }
-/*! \brief Sends a no work reply to someone requesting work. */
-void
-CIRCLE_send_no_work(int dest)
+
+/**
+ * Sends a no work reply to someone requesting work.
+ */
+void CIRCLE_send_no_work(int dest)
 {
     int no_work[2];
 
@@ -363,9 +363,10 @@ CIRCLE_send_no_work(int dest)
 
 }
 
-/*! \brief Distributes a random amount of the local work queue to the n requestors */
-void
-CIRCLE_send_work_to_many(CIRCLE_queue_t *qp, CIRCLE_state_st *st,\
+/**
+ * Distributes a random amount of the local work queue to the n requestors.
+ */
+void CIRCLE_send_work_to_many(CIRCLE_queue_t *qp, CIRCLE_state_st *st,\
                               int *requestors, int rcount)
 {
     int i = 0;
@@ -391,9 +392,10 @@ CIRCLE_send_work_to_many(CIRCLE_queue_t *qp, CIRCLE_state_st *st,\
     }
 }
 
-/* \brief Sends work to a requestor */
-int
-CIRCLE_send_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st,\
+/**
+ * Sends work to a requestor
+ */
+int CIRCLE_send_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st, \
                      int dest, int count )
 {
     if(count <= 0)
@@ -454,9 +456,10 @@ CIRCLE_send_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st,\
     return 0;
 }
 
-/*! \brief Checks for outstanding work requests */
-int
-CIRCLE_check_for_requests(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
+/**
+ * Checks for outstanding work requests
+ */
+int CIRCLE_check_for_requests(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
 {
     int *requestors = (int *)calloc(st->size, sizeof(int));
     int i = 0;
@@ -536,8 +539,10 @@ CIRCLE_check_for_requests(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
     return 0;
 }
 
-void
-CIRCLE_print_offsets(unsigned int *offsets, int count)
+/**
+ * Print the offsets of a copied queue.
+ */
+void CIRCLE_print_offsets(unsigned int *offsets, int count)
 {
     int i = 0;
 
