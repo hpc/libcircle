@@ -1,5 +1,5 @@
-/*! \file queue.c
- *  \authors Jharrod LaFon, Jon Bringhurst
+/**
+ * @file
  * This file contains functions related to the local queue structure.
  */
 
@@ -14,8 +14,14 @@
 
 extern int CIRCLE_ABORT_FLAG;
 
-CIRCLE_queue_t *
-CIRCLE_queue_init(void)
+/**
+ * Allocate memory for the basic queue structure used by libcircle.
+ *
+ * @return a reference to the allocated queue structure.
+ *
+ * @see CIRCLE_queue_free
+ */
+CIRCLE_queue_t * CIRCLE_queue_init(void)
 {
     CIRCLE_queue_t * qp;
 
@@ -37,8 +43,13 @@ CIRCLE_queue_init(void)
     return qp;
 }
 
-int
-CIRCLE_queue_free(CIRCLE_queue_t *qp)
+/**
+ * Free the memory used by a libcircle basic queue structure.
+ *
+ * @param qp the reference to the queue that should be freed.
+ * @return a negative value on failure, a positive one on success.
+ */
+int CIRCLE_queue_free(CIRCLE_queue_t *qp)
 {
     if(qp)
     {
@@ -60,8 +71,10 @@ CIRCLE_queue_free(CIRCLE_queue_t *qp)
     return 1;
 }
 
-/*
- * Dump the raw contents of the queue structure.
+/**
+ * Dump the raw contents of the queue structure to logging.
+ *
+ * @param qp the queue structure that should be dumped.
  */
 void
 CIRCLE_queue_dump(CIRCLE_queue_t *qp)
@@ -83,11 +96,12 @@ CIRCLE_queue_dump(CIRCLE_queue_t *qp)
     }
 }
 
-/*
+/**
  * Pretty-print the queue data structure.
+ *
+ * @param qp the queue structure that should be pretty-printed.
  */
-void
-CIRCLE_queue_print(CIRCLE_queue_t *qp)
+void CIRCLE_queue_print(CIRCLE_queue_t *qp)
 {
     int i = 0;
 
@@ -96,11 +110,16 @@ CIRCLE_queue_print(CIRCLE_queue_t *qp)
        LOG(CIRCLE_LOG_DBG, "\t[%p][%d] %s", qp->strings[i], i, qp->strings[i]);
     }
 }
-/*
- * Push the specified string onto the work queue.
+
+/**
+ * Push the specified string onto the queue structure.
+ *
+ * @param qp the queue structure to push the value onto.
+ * @param str the string value to push onto the queue.
+ *
+ * @return a positive number on success, a negative one on failure.
  */
-int
-CIRCLE_queue_push(CIRCLE_queue_t *qp, char *str)
+int CIRCLE_queue_push(CIRCLE_queue_t *qp, char *str)
 {
     if(!str)
     {
@@ -149,11 +168,15 @@ CIRCLE_queue_push(CIRCLE_queue_t *qp, char *str)
     return 0;
 }
 
-/*
+/**
  * Removes an item from the queue and returns a copy.
+ *
+ * @param qp the queue structure to remove the item from.
+ * @param str a reference to the value removed.
+ *
+ * @return a positive value on success, a negative one otherwise.
  */
-int
-CIRCLE_queue_pop(CIRCLE_queue_t *qp, char *str)
+int CIRCLE_queue_pop(CIRCLE_queue_t *qp, char *str)
 {
     if(!qp)
     {
@@ -182,7 +205,14 @@ CIRCLE_queue_pop(CIRCLE_queue_t *qp, char *str)
     return 0;
 }
 
-
+/**
+ * Read a queue checkpoint file into working memory.
+ *
+ * @param qp the queue structure to read the checkpoint file into.
+ * @param rank the node which holds the checkpoint file.
+ *
+ * @return a positive value on success, a negative one otherwise.
+ */
 int CIRCLE_queue_read(CIRCLE_queue_t * qp, int rank)
 {
     if(!qp)
@@ -222,6 +252,14 @@ int CIRCLE_queue_read(CIRCLE_queue_t * qp, int rank)
     return fclose(checkpoint_file);
 }
 
+/**
+ * Write out the queue structure to a checkpoint file.
+ *
+ * @param qp the queue structure to be written to the checkpoint file.
+ * @param rank the node which is writing out the checkpoint file.
+ *
+ * @return a positive value on success, negative otherwise.
+ */
 int CIRCLE_queue_write(CIRCLE_queue_t * qp, int rank)
 {
     LOG(CIRCLE_LOG_INFO,"Writing checkpoint file with %d elements.",qp->count);
