@@ -16,44 +16,16 @@ typedef struct CIRCLE_queue_t
     int count;      /* The number of strings */
 } CIRCLE_queue_t;
 
-/*
- * Initialize a queue.
- */
 CIRCLE_queue_t *CIRCLE_queue_init(void);
+int  CIRCLE_queue_free (CIRCLE_queue_t *qp);
 
-/*
- * Free a queue.
- */
-int CIRCLE_queue_free(CIRCLE_queue_t *qp);
+int CIRCLE_queue_push(CIRCLE_queue_t *qp, char *str);
+int CIRCLE_queue_pop (CIRCLE_queue_t *qp, char *str);
 
-/*
- * Dump the raw contents of the local queue structure.
- */
-void CIRCLE_queue_dump(CIRCLE_queue_t *qp);
-
-/*
- * Pretty-print the contents of the local queue structure.
- */
+void CIRCLE_queue_dump (CIRCLE_queue_t *qp);
 void CIRCLE_queue_print(CIRCLE_queue_t *qp);
 
-/*
- * Pushes the specified string onto the work queue.
- */
-int CIRCLE_queue_push(CIRCLE_queue_t *qp, char *str);
-
-/*
- * Removes a string from the queue and returns a copy of it.
- */
-int CIRCLE_queue_pop(CIRCLE_queue_t * qp, char *str);
-
-/*
- * Write a queue to a file named circle<rank>.txt
- */
-int CIRCLE_queue_write(CIRCLE_queue_t * qp, int rank);
-
-/*
- * Read a queue from a checkpoint file named circle<rank>.txt 
- */
-int CIRCLE_queue_read(CIRCLE_queue_t * qp, int rank);
+int  CIRCLE_queue_write(CIRCLE_queue_t *qp, int rank);
+int  CIRCLE_queue_read (CIRCLE_queue_t *qp, int rank);
 
 #endif /* QUEUE_H */
