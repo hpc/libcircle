@@ -10,10 +10,16 @@
 #include "worker.h"
 #include "token.h"
 
+/** The debug stream for all logging messages. */
 FILE *CIRCLE_debug_stream;
+
+/** The current log level of library logging output. */
 enum CIRCLE_loglevel CIRCLE_debug_level;
+
+/** The rank value of the current node. */
 int  CIRCLE_global_rank;
 
+/** A struct which holds a reference to all input given through the API. */
 CIRCLE_input_st CIRCLE_INPUT_ST;
 
 /**
@@ -22,14 +28,19 @@ CIRCLE_input_st CIRCLE_INPUT_ST;
  *
  * @param argc the number of arguments passed into the program.
  * @param argv the vector of arguments passed into the program.
+ *
+ * @return the rank value of the current process.
  */
 __inline__ int CIRCLE_init(int argc, char *argv[])
 {
     CIRCLE_debug_stream = stdout;
     CIRCLE_debug_level = CIRCLE_LOG_INFO;
+
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &CIRCLE_global_rank);
+
     CIRCLE_INPUT_ST.queue = CIRCLE_queue_init();
+
     return CIRCLE_global_rank;
 }
 
@@ -57,6 +68,7 @@ __inline__ void CIRCLE_cb_process(CIRCLE_cb func)
     {
         CIRCLE_INPUT_ST.create_cb = func;
     }
+
     CIRCLE_INPUT_ST.process_cb = func;
 }
 
@@ -101,6 +113,7 @@ __inline__ void CIRCLE_abort(void)
 __inline__ void CIRCLE_finalize(void)
 {
     CIRCLE_debug_stream = NULL;
+
     MPI_Finalize();
 }
 
