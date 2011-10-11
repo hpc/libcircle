@@ -25,8 +25,8 @@ int CIRCLE_ABORT_FLAG = 0;
  * in the event of an MPI Error.  It attempts
  * to checkpoint.
  */
-void
-CIRCLE_MPI_error_handler(MPI_Comm *comm, int *err, ...)
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+void CIRCLE_MPI_error_handler(MPI_Comm *comm, int *err, ...)
 {
     if(*err == LIBCIRCLE_MPI_ERROR)
         LOG(CIRCLE_LOG_ERR,"Libcircle received abort signal, checkpointing.");
@@ -35,6 +35,7 @@ CIRCLE_MPI_error_handler(MPI_Comm *comm, int *err, ...)
     CIRCLE_checkpoint();
     return;
 }
+#pragma GCC diagnostic warning "-Wunused-parameter"
 
 /* \brief Wrapper for pushing an element on the queue */
 int
