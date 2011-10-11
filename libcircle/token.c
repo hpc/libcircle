@@ -1,5 +1,7 @@
-/*! \file pstat.c
- *  \authors Jharrod LaFon, Jon Bringhurst
+/**
+ * @file
+ *
+ * Handles features of libcircle related to tokens (for self stabilization).
  */
 
 #include <mpi.h>
@@ -14,21 +16,26 @@
 
 extern int CIRCLE_ABORT_FLAG;
 
-/*
- *  \brief Sends an abort message to all ranks.
- *  This function is used to send a 'poisoned' work request to each rank, so that
- *  they will know to abort. 
+/**
+ * Sends an abort message to all ranks.
+ *
+ * This function is used to send a 'poisoned' work request to each rank, so that
+ * they will know to abort. 
  */
 void CIRCLE_bcast_abort(void)
 {
     LOG(CIRCLE_LOG_WARN,"Libcircle abort started from %d",CIRCLE_global_rank);
+
     int buffer = ABORT;
     int size = 0;
     int i = 0;
     int rank = -1;
+
     MPI_Comm_rank(MPI_COMM_WORLD,&rank);
     MPI_Comm_size(MPI_COMM_WORLD,&size);
+
     CIRCLE_ABORT_FLAG = 1;
+
     for(i = 0; i < size; i++)
     {
         if(i != rank)
@@ -39,9 +46,11 @@ void CIRCLE_bcast_abort(void)
         }
     }
 
-return; 
+    return; 
 }
-/*! \brief Checks for incoming tokens, determines termination conditions.
+
+/**
+ * Checks for incoming tokens, determines termination conditions.
  * 
  * When the master rank is idle, it generates a token that is initially white.
  * When a node is idle, and can't get work for one loop iteration then it
@@ -53,9 +62,10 @@ return;
  * the token. If a node j sends work to a rank i (i < j) then its state turns
  * black. It then turns the token black when it comes around, forwards it, and
  * turns its state back to white.
+ *
+ * @param st the libcircle state struct.
  */
-int
-CIRCLE_check_for_term(CIRCLE_state_st *st)
+int CIRCLE_check_for_term(CIRCLE_state_st *st)
 {
     /* If I have the token (I am already idle) */
     if(st->have_token)
