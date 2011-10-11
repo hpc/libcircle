@@ -15,12 +15,7 @@ AM_PROG_CC_C_O
 X_AC_LIBCIRCLE_CHECK
 
 # Needed for docs
-##AC_CHECK_PROGS([DOXYGEN], [doxygen])
-##if test -z "$DOXYGEN";
-##   then AC_MSG_WARN([Doxygen not found - continuing without Doxygen support])
-##fi
-##AM_CONDITIONAL([HAVE_DOXYGEN], 
-##    [test -n "$DOXYGEN"])AM_COND_IF([HAVE_DOXYGEN], [AC_CONFIG_FILES([doc/Doxyfile])])
+X_AC_LIBCIRCLE_DOXYGEN
 
 # Pull in libtool. We need to support ancient autotools, so don't use LT_INIT.
 #LT_INIT
@@ -52,10 +47,12 @@ echo "  MPI ............................................ $have_C_mpi"
 echo
 echo "Build Options:"
 echo "  Unit tests ..................................... $x_ac_libcircle_check"
+echo "  Doxygen ........................................ $x_ac_libcircle_doxygen"
 echo "========================================================"
 echo
 
 AC_CONFIG_FILES([Makefile       \
                  tests/Makefile \
+				 doc/Makefile   \
                  libcircle.pc:libcircle.pc.in])
 AC_OUTPUT
