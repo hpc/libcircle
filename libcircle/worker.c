@@ -93,7 +93,6 @@ int _CIRCLE_checkpoint()
 void CIRCLE_init_local_state(CIRCLE_state_st * local_state,int size)
 {
     int i = 0;
-
     local_state->token = WHITE;
     local_state->have_token = 0;
     local_state->term_flag = 0;
@@ -104,9 +103,9 @@ void CIRCLE_init_local_state(CIRCLE_state_st * local_state,int size)
     local_state->incoming_token = BLACK;
     local_state->request_offsets = (unsigned int*) calloc(CIRCLE_INITIAL_QUEUE_SIZE,sizeof(unsigned int));
     local_state->work_offsets = (unsigned int*) calloc(CIRCLE_INITIAL_QUEUE_SIZE,sizeof(unsigned int));
-    local_state->mpi_state_st->request_status = (MPI_Status *) malloc(sizeof(MPI_Status)*size);
     local_state->request_flag = (int *) calloc(size,sizeof(int));
     local_state->request_recv_buf = (int *) calloc(size,sizeof(int));
+    local_state->mpi_state_st->request_status = (MPI_Status *) malloc(sizeof(MPI_Status)*size);
     local_state->mpi_state_st->request_request = (MPI_Request*) malloc(sizeof(MPI_Request)*size);
     local_state->mpi_state_st->work_comm = CIRCLE_INPUT_ST.work_comm;
     local_state->mpi_state_st->token_comm = CIRCLE_INPUT_ST.token_comm;
@@ -243,8 +242,9 @@ int CIRCLE_worker()
     queue_handle.enqueue = &CIRCLE_enqueue;
     queue_handle.dequeue = &CIRCLE_dequeue;
     queue_handle.local_queue_size = &CIRCLE_local_queue_size;
-  
-    MPI_Comm_size(*mpi_s.work_comm, &size);
+    
+    MPI_Comm_size(*CIRCLE_INPUT_ST.work_comm, &size);
+    CIRCLE_init_local_state(sptr,size);
     MPI_Errhandler circle_err;
     MPI_Comm_create_errhandler(CIRCLE_MPI_error_handler,&circle_err);
     MPI_Comm_set_errhandler(*mpi_s.work_comm,circle_err);
@@ -266,7 +266,6 @@ int CIRCLE_worker()
     /* Initial local state */
     local_objects_processed = 0;
     total_objects_processed = 0;
-    CIRCLE_init_local_state(sptr,size);
 
     /* Master rank starts out with the initial data creation */
     int * total_objects_processed_array = (int *) calloc(size,sizeof(int));

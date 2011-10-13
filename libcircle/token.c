@@ -484,7 +484,6 @@ int CIRCLE_check_for_requests(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
         }
         st->request_pending_receive = 1;
     }
-
     /* Test to see if any posted receive has completed */
     for(i = 0; i < st->size; i++)
     {
