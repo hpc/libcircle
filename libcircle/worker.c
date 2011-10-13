@@ -225,8 +225,6 @@ int CIRCLE_worker()
 {
     int rank = -1;
     int size = -1;
-    int next_processor = -1;
-    int token_partner = -1;
     int i = -1;
 
     /* Holds all worker state */
@@ -249,18 +247,16 @@ int CIRCLE_worker()
     MPI_Comm_create_errhandler(CIRCLE_MPI_error_handler,&circle_err);
     MPI_Comm_set_errhandler(*mpi_s.work_comm,circle_err);
     
-    srand(rank);
     rank = CIRCLE_global_rank;
+    srand(rank);
     local_state.rank = rank;
     local_state.size = size;
-    next_processor = (rank+1) % size;
-    token_partner = (rank-1) % size;
     local_state.next_processor = (rank+1) % size;
     local_state.token_partner = (rank-1) % size;
 
-    if(token_partner < 0)
+    if(local_state.token_partner < 0)
 	{
-		token_partner = size - 1;
+		local_state.token_partner = size - 1;
 	}
 
     /* Initial local state */
