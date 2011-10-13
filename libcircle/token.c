@@ -15,7 +15,7 @@
 #include "queue.h"
 
 extern int CIRCLE_ABORT_FLAG;
-
+extern CIRCLE_input_st CIRCLE_INPUT_ST;
 /**
  * Sends an abort message to all ranks.
  *
@@ -31,8 +31,8 @@ void CIRCLE_bcast_abort(void)
     int i = 0;
     int rank = -1;
 
-    MPI_Comm_rank(MPI_COMM_WORLD,&rank);
-    MPI_Comm_size(MPI_COMM_WORLD,&size);
+    MPI_Comm_rank(*CIRCLE_INPUT_ST.work_comm,&rank);
+    MPI_Comm_size(*CIRCLE_INPUT_ST.work_comm,&size);
 
     CIRCLE_ABORT_FLAG = 1;
 
@@ -41,7 +41,7 @@ void CIRCLE_bcast_abort(void)
         if(i != rank)
         {
             MPI_Send(&buffer, 1, MPI_INT, i, \
-                WORK_REQUEST, MPI_COMM_WORLD);
+                WORK_REQUEST, *CIRCLE_INPUT_ST.work_comm);
             LOG(CIRCLE_LOG_WARN,"Libcircle abort message sent to %d",i);
         }
     }
@@ -76,7 +76,7 @@ int CIRCLE_check_for_term(CIRCLE_state_st *st)
          //   LOG(CIRCLE_LOG_DBG, "Master generating WHITE token.");
             st->incoming_token = WHITE;
             MPI_Send(&st->incoming_token, 1, MPI_INT, (st->rank+1) % st->size, \
-                     TOKEN, MPI_COMM_WORLD);
+                     TOKEN, *st->mpi_state_st->token_comm);
             st->token = WHITE;
             st->have_token = 0;
         
@@ -85,7 +85,7 @@ int CIRCLE_check_for_term(CIRCLE_state_st *st)
              * comes back around
              */
             MPI_Irecv(&st->incoming_token, 1, MPI_INT, st->token_partner, \
-                      TOKEN, MPI_COMM_WORLD, &st->mpi_state_st->term_request);
+                      TOKEN, *st->mpi_state_st->token_comm, &st->mpi_state_st->term_request);
 
             st->term_pending_receive = 1;
         }
@@ -103,7 +103,7 @@ int CIRCLE_check_for_term(CIRCLE_state_st *st)
                 st->incoming_token = BLACK;
 
             MPI_Send(&st->incoming_token, 1, MPI_INT, (st->rank+1)%st->size, \
-                     TOKEN, MPI_COMM_WORLD);
+                     TOKEN, *st->mpi_state_st->token_comm);
 
             st->token = WHITE;
             st->have_token = 0;
@@ -113,7 +113,7 @@ int CIRCLE_check_for_term(CIRCLE_state_st *st)
              * comes back around.
              */
             MPI_Irecv(&st->incoming_token, 1, MPI_INT, st->token_partner, \
-                      TOKEN, MPI_COMM_WORLD, &st->mpi_state_st->term_request);
+                      TOKEN, *st->mpi_state_st->token_comm, &st->mpi_state_st->term_request);
 
             st->term_pending_receive = 1;
         }
@@ -128,7 +128,7 @@ int CIRCLE_check_for_term(CIRCLE_state_st *st)
         {
             st->incoming_token = -1;
             MPI_Irecv(&st->incoming_token, 1, MPI_INT, st->token_partner, \
-                      TOKEN, MPI_COMM_WORLD, &st->mpi_state_st->term_request);
+                      TOKEN, *st->mpi_state_st->token_comm, &st->mpi_state_st->term_request);
             st->term_pending_receive = 1;
         }
 
@@ -153,7 +153,7 @@ int CIRCLE_check_for_term(CIRCLE_state_st *st)
           //  LOG(CIRCLE_LOG_DBG, "Received termination token");
             st->token = TERMINATE;
             MPI_Send(&st->token, 1, MPI_INT, (st->rank+1) % st->size, \
-                     TOKEN,MPI_COMM_WORLD);
+                     TOKEN,*st->mpi_state_st->token_comm);
 
             //LOG(CIRCLE_LOG_DBG, "Forwared termination token");
 
@@ -169,8 +169,8 @@ int CIRCLE_check_for_term(CIRCLE_state_st *st)
             LOG(CIRCLE_LOG_DBG, "Master has detected termination.");
 
             st->token = TERMINATE;
-            MPI_Send(&st->token, 1, MPI_INT, 1, TOKEN, MPI_COMM_WORLD);
-            MPI_Send(&st->token, 1, MPI_INT, 1, WORK, MPI_COMM_WORLD);
+            MPI_Send(&st->token, 1, MPI_INT, 1, TOKEN, *st->mpi_state_st->token_comm);
+            MPI_Send(&st->token, 1, MPI_INT, 1, WORK, *st->mpi_state_st->token_comm);
 
             return TERMINATE;
         }
@@ -209,7 +209,7 @@ int CIRCLE_wait_on_probe(CIRCLE_state_st *st, int source, int tag)
     MPI_Status temp;
     while(!flag)
     {
-        MPI_Iprobe(source, tag, MPI_COMM_WORLD, &flag,&temp);
+        MPI_Iprobe(source, tag, *st->mpi_state_st->work_comm, &flag,&temp);
         for(i = 0; i < st->size; i++)
         {
             st->request_flag[i] = 0;
@@ -258,7 +258,7 @@ int CIRCLE_request_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
 
     /* Send work request. */
     MPI_Send(&temp_buffer, 1, MPI_INT, st->next_processor, \
-        WORK_REQUEST, MPI_COMM_WORLD);
+        WORK_REQUEST, *st->mpi_state_st->work_comm);
 
     st->work_offsets[0] = 0;
 
@@ -277,7 +277,7 @@ int CIRCLE_request_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
     }
     /* If we get here, there was definitely an answer.  Receives the offsets then */
     MPI_Recv(st->work_offsets, size, MPI_INT, st->next_processor, \
-        WORK, MPI_COMM_WORLD, &st->mpi_state_st->work_offsets_status);
+        WORK, *st->mpi_state_st->work_comm, &st->mpi_state_st->work_offsets_status);
 
     /* We'll ask somebody else next time */
     int source = st->next_processor;
@@ -320,7 +320,7 @@ int CIRCLE_request_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
      * It can only be a work queue.
      */
     MPI_Recv(qp->base, (chars + 1) * sizeof(char), MPI_BYTE, source, WORK, \
-        MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        *st->mpi_state_st->work_comm, MPI_STATUS_IGNORE);
 
     qp->count = items;
     int i = 0;
@@ -358,7 +358,7 @@ void CIRCLE_send_no_work(int dest)
     no_work[1] = 0;
 
     MPI_Request r;
-    MPI_Isend(&no_work, 1, MPI_INT, dest, WORK, MPI_COMM_WORLD, &r);
+    MPI_Isend(&no_work, 1, MPI_INT, dest, WORK, *CIRCLE_INPUT_ST.work_comm, &r);
     MPI_Wait(&r, MPI_STATUS_IGNORE);
 
 }
@@ -447,10 +447,10 @@ int CIRCLE_send_work(CIRCLE_queue_t *qp, CIRCLE_state_st *st, \
 
 
     MPI_Ssend(st->request_offsets, st->request_offsets[0]+2, \
-        MPI_INT, dest, WORK, MPI_COMM_WORLD);
+        MPI_INT, dest, WORK, *st->mpi_state_st->work_comm);
 
 
-    MPI_Ssend(b, (diff + 1) * sizeof(char), MPI_BYTE, dest, WORK, MPI_COMM_WORLD);
+    MPI_Ssend(b, (diff + 1) * sizeof(char), MPI_BYTE, dest, WORK, *st->mpi_state_st->work_comm);
     qp->count = qp->count - count;
 //    LOG(CIRCLE_LOG_DBG, "Sent %d items to %d.", st->request_offsets[0], dest);
     return 0;
@@ -476,7 +476,7 @@ int CIRCLE_check_for_requests(CIRCLE_queue_t *qp, CIRCLE_state_st *st)
             {
                 st->request_recv_buf[i] = 0;
                 MPI_Recv_init(&st->request_recv_buf[i], 1, MPI_INT, i, \
-                    WORK_REQUEST, MPI_COMM_WORLD, \
+                    WORK_REQUEST, *st->mpi_state_st->work_comm, \
                     &st->mpi_state_st->request_request[i]);
 
                 MPI_Start(&st->mpi_state_st->request_request[i]);

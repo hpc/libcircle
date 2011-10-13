@@ -8,7 +8,7 @@
 #include <mpi.h>
 
 #include "queue.h"
-
+#include "lib.h"
 enum tags {
     WHITE,
     BLACK,
@@ -38,6 +38,9 @@ typedef struct CIRCLE_mpi_state_st
     MPI_Request work_offsets_request;
     MPI_Request work_request;
     MPI_Request *request_request;
+
+    MPI_Comm * token_comm;
+    MPI_Comm * work_comm;
 } CIRCLE_mpi_state_st;
 
 typedef struct CIRCLE_state_st

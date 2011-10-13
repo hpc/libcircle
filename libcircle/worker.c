@@ -108,6 +108,8 @@ void CIRCLE_init_local_state(CIRCLE_state_st * local_state,int size)
     local_state->request_flag = (int *) calloc(size,sizeof(int));
     local_state->request_recv_buf = (int *) calloc(size,sizeof(int));
     local_state->mpi_state_st->request_request = (MPI_Request*) malloc(sizeof(MPI_Request)*size);
+    local_state->mpi_state_st->work_comm = CIRCLE_INPUT_ST.work_comm;
+    local_state->mpi_state_st->token_comm = CIRCLE_INPUT_ST.token_comm;
 
     for(i = 0; i < size; i++)
 	{
@@ -197,7 +199,7 @@ void CIRCLE_cleanup_mpi_messages(CIRCLE_state_st * sptr)
                         &sptr->request_flag[i], &sptr->mpi_state_st->request_status[i]) \
                         != MPI_SUCCESS)
 				{
-                    MPI_Abort(MPI_COMM_WORLD,LIBCIRCLE_MPI_ERROR);
+                    MPI_Abort(*sptr->mpi_state_st->work_comm,LIBCIRCLE_MPI_ERROR);
 				}
 
                 if(sptr->request_flag[i])
@@ -242,10 +244,10 @@ int CIRCLE_worker()
     queue_handle.dequeue = &CIRCLE_dequeue;
     queue_handle.local_queue_size = &CIRCLE_local_queue_size;
   
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_size(*mpi_s.work_comm, &size);
     MPI_Errhandler circle_err;
     MPI_Comm_create_errhandler(CIRCLE_MPI_error_handler,&circle_err);
-    MPI_Comm_set_errhandler(MPI_COMM_WORLD,circle_err);
+    MPI_Comm_set_errhandler(*mpi_s.work_comm,circle_err);
     
     srand(rank);
     rank = CIRCLE_global_rank;
@@ -282,8 +284,8 @@ int CIRCLE_worker()
         CIRCLE_checkpoint();
 	}
 
-    MPI_Gather(&local_objects_processed,1,MPI_INT, &total_objects_processed_array[0],1,MPI_INT,0,MPI_COMM_WORLD);
-    MPI_Reduce(&local_objects_processed,&total_objects_processed,1,MPI_INT,MPI_SUM,0,MPI_COMM_WORLD);
+    MPI_Gather(&local_objects_processed,1,MPI_INT, &total_objects_processed_array[0],1,MPI_INT,0,*mpi_s.work_comm);
+    MPI_Reduce(&local_objects_processed,&total_objects_processed,1,MPI_INT,MPI_SUM,0,*mpi_s.work_comm);
 
     if(rank == 0)
     {
