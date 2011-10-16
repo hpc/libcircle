@@ -21,18 +21,17 @@ extern int CIRCLE_ABORT_FLAG;
  *
  * @see CIRCLE_queue_free
  */
-CIRCLE_queue_t * CIRCLE_queue_init(void)
+CIRCLE_queue_t* CIRCLE_queue_init(void)
 {
-    CIRCLE_queue_t * qp;
+    CIRCLE_queue_t* qp;
 
     LOG(CIRCLE_LOG_DBG, "Allocating a queue structure.");
 
-    qp = (CIRCLE_queue_t *) malloc(sizeof(CIRCLE_queue_t));
-    qp->base = (char *) malloc(sizeof(char) * CIRCLE_MAX_STRING_LEN * CIRCLE_INITIAL_QUEUE_SIZE);
-    qp->strings = (char **) malloc(sizeof(char *) * CIRCLE_INITIAL_QUEUE_SIZE);
+    qp = (CIRCLE_queue_t*) malloc(sizeof(CIRCLE_queue_t));
+    qp->base = (char*) malloc(sizeof(char) * CIRCLE_MAX_STRING_LEN * CIRCLE_INITIAL_QUEUE_SIZE);
+    qp->strings = (char**) malloc(sizeof(char*) * CIRCLE_INITIAL_QUEUE_SIZE);
 
-    if(!qp || !qp->base || !qp->strings)
-    {
+    if(!qp || !qp->base || !qp->strings) {
         LOG(CIRCLE_LOG_ERR, "Failed to allocate a basic queue structure.");
     }
 
@@ -49,12 +48,10 @@ CIRCLE_queue_t * CIRCLE_queue_init(void)
  * @param qp the reference to the queue that should be freed.
  * @return a negative value on failure, a positive one on success.
  */
-int CIRCLE_queue_free(CIRCLE_queue_t *qp)
+int CIRCLE_queue_free(CIRCLE_queue_t* qp)
 {
-    if(qp)
-    {
-        if(qp->strings)
-        {
+    if(qp) {
+        if(qp->strings) {
             LOG(CIRCLE_LOG_DBG, "Freeing the queue strings array.");
             free(qp->strings);
         }
@@ -62,8 +59,7 @@ int CIRCLE_queue_free(CIRCLE_queue_t *qp)
         LOG(CIRCLE_LOG_DBG, "Freeing a queue pointer.");
         free(qp);
     }
-    else
-    {
+    else {
         LOG(CIRCLE_LOG_ERR, "Attempted to free a null queue structure.");
         return -1;
     }
@@ -76,20 +72,17 @@ int CIRCLE_queue_free(CIRCLE_queue_t *qp)
  *
  * @param qp the queue structure that should be dumped.
  */
-void CIRCLE_queue_dump(CIRCLE_queue_t *qp)
+void CIRCLE_queue_dump(CIRCLE_queue_t* qp)
 {
     int i = 0;
-    char * p = qp->base;
+    char* p = qp->base;
 
     while(p++ != (qp->strings[qp->count - 1] + \
-            strlen(qp->strings[qp->count - 1 ])))
-    {
-        if(i++ % 120 == 0)
-        {
+                  strlen(qp->strings[qp->count - 1 ]))) {
+        if(i++ % 120 == 0) {
             LOG(CIRCLE_LOG_DBG, "%c", *p);
         }
-        else
-        {
+        else {
             LOG(CIRCLE_LOG_DBG, "%c", *p);
         }
     }
@@ -100,13 +93,12 @@ void CIRCLE_queue_dump(CIRCLE_queue_t *qp)
  *
  * @param qp the queue structure that should be pretty-printed.
  */
-void CIRCLE_queue_print(CIRCLE_queue_t *qp)
+void CIRCLE_queue_print(CIRCLE_queue_t* qp)
 {
     int i = 0;
 
-    for(i = 0; i < qp->count; i++)
-    {
-       LOG(CIRCLE_LOG_DBG, "\t[%p][%d] %s", qp->strings[i], i, qp->strings[i]);
+    for(i = 0; i < qp->count; i++) {
+        LOG(CIRCLE_LOG_DBG, "\t[%p][%d] %s", qp->strings[i], i, qp->strings[i]);
     }
 }
 
@@ -118,31 +110,26 @@ void CIRCLE_queue_print(CIRCLE_queue_t *qp)
  *
  * @return a positive number on success, a negative one on failure.
  */
-int CIRCLE_queue_push(CIRCLE_queue_t *qp, char *str)
+int CIRCLE_queue_push(CIRCLE_queue_t* qp, char* str)
 {
-    if(!str)
-    {
-        LOG(CIRCLE_LOG_ERR,"Attempted to push null pointer.");
+    if(!str) {
+        LOG(CIRCLE_LOG_ERR, "Attempted to push null pointer.");
         return -1;
     }
 
-    if(strlen(str) <= 0)
-    {
+    if(strlen(str) <= 0) {
         LOG(CIRCLE_LOG_ERR, "Attempted to push an empty string onto a queue.");
         return -1;
     }
 
-    if(qp->count > 0)
-    {
-        if(qp->strings[qp->count-1] + CIRCLE_MAX_STRING_LEN >= qp->end)
-        {
+    if(qp->count > 0) {
+        if(qp->strings[qp->count - 1] + CIRCLE_MAX_STRING_LEN >= qp->end) {
             LOG(CIRCLE_LOG_ERR, "The queue is not large enough to add another value.");
             return -1;
         }
     }
 
-    if(strlen(str) > CIRCLE_MAX_STRING_LEN)
-    {
+    if(strlen(str) > CIRCLE_MAX_STRING_LEN) {
         LOG(CIRCLE_LOG_ERR, "Attempted to push a value that was larger than expected.");
         return -1;
     }
@@ -160,7 +147,7 @@ int CIRCLE_queue_push(CIRCLE_queue_t *qp, char *str)
      * include a trailing null).
      */
     qp->head = qp->head + strlen(qp->head) + 1;
-    
+
     /* Make the head point to the next available memory */
     qp->count++;
 
@@ -175,28 +162,25 @@ int CIRCLE_queue_push(CIRCLE_queue_t *qp, char *str)
  *
  * @return a positive value on success, a negative one otherwise.
  */
-int CIRCLE_queue_pop(CIRCLE_queue_t *qp, char *str)
+int CIRCLE_queue_pop(CIRCLE_queue_t* qp, char* str)
 {
-    if(!qp)
-    {
+    if(!qp) {
         LOG(CIRCLE_LOG_ERR, "Attempted to pop from an invalid queue.");
         return -1;
     }
 
-    if(qp->count < 1)
-    {
+    if(qp->count < 1) {
         LOG(CIRCLE_LOG_DBG, "Attempted to pop from an empty queue.");
         return -1;
     }
 
-    if(!str)
-    {
+    if(!str) {
         LOG(CIRCLE_LOG_ERR, "You must allocate a buffer for storing the result.");
         return -1;
     }
 
     /* Copy last element into str */
-    strcpy(str, qp->strings[qp->count-1]);
+    strcpy(str, qp->strings[qp->count - 1]);
     qp->count = qp->count - 1;
 
     //LOG(CIRCLE_LOG_DBG, "Poping a string from the queue: \"%s\".", str);
@@ -212,58 +196,51 @@ int CIRCLE_queue_pop(CIRCLE_queue_t *qp, char *str)
  *
  * @return a positive value on success, a negative one otherwise.
  */
-int CIRCLE_queue_read(CIRCLE_queue_t * qp, int rank)
+int CIRCLE_queue_read(CIRCLE_queue_t* qp, int rank)
 {
-    if(!qp)
-    {
-        LOG(CIRCLE_LOG_ERR,"Libcircle queue not initialized.");
+    if(!qp) {
+        LOG(CIRCLE_LOG_ERR, "Libcircle queue not initialized.");
         return -1;
     }
 
-    LOG(CIRCLE_LOG_DBG,"Reading from checkpoint file %d.",rank);
+    LOG(CIRCLE_LOG_DBG, "Reading from checkpoint file %d.", rank);
 
-    if(qp->count != 0)
-    {
-        LOG(CIRCLE_LOG_WARN,"Warning: Reading items from checkpoint file into non-empty work queue.");
+    if(qp->count != 0) {
+        LOG(CIRCLE_LOG_WARN, "Warning: Reading items from checkpoint file into non-empty work queue.");
     }
 
     char filename[256];
-    sprintf(filename,"circle%d.txt",rank);
+    sprintf(filename, "circle%d.txt", rank);
 
-    LOG(CIRCLE_LOG_DBG,"Attempting to open %s.",filename);
+    LOG(CIRCLE_LOG_DBG, "Attempting to open %s.", filename);
 
-    FILE * checkpoint_file = fopen(filename,"r");
+    FILE* checkpoint_file = fopen(filename, "r");
 
-    if(checkpoint_file == NULL)
-    {
-        LOG(CIRCLE_LOG_ERR,"Unable to open checkpoint file %s",filename);
+    if(checkpoint_file == NULL) {
+        LOG(CIRCLE_LOG_ERR, "Unable to open checkpoint file %s", filename);
         return -1;
     }
 
-    LOG(CIRCLE_LOG_DBG,"Checkpoint file opened.");
+    LOG(CIRCLE_LOG_DBG, "Checkpoint file opened.");
 
     int len = 0;
     char str[CIRCLE_MAX_STRING_LEN];
 
-    while(fgets(str,CIRCLE_MAX_STRING_LEN,checkpoint_file) != NULL)
-    {
+    while(fgets(str, CIRCLE_MAX_STRING_LEN, checkpoint_file) != NULL) {
         len = strlen(str);
 
-        if(len > 0)
-		{
-			str[len - 1] = '\0';
-		}
-        else
-		{
-			continue;
-		}
-
-        if(CIRCLE_queue_push(qp,str) < 0)
-        {
-            LOG(CIRCLE_LOG_ERR,"Failed to push element on queue \"%s\"",str);
+        if(len > 0) {
+            str[len - 1] = '\0';
+        }
+        else {
+            continue;
         }
 
-        LOG(CIRCLE_LOG_DBG,"Pushed %s onto queue.",str);
+        if(CIRCLE_queue_push(qp, str) < 0) {
+            LOG(CIRCLE_LOG_ERR, "Failed to push element on queue \"%s\"", str);
+        }
+
+        LOG(CIRCLE_LOG_DBG, "Pushed %s onto queue.", str);
     }
 
     return fclose(checkpoint_file);
@@ -277,37 +254,33 @@ int CIRCLE_queue_read(CIRCLE_queue_t * qp, int rank)
  *
  * @return a positive value on success, negative otherwise.
  */
-int CIRCLE_queue_write(CIRCLE_queue_t * qp, int rank)
+int CIRCLE_queue_write(CIRCLE_queue_t* qp, int rank)
 {
-    LOG(CIRCLE_LOG_INFO,"Writing checkpoint file with %d elements.",qp->count);
-    if(qp->count == 0)
-	{
+    LOG(CIRCLE_LOG_INFO, "Writing checkpoint file with %d elements.", qp->count);
+
+    if(qp->count == 0) {
         return 0;
-	}
+    }
 
     char filename[256];
-    sprintf(filename,"circle%d.txt",rank);
-    FILE * checkpoint_file = fopen(filename,"w");
+    sprintf(filename, "circle%d.txt", rank);
+    FILE* checkpoint_file = fopen(filename, "w");
 
-    if(checkpoint_file == NULL)
-    {
-        LOG(CIRCLE_LOG_ERR,"Unable to open checkpoint file %s",filename);
+    if(checkpoint_file == NULL) {
+        LOG(CIRCLE_LOG_ERR, "Unable to open checkpoint file %s", filename);
         return -1;
     }
 
     char str[CIRCLE_MAX_STRING_LEN];
 
-    while(qp->count > 0)
-    {
-        if(CIRCLE_queue_pop(qp,str) < 0)
-        {
-            LOG(CIRCLE_LOG_ERR,"Failed to pop item off queue.");
+    while(qp->count > 0) {
+        if(CIRCLE_queue_pop(qp, str) < 0) {
+            LOG(CIRCLE_LOG_ERR, "Failed to pop item off queue.");
             return -1;
         }
 
-        if(fprintf(checkpoint_file,"%s\n",str)< 0)
-        {
-            LOG(CIRCLE_LOG_ERR,"Failed to write \"%s\" to file.",str);
+        if(fprintf(checkpoint_file, "%s\n", str) < 0) {
+            LOG(CIRCLE_LOG_ERR, "Failed to write \"%s\" to file.", str);
             return -1;
         }
     }

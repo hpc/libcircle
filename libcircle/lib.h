@@ -6,13 +6,12 @@
 #include "libcircle.h"
 #include "queue.h"
 
-typedef struct CIRCLE_input_st
-{
+typedef struct CIRCLE_input_st {
     CIRCLE_cb create_cb;
     CIRCLE_cb process_cb;
-    MPI_Comm * work_comm;
-    MPI_Comm * token_comm;
-    CIRCLE_queue_t *queue;
+    MPI_Comm* work_comm;
+    MPI_Comm* token_comm;
+    CIRCLE_queue_t* queue;
 } CIRCLE_input_st;
 
 void CIRCLE_checkpoint(void);

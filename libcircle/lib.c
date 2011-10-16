@@ -12,7 +12,7 @@
 #include "token.h"
 
 /** The debug stream for all logging messages. */
-FILE *CIRCLE_debug_stream;
+FILE* CIRCLE_debug_stream;
 
 /** The current log level of library logging output. */
 enum CIRCLE_loglevel CIRCLE_debug_level;
@@ -32,15 +32,15 @@ CIRCLE_input_st CIRCLE_INPUT_ST;
  *
  * @return the rank value of the current process.
  */
-__inline__ int CIRCLE_init(int argc, char *argv[])
+__inline__ int CIRCLE_init(int argc, char* argv[])
 {
     CIRCLE_debug_stream = stdout;
     CIRCLE_debug_level = CIRCLE_LOG_INFO;
     CIRCLE_INPUT_ST.work_comm = (MPI_Comm*) malloc(sizeof(MPI_Comm));
     CIRCLE_INPUT_ST.token_comm = (MPI_Comm*) malloc(sizeof(MPI_Comm));
     MPI_Init(&argc, &argv);
-    MPI_Comm_dup(MPI_COMM_WORLD,CIRCLE_INPUT_ST.work_comm); 
-    MPI_Comm_dup(MPI_COMM_WORLD,CIRCLE_INPUT_ST.token_comm); 
+    MPI_Comm_dup(MPI_COMM_WORLD, CIRCLE_INPUT_ST.work_comm);
+    MPI_Comm_dup(MPI_COMM_WORLD, CIRCLE_INPUT_ST.token_comm);
     MPI_Comm_rank(*CIRCLE_INPUT_ST.token_comm, &CIRCLE_global_rank);
     CIRCLE_INPUT_ST.queue = CIRCLE_queue_init();
     return CIRCLE_global_rank;
@@ -66,8 +66,7 @@ __inline__ void CIRCLE_cb_create(CIRCLE_cb func)
  */
 __inline__ void CIRCLE_cb_process(CIRCLE_cb func)
 {
-    if(CIRCLE_INPUT_ST.create_cb == NULL)
-    {
+    if(CIRCLE_INPUT_ST.create_cb == NULL) {
         CIRCLE_INPUT_ST.create_cb = func;
     }
 
@@ -101,7 +100,7 @@ __inline__ void CIRCLE_read_restarts(void)
 }
 
 /**
- * Call this function to have all ranks dump a checkpoint file and exit. 
+ * Call this function to have all ranks dump a checkpoint file and exit.
  */
 __inline__ void CIRCLE_abort(void)
 {
