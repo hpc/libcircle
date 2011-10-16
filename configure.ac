@@ -15,7 +15,7 @@ AM_PROG_CC_C_O
 X_AC_LIBCIRCLE_CHECK
 
 # Needed for docs
-#X_AC_LIBCIRCLE_DOXYGEN
+X_AC_LIBCIRCLE_DOXYGEN
 
 # Pull in libtool. We need to support ancient autotools, so don't use LT_INIT.
 #LT_INIT

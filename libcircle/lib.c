@@ -4,6 +4,7 @@
  */
 
 #include <mpi.h>
+#include <stdlib.h>
 #include "libcircle.h"
 #include "log.h"
 #include "lib.h"
