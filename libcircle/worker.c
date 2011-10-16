@@ -47,10 +47,11 @@ void CIRCLE_MPI_error_handler(MPI_Comm* comm, int* err, ...)
 
 /**
  * Wrapper for pushing an element on the queue
+ *
  */
 int CIRCLE_enqueue(char* element)
 {
-    return CIRCLE_queue_push(CIRCLE_INPUT_ST.queue, element);
+    return CIRCLE_internal_queue_push(CIRCLE_INPUT_ST.queue, element);
 }
 
 /**
@@ -58,7 +59,7 @@ int CIRCLE_enqueue(char* element)
  */
 int CIRCLE_dequeue(char* element)
 {
-    return CIRCLE_queue_pop(CIRCLE_INPUT_ST.queue, element);
+    return CIRCLE_internal_queue_pop(CIRCLE_INPUT_ST.queue, element);
 }
 
 /**
@@ -74,7 +75,7 @@ int CIRCLE_local_queue_size()
  */
 int _CIRCLE_read_restarts()
 {
-    return CIRCLE_queue_read(CIRCLE_INPUT_ST.queue, CIRCLE_global_rank);
+    return CIRCLE_internal_queue_read(CIRCLE_INPUT_ST.queue, CIRCLE_global_rank);
 }
 
 /**
@@ -82,7 +83,7 @@ int _CIRCLE_read_restarts()
  */
 int _CIRCLE_checkpoint()
 {
-    return CIRCLE_queue_write(CIRCLE_INPUT_ST.queue, CIRCLE_global_rank);
+    return CIRCLE_internal_queue_write(CIRCLE_INPUT_ST.queue, CIRCLE_global_rank);
 }
 
 /**
@@ -99,8 +100,8 @@ void CIRCLE_init_local_state(CIRCLE_state_st* local_state, int size)
     local_state->request_pending_receive = 0;
     local_state->term_pending_receive = 0;
     local_state->incoming_token = BLACK;
-    local_state->request_offsets = (unsigned int*) calloc(CIRCLE_INITIAL_QUEUE_SIZE, sizeof(unsigned int));
-    local_state->work_offsets = (unsigned int*) calloc(CIRCLE_INITIAL_QUEUE_SIZE, sizeof(unsigned int));
+    local_state->request_offsets = (unsigned int*) calloc(CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE, sizeof(unsigned int));
+    local_state->work_offsets = (unsigned int*) calloc(CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE, sizeof(unsigned int));
     local_state->request_flag = (int*) calloc(size, sizeof(int));
     local_state->request_recv_buf = (int*) calloc(size, sizeof(int));
     local_state->mpi_state_st->request_status = (MPI_Status*) malloc(sizeof(MPI_Status) * size);

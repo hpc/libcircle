@@ -42,7 +42,7 @@ __inline__ int CIRCLE_init(int argc, char* argv[])
     MPI_Comm_dup(MPI_COMM_WORLD, CIRCLE_INPUT_ST.work_comm);
     MPI_Comm_dup(MPI_COMM_WORLD, CIRCLE_INPUT_ST.token_comm);
     MPI_Comm_rank(*CIRCLE_INPUT_ST.token_comm, &CIRCLE_global_rank);
-    CIRCLE_INPUT_ST.queue = CIRCLE_queue_init();
+    CIRCLE_INPUT_ST.queue = CIRCLE_internal_queue_init();
     return CIRCLE_global_rank;
 }
 

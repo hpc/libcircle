@@ -236,7 +236,7 @@ int CIRCLE_wait_on_probe(CIRCLE_state_st* st, int source, int tag)
  * rank.  If it doesn't receive work, a different rank will be asked during
  * the next iteration.
  */
-int CIRCLE_request_work(CIRCLE_queue_t* qp, CIRCLE_state_st* st)
+int CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 {
     LOG(CIRCLE_LOG_DBG, "Sending work request to %d...", st->next_processor);
 
@@ -325,7 +325,7 @@ int CIRCLE_request_work(CIRCLE_queue_t* qp, CIRCLE_state_st* st)
 
     qp->head = qp->strings[qp->count - 1] + strlen(qp->strings[qp->count - 1]);
 
-    CIRCLE_queue_print(qp);
+    CIRCLE_internal_queue_print(qp);
     return 0;
 }
 
@@ -348,7 +348,7 @@ void CIRCLE_send_no_work(int dest)
 /**
  * Distributes a random amount of the local work queue to the n requestors.
  */
-void CIRCLE_send_work_to_many(CIRCLE_queue_t* qp, CIRCLE_state_st* st, \
+void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
                               int* requestors, int rcount)
 {
     int i = 0;
@@ -377,7 +377,7 @@ void CIRCLE_send_work_to_many(CIRCLE_queue_t* qp, CIRCLE_state_st* st, \
 /**
  * Sends work to a requestor
  */
-int CIRCLE_send_work(CIRCLE_queue_t* qp, CIRCLE_state_st* st, \
+int CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
                      int dest, int count)
 {
     if(count <= 0) {
@@ -401,7 +401,7 @@ int CIRCLE_send_work(CIRCLE_queue_t* qp, CIRCLE_state_st* st, \
     diff += strlen(e);
 
     if(qp->count < 10) {
-        CIRCLE_queue_print(qp);
+        CIRCLE_internal_queue_print(qp);
     }
 
     /* offsets[0] = number of strings */
@@ -409,7 +409,7 @@ int CIRCLE_send_work(CIRCLE_queue_t* qp, CIRCLE_state_st* st, \
     st->request_offsets[0] = count;
     st->request_offsets[1] = diff;
 
-    if(diff >= (CIRCLE_INITIAL_QUEUE_SIZE * CIRCLE_MAX_STRING_LEN)) {
+    if(diff >= (CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE * CIRCLE_MAX_STRING_LEN)) {
         LOG(CIRCLE_LOG_FATAL, "We're trying to throw away part of the queue for some reason.");
         exit(EXIT_FAILURE);
     }
@@ -438,7 +438,7 @@ int CIRCLE_send_work(CIRCLE_queue_t* qp, CIRCLE_state_st* st, \
 /**
  * Checks for outstanding work requests
  */
-int CIRCLE_check_for_requests(CIRCLE_queue_t* qp, CIRCLE_state_st* st)
+int CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 {
     int* requestors = (int*)calloc(st->size, sizeof(int));
     int i = 0;

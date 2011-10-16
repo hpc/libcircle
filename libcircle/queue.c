@@ -19,17 +19,17 @@ extern int CIRCLE_ABORT_FLAG;
  *
  * @return a reference to the allocated queue structure.
  *
- * @see CIRCLE_queue_free
+ * @see CIRCLE_internal_queue_free
  */
-CIRCLE_queue_t* CIRCLE_queue_init(void)
+CIRCLE_internal_queue_t* CIRCLE_internal_queue_init(void)
 {
-    CIRCLE_queue_t* qp;
+    CIRCLE_internal_queue_t* qp;
 
     LOG(CIRCLE_LOG_DBG, "Allocating a queue structure.");
 
-    qp = (CIRCLE_queue_t*) malloc(sizeof(CIRCLE_queue_t));
-    qp->base = (char*) malloc(sizeof(char) * CIRCLE_MAX_STRING_LEN * CIRCLE_INITIAL_QUEUE_SIZE);
-    qp->strings = (char**) malloc(sizeof(char*) * CIRCLE_INITIAL_QUEUE_SIZE);
+    qp = (CIRCLE_internal_queue_t*) malloc(sizeof(CIRCLE_internal_queue_t));
+    qp->base = (char*) malloc(sizeof(char) * CIRCLE_MAX_STRING_LEN * CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE);
+    qp->strings = (char**) malloc(sizeof(char*) * CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE);
 
     if(!qp || !qp->base || !qp->strings) {
         LOG(CIRCLE_LOG_ERR, "Failed to allocate a basic queue structure.");
@@ -37,7 +37,7 @@ CIRCLE_queue_t* CIRCLE_queue_init(void)
 
     qp->count = 0;
     qp->head = qp->base;
-    qp->end = qp->base + (CIRCLE_MAX_STRING_LEN * CIRCLE_INITIAL_QUEUE_SIZE);
+    qp->end = qp->base + (CIRCLE_MAX_STRING_LEN * CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE);
 
     return qp;
 }
@@ -48,7 +48,7 @@ CIRCLE_queue_t* CIRCLE_queue_init(void)
  * @param qp the reference to the queue that should be freed.
  * @return a negative value on failure, a positive one on success.
  */
-int CIRCLE_queue_free(CIRCLE_queue_t* qp)
+int CIRCLE_internal_queue_free(CIRCLE_internal_queue_t* qp)
 {
     if(qp) {
         if(qp->strings) {
@@ -72,7 +72,7 @@ int CIRCLE_queue_free(CIRCLE_queue_t* qp)
  *
  * @param qp the queue structure that should be dumped.
  */
-void CIRCLE_queue_dump(CIRCLE_queue_t* qp)
+void CIRCLE_internal_queue_dump(CIRCLE_internal_queue_t* qp)
 {
     int i = 0;
     char* p = qp->base;
@@ -93,7 +93,7 @@ void CIRCLE_queue_dump(CIRCLE_queue_t* qp)
  *
  * @param qp the queue structure that should be pretty-printed.
  */
-void CIRCLE_queue_print(CIRCLE_queue_t* qp)
+void CIRCLE_internal_queue_print(CIRCLE_internal_queue_t* qp)
 {
     int i = 0;
 
@@ -110,7 +110,7 @@ void CIRCLE_queue_print(CIRCLE_queue_t* qp)
  *
  * @return a positive number on success, a negative one on failure.
  */
-int CIRCLE_queue_push(CIRCLE_queue_t* qp, char* str)
+int CIRCLE_internal_queue_push(CIRCLE_internal_queue_t* qp, char* str)
 {
     if(!str) {
         LOG(CIRCLE_LOG_ERR, "Attempted to push null pointer.");
@@ -162,7 +162,7 @@ int CIRCLE_queue_push(CIRCLE_queue_t* qp, char* str)
  *
  * @return a positive value on success, a negative one otherwise.
  */
-int CIRCLE_queue_pop(CIRCLE_queue_t* qp, char* str)
+int CIRCLE_internal_queue_pop(CIRCLE_internal_queue_t* qp, char* str)
 {
     if(!qp) {
         LOG(CIRCLE_LOG_ERR, "Attempted to pop from an invalid queue.");
@@ -196,7 +196,7 @@ int CIRCLE_queue_pop(CIRCLE_queue_t* qp, char* str)
  *
  * @return a positive value on success, a negative one otherwise.
  */
-int CIRCLE_queue_read(CIRCLE_queue_t* qp, int rank)
+int CIRCLE_internal_queue_read(CIRCLE_internal_queue_t* qp, int rank)
 {
     if(!qp) {
         LOG(CIRCLE_LOG_ERR, "Libcircle queue not initialized.");
@@ -236,7 +236,7 @@ int CIRCLE_queue_read(CIRCLE_queue_t* qp, int rank)
             continue;
         }
 
-        if(CIRCLE_queue_push(qp, str) < 0) {
+        if(CIRCLE_internal_queue_push(qp, str) < 0) {
             LOG(CIRCLE_LOG_ERR, "Failed to push element on queue \"%s\"", str);
         }
 
@@ -254,7 +254,7 @@ int CIRCLE_queue_read(CIRCLE_queue_t* qp, int rank)
  *
  * @return a positive value on success, negative otherwise.
  */
-int CIRCLE_queue_write(CIRCLE_queue_t* qp, int rank)
+int CIRCLE_internal_queue_write(CIRCLE_internal_queue_t* qp, int rank)
 {
     LOG(CIRCLE_LOG_INFO, "Writing checkpoint file with %d elements.", qp->count);
 
@@ -274,7 +274,7 @@ int CIRCLE_queue_write(CIRCLE_queue_t* qp, int rank)
     char str[CIRCLE_MAX_STRING_LEN];
 
     while(qp->count > 0) {
-        if(CIRCLE_queue_pop(qp, str) < 0) {
+        if(CIRCLE_internal_queue_pop(qp, str) < 0) {
             LOG(CIRCLE_LOG_ERR, "Failed to pop item off queue.");
             return -1;
         }
