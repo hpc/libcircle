@@ -10,8 +10,7 @@
 /**
  * The various logging levels that libcircle will output.
  */
-typedef enum CIRCLE_loglevel
-{
+typedef enum CIRCLE_loglevel {
     CIRCLE_LOG_FATAL = 1,
     CIRCLE_LOG_ERR   = 2,
     CIRCLE_LOG_WARN  = 3,
@@ -25,21 +24,21 @@ typedef enum CIRCLE_loglevel
  * terminated string.
  */
 typedef struct {
-	CIRCLE_queue** queues;
-	int (*number_of_queues)();
+    CIRCLE_queue** queues;
+    int (*number_of_queues)();
     int (*local_queue_size)();
 } CIRCLE_handle;
 
 /**
  * The type for defining callbacks for create and process.
  */
-typedef void (*CIRCLE_cb)(CIRCLE_handle *handle);
+typedef void (*CIRCLE_cb)(CIRCLE_handle* handle);
 
 /**
  * Initialize internal state needed by libcircle. This should be called before
  * any other libcircle API call. This returns the MPI rank value.
  */
-int CIRCLE_init(int argc, char *argv[]);
+int CIRCLE_init(int argc, char* argv[]);
 
 /**
  * Initizlize a new queue in libcircle.
