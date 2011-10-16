@@ -25,8 +25,8 @@ typedef enum CIRCLE_loglevel
  * terminated string.
  */
 typedef struct {
-    int (*enqueue)(char *element);
-    int (*dequeue)(char *element);
+	CIRCLE_queue** queues;
+	int (*number_of_queues)();
     int (*local_queue_size)();
 } CIRCLE_handle;
 
@@ -42,20 +42,24 @@ typedef void (*CIRCLE_cb)(CIRCLE_handle *handle);
 int CIRCLE_init(int argc, char *argv[]);
 
 /**
- * Processing and creating work is done through callbacks. Here's how we tell
- * libcircle about our function which creates work. This call is optional.
+ * Initizlize a new queue in libcircle.
+ *
+ * The id of the queue must be unique across all queues. The start callback
+ * is used for the initial queue data, while the process callback is used
+ * for the actual workload. Each callback is passed a CIRCLE_handle when
+ * executed.
+ *
+ * @param id a queue unique identifier for accessing this new queue.
+ * @param start a callback function for the initial queue data.
+ * @param process a callback for processing the work in the queue.
+ * @return a positive value if successful, negative otherwise.
  */
-void CIRCLE_cb_create(CIRCLE_cb func);
-
-/**
- * After you give libcircle a way to create work, you need to tell it how that
- * work should be processed.
- */
-void CIRCLE_cb_process(CIRCLE_cb func);
+int CIRCLE_create_queue(int id, CIRCLE_cb start, CIRCLE_cb process);
 
 /**
  * Once you've defined and told libcircle about your callbacks, use this to
- * execute your program.
+ * execute your program. Once your program has started, it is not possible
+ * to create additional queues during runtime.
  */
 void CIRCLE_begin(void);
 
