@@ -8,13 +8,13 @@ START_TEST
 {
     int free_result = -1;
 
-    CIRCLE_queue_t *q;
+    CIRCLE_internal_queue_t *q;
     CIRCLE_init(0, NULL);
 
-    q = CIRCLE_queue_init();
+    q = CIRCLE_internal_queue_init();
     fail_if(q == NULL, "Initializing a queue failed.");
 
-    free_result = CIRCLE_queue_free(q);
+    free_result = CIRCLE_internal_queue_free(q);
     fail_unless(free_result >= 0, "Queue was not null after free.");
 
     CIRCLE_finalize();
@@ -27,17 +27,17 @@ START_TEST
     int free_result = -1;
     char result[CIRCLE_MAX_STRING_LEN];
 
-    CIRCLE_queue_t *q;
+    CIRCLE_internal_queue_t *q;
     CIRCLE_init(0, NULL);
 
-    q = CIRCLE_queue_init();
+    q = CIRCLE_internal_queue_init();
     fail_if(q == NULL, "Initializing a queue failed.");
 
-    CIRCLE_queue_pop(q, result);
+    CIRCLE_internal_queue_pop(q, result);
     fail_if(strlen(result) > 0, \
         "Something was poped from an empty queue.");
 
-    free_result = CIRCLE_queue_free(q);
+    free_result = CIRCLE_internal_queue_free(q);
     fail_unless(free_result, "Circle context was not null after free.");
 
     CIRCLE_finalize();
@@ -51,24 +51,24 @@ START_TEST
     char * test_string = "Here's a test string!";
     char result[CIRCLE_MAX_STRING_LEN];
 
-    CIRCLE_queue_t *q;
+    CIRCLE_internal_queue_t *q;
     CIRCLE_init(0, NULL);
 
-    q = CIRCLE_queue_init();
+    q = CIRCLE_internal_queue_init();
     fail_if(q == NULL, "Initializing a queue failed.");
 
-    CIRCLE_queue_push(q, test_string);
+    CIRCLE_internal_queue_push(q, test_string);
     fail_unless(q->count == 1, \
         "Queue count was not correct after a single push.");
 
-    CIRCLE_queue_pop(q, result);
+    CIRCLE_internal_queue_pop(q, result);
     fail_unless(q->count == 0, \
         "Queue count was not correct after poping the last element.");
 
     fail_unless(strcmp(test_string, result) == 0, \
         "Result poped from the queue does not match original.");
 
-    free_result = CIRCLE_queue_free(q);
+    free_result = CIRCLE_internal_queue_free(q);
     fail_unless(free_result, "Circle context was not null after free.");
 
     CIRCLE_finalize();
@@ -93,17 +93,17 @@ START_TEST
     test_strings[8] = "nineth test string";
     test_strings[9] = "tenth test string";
 
-    CIRCLE_queue_t * q;
+    CIRCLE_internal_queue_t * q;
     CIRCLE_init(0, NULL);
 
-    q = CIRCLE_queue_init();
+    q = CIRCLE_internal_queue_init();
     fail_unless(q != NULL, "Initializing a queue failed.");
 
     /* Warm it up a bit */
-    CIRCLE_queue_push(q, test_strings[0]);
-    CIRCLE_queue_pop(q, result);
-    CIRCLE_queue_push(q, test_strings[1]);
-    CIRCLE_queue_pop(q, result);
+    CIRCLE_internal_queue_push(q, test_strings[0]);
+    CIRCLE_internal_queue_pop(q, result);
+    CIRCLE_internal_queue_push(q, test_strings[1]);
+    CIRCLE_internal_queue_pop(q, result);
 
     fail_unless(strcmp(test_strings[1], result) == 0, \
         "The queue pop was not the expected result.");
@@ -112,24 +112,24 @@ START_TEST
         "Queue count was not correct after two pushes and two pops.");
 
     /* Now lets try multiple ones */
-    CIRCLE_queue_push(q, test_strings[2]);
-    CIRCLE_queue_push(q, test_strings[3]);
-    CIRCLE_queue_push(q, test_strings[4]);
-    CIRCLE_queue_push(q, test_strings[5]);
-    CIRCLE_queue_push(q, test_strings[6]);
-    CIRCLE_queue_push(q, test_strings[7]); // count = 6
-    CIRCLE_queue_pop(q, result);
-    CIRCLE_queue_pop(q, result);
-    CIRCLE_queue_pop(q, result);
-    CIRCLE_queue_pop(q, result); // count = 2
-    CIRCLE_queue_push(q, test_strings[8]);
-    CIRCLE_queue_push(q, test_strings[9]);
-    CIRCLE_queue_push(q, test_strings[0]); // count = 5
-    CIRCLE_queue_pop(q, result);
-    CIRCLE_queue_pop(q, result);
-    CIRCLE_queue_pop(q, result);
-    CIRCLE_queue_pop(q, result);
-    CIRCLE_queue_pop(q, result); // count = 0
+    CIRCLE_internal_queue_push(q, test_strings[2]);
+    CIRCLE_internal_queue_push(q, test_strings[3]);
+    CIRCLE_internal_queue_push(q, test_strings[4]);
+    CIRCLE_internal_queue_push(q, test_strings[5]);
+    CIRCLE_internal_queue_push(q, test_strings[6]);
+    CIRCLE_internal_queue_push(q, test_strings[7]); // count = 6
+    CIRCLE_internal_queue_pop(q, result);
+    CIRCLE_internal_queue_pop(q, result);
+    CIRCLE_internal_queue_pop(q, result);
+    CIRCLE_internal_queue_pop(q, result); // count = 2
+    CIRCLE_internal_queue_push(q, test_strings[8]);
+    CIRCLE_internal_queue_push(q, test_strings[9]);
+    CIRCLE_internal_queue_push(q, test_strings[0]); // count = 5
+    CIRCLE_internal_queue_pop(q, result);
+    CIRCLE_internal_queue_pop(q, result);
+    CIRCLE_internal_queue_pop(q, result);
+    CIRCLE_internal_queue_pop(q, result);
+    CIRCLE_internal_queue_pop(q, result); // count = 0
 
     fail_unless(strcmp(test_strings[2], result) == 0, \
         "The queue pop was not the expected result.");
@@ -138,15 +138,15 @@ START_TEST
         "Queue count was not correct after several operations.");
 
     /* Lets just try a few randomly */
-    CIRCLE_queue_push(q, test_strings[1]);
-    CIRCLE_queue_pop(q, result);
-    CIRCLE_queue_pop(q, result); // count = 0
-    CIRCLE_queue_push(q, test_strings[2]);
-    CIRCLE_queue_pop(q, result);
-    CIRCLE_queue_push(q, test_strings[3]);
-    CIRCLE_queue_push(q, test_strings[4]);
-    CIRCLE_queue_push(q, test_strings[5]); // count = 3
-    CIRCLE_queue_pop(q, result); // count = 2
+    CIRCLE_internal_queue_push(q, test_strings[1]);
+    CIRCLE_internal_queue_pop(q, result);
+    CIRCLE_internal_queue_pop(q, result); // count = 0
+    CIRCLE_internal_queue_push(q, test_strings[2]);
+    CIRCLE_internal_queue_pop(q, result);
+    CIRCLE_internal_queue_push(q, test_strings[3]);
+    CIRCLE_internal_queue_push(q, test_strings[4]);
+    CIRCLE_internal_queue_push(q, test_strings[5]); // count = 3
+    CIRCLE_internal_queue_pop(q, result); // count = 2
 
     fail_unless(strcmp(test_strings[5], result) == 0, \
         "The queue pop was not the expected result.");
@@ -154,7 +154,7 @@ START_TEST
     fail_unless(q->count == 2, \
         "Queue count was not correct after several operations.");
 
-    free_result = CIRCLE_queue_free(q);
+    free_result = CIRCLE_internal_queue_free(q);
     fail_unless(free_result, "Circle context was not null after free.");
 
     CIRCLE_finalize();
