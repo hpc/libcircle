@@ -19,12 +19,13 @@ extern CIRCLE_input_st CIRCLE_INPUT_ST;
 /**
  * Sends an abort message to all ranks.
  *
- * This function is used to send a 'poisoned' work request to each rank, so that
- * they will know to abort.
+ * This function is used to send a 'poisoned' work request to each rank, so
+ * that they will know to abort.
  */
 void CIRCLE_bcast_abort(void)
 {
-    LOG(CIRCLE_LOG_WARN, "Libcircle abort started from %d", CIRCLE_global_rank);
+    LOG(CIRCLE_LOG_WARN, \
+        "Libcircle abort started from %d", CIRCLE_global_rank);
 
     int buffer = ABORT;
     int size = 0;
@@ -51,12 +52,12 @@ void CIRCLE_bcast_abort(void)
  * Checks for incoming tokens, determines termination conditions.
  *
  * When the master rank is idle, it generates a token that is initially white.
- * When a node is idle, and can't get work for one loop iteration then it
- * checks for termination.  It checks to see if the token has been passed to it,
- * additionally checking for the termination token.  If a rank receives a black
+ * When a node is idle, and can't get work for one loop iteration, then it
+ * checks for termination. It checks to see if the token has been passed to it,
+ * additionally checking for the termination token. If a rank receives a black
  * token then it forwards a black token. Otherwise it forwards its own color.
  *
- * All nodes start out in the white state.  State is *not* the same thing as
+ * All nodes start out in the white state. State is *not* the same thing as
  * the token. If a node j sends work to a rank i (i < j) then its state turns
  * black. It then turns the token black when it comes around, forwards it, and
  * turns its state back to white.
@@ -67,12 +68,17 @@ int CIRCLE_check_for_term(CIRCLE_state_st* st)
 {
     /* If I have the token (I am already idle) */
     if(st->have_token) {
+
         /* The master rank generates the original WHITE token */
         if(st->rank == 0) {
+
             //   LOG(CIRCLE_LOG_DBG, "Master generating WHITE token.");
             st->incoming_token = WHITE;
-            MPI_Send(&st->incoming_token, 1, MPI_INT, (st->rank + 1) % st->size, \
+
+            MPI_Send(&st->incoming_token, 1, MPI_INT, \
+                     (st->rank + 1) % st->size, \
                      TOKEN, *st->mpi_state_st->token_comm);
+
             st->token = WHITE;
             st->have_token = 0;
 
@@ -81,7 +87,8 @@ int CIRCLE_check_for_term(CIRCLE_state_st* st)
              * comes back around
              */
             MPI_Irecv(&st->incoming_token, 1, MPI_INT, st->token_partner, \
-                      TOKEN, *st->mpi_state_st->token_comm, &st->mpi_state_st->term_request);
+                      TOKEN, *st->mpi_state_st->token_comm, \
+                      &st->mpi_state_st->term_request);
 
             st->term_pending_receive = 1;
         }
@@ -94,10 +101,12 @@ int CIRCLE_check_for_term(CIRCLE_state_st* st)
              *
              * Then I turn my state white.
              */
-            if(st->token == BLACK)
-                { st->incoming_token = BLACK; }
+            if(st->token == BLACK) {
+                st->incoming_token = BLACK;
+            }
 
-            MPI_Send(&st->incoming_token, 1, MPI_INT, (st->rank + 1) % st->size, \
+            MPI_Send(&st->incoming_token, 1, MPI_INT, \
+                     (st->rank + 1) % st->size, \
                      TOKEN, *st->mpi_state_st->token_comm);
 
             st->token = WHITE;
@@ -108,7 +117,8 @@ int CIRCLE_check_for_term(CIRCLE_state_st* st)
              * comes back around.
              */
             MPI_Irecv(&st->incoming_token, 1, MPI_INT, st->token_partner, \
-                      TOKEN, *st->mpi_state_st->token_comm, &st->mpi_state_st->term_request);
+                      TOKEN, *st->mpi_state_st->token_comm, \
+                      &st->mpi_state_st->term_request);
 
             st->term_pending_receive = 1;
         }
@@ -117,11 +127,15 @@ int CIRCLE_check_for_term(CIRCLE_state_st* st)
     }
     /* If I don't have the token. */
     else {
+
         /* Check to see if I have posted a receive. */
         if(!st->term_pending_receive) {
             st->incoming_token = -1;
+
             MPI_Irecv(&st->incoming_token, 1, MPI_INT, st->token_partner, \
-                      TOKEN, *st->mpi_state_st->token_comm, &st->mpi_state_st->term_request);
+                      TOKEN, *st->mpi_state_st->token_comm, \
+                      &st->mpi_state_st->term_request);
+
             st->term_pending_receive = 1;
         }
 
@@ -160,8 +174,11 @@ int CIRCLE_check_for_term(CIRCLE_state_st* st)
             LOG(CIRCLE_LOG_DBG, "Master has detected termination.");
 
             st->token = TERMINATE;
-            MPI_Send(&st->token, 1, MPI_INT, 1, TOKEN, *st->mpi_state_st->token_comm);
-            MPI_Send(&st->token, 1, MPI_INT, 1, WORK, *st->mpi_state_st->token_comm);
+
+            MPI_Send(&st->token, 1, MPI_INT, 1, \
+                     TOKEN, *st->mpi_state_st->token_comm);
+            MPI_Send(&st->token, 1, MPI_INT, 1, \
+                     WORK, *st->mpi_state_st->token_comm);
 
             return TERMINATE;
         }
@@ -206,19 +223,19 @@ int CIRCLE_wait_on_probe(CIRCLE_state_st* st, int source, int tag)
 
             if(i != st->rank) {
                 MPI_Test(&st->mpi_state_st->request_request[i], \
-                         &st->request_flag[i], &st->mpi_state_st->request_status[i]);
-                {
-                    if(st->request_flag[i]) {
-                        CIRCLE_send_no_work(i);
-                        MPI_Start(&st->mpi_state_st->request_request[i]);
-                    }
+                         &st->request_flag[i], \
+                         &st->mpi_state_st->request_status[i]);
 
+                if(st->request_flag[i]) {
+                    CIRCLE_send_no_work(i);
+                    MPI_Start(&st->mpi_state_st->request_request[i]);
                 }
             }
         }
 
-        if(CIRCLE_check_for_term(st) == TERMINATE)
-            { return TERMINATE; }
+        if(CIRCLE_check_for_term(st) == TERMINATE) {
+            return TERMINATE;
+        }
     }
 
     if(flag) {
@@ -242,8 +259,9 @@ int CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 
     int temp_buffer = 3;
 
-    if(CIRCLE_ABORT_FLAG)
-        { temp_buffer = ABORT; }
+    if(CIRCLE_ABORT_FLAG) {
+        temp_buffer = ABORT;
+    }
 
     /* Send work request. */
     MPI_Send(&temp_buffer, 1, MPI_INT, st->next_processor, \
@@ -263,9 +281,13 @@ int CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
         return 0;
     }
 
-    /* If we get here, there was definitely an answer.  Receives the offsets then */
+    /*
+     * If we get here, there was definitely an answer.
+     * Receives the offsets then
+     */
     MPI_Recv(st->work_offsets, size, MPI_INT, st->next_processor, \
-             WORK, *st->mpi_state_st->work_comm, &st->mpi_state_st->work_offsets_status);
+             WORK, *st->mpi_state_st->work_comm, \
+             &st->mpi_state_st->work_offsets_status);
 
     /* We'll ask somebody else next time */
     int source = st->next_processor;
@@ -310,7 +332,9 @@ int CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 
     for(i = 0; i < qp->count; i++) {
         qp->strings[i] = qp->base + st->work_offsets[i + 2];
-        //LOG(CIRCLE_LOG_DBG, "Item [%d] Offset [%d] String [%s]",i, st->work_offsets[i + 2], qp->strings[i]);
+        //LOG(CIRCLE_LOG_DBG,
+        //    "Item [%d] Offset [%d] String [%s]",
+        //    i, st->work_offsets[i + 2], qp->strings[i]);
     }
 
     if(size == 0) {
@@ -319,7 +343,8 @@ int CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
     }
 
     if(qp->strings[0] != qp->base) {
-        LOG(CIRCLE_LOG_FATAL, "The base address of the queue doesn't match what it should be.");
+        LOG(CIRCLE_LOG_FATAL, \
+            "The base address of the queue doesn't match what it should be.");
         exit(EXIT_FAILURE);
     }
 
@@ -340,7 +365,8 @@ void CIRCLE_send_no_work(int dest)
     no_work[1] = 0;
 
     MPI_Request r;
-    MPI_Isend(&no_work, 1, MPI_INT, dest, WORK, *CIRCLE_INPUT_ST.work_comm, &r);
+    MPI_Isend(&no_work, 1, MPI_INT, \
+              dest, WORK, *CIRCLE_INPUT_ST.work_comm, &r);
     MPI_Wait(&r, MPI_STATUS_IGNORE);
 
 }
@@ -348,13 +374,14 @@ void CIRCLE_send_no_work(int dest)
 /**
  * Distributes a random amount of the local work queue to the n requestors.
  */
-void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
-                              int* requestors, int rcount)
+void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
+                              CIRCLE_state_st* st, int* requestors, int rcount)
 {
     int i = 0;
 
     if(rcount <= 0) {
-        LOG(CIRCLE_LOG_FATAL, "Something is wrong with the amount of work we think we have.");
+        LOG(CIRCLE_LOG_FATAL,
+            "Something is wrong with the amount of work we think we have.");
         exit(EXIT_FAILURE);
     }
 
@@ -410,7 +437,8 @@ int CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
     st->request_offsets[1] = diff;
 
     if(diff >= (CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE * CIRCLE_MAX_STRING_LEN)) {
-        LOG(CIRCLE_LOG_FATAL, "We're trying to throw away part of the queue for some reason.");
+        LOG(CIRCLE_LOG_FATAL, \
+            "We're trying to throw away part of the queue for some reason.");
         exit(EXIT_FAILURE);
     }
 
@@ -429,9 +457,13 @@ int CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
               MPI_INT, dest, WORK, *st->mpi_state_st->work_comm);
 
 
-    MPI_Ssend(b, (diff + 1) * sizeof(char), MPI_BYTE, dest, WORK, *st->mpi_state_st->work_comm);
+    MPI_Ssend(b, (diff + 1) * sizeof(char), MPI_BYTE, \
+              dest, WORK, *st->mpi_state_st->work_comm);
+
     qp->count = qp->count - count;
-    //    LOG(CIRCLE_LOG_DBG, "Sent %d items to %d.", st->request_offsets[0], dest);
+    //LOG(CIRCLE_LOG_DBG,
+    //    "Sent %d items to %d.", st->request_offsets[0], dest);
+
     return 0;
 }
 
@@ -478,7 +510,7 @@ int CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
                     return ABORT;
                 }
 
-                //                LOG(CIRCLE_LOG_DBG,"Received work request from %d\n",i);
+                // LOG(CIRCLE_LOG_DBG,"Received work request from %d\n",i);
                 requestors[rcount++] = i;
                 st->request_flag[i] = 0;
             }
@@ -495,7 +527,10 @@ int CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
             CIRCLE_send_no_work(requestors[i]);
         }
     }
-    /* If you get here, then you have work to send AND the CIRCLE_ABORT_FLAG is not set */
+    /*
+     * If you get here, then you have work to send AND the CIRCLE_ABORT_FLAG
+     * is not set
+     */
     else {
         CIRCLE_send_work_to_many(qp, st, requestors, rcount);
     }

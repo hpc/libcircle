@@ -72,11 +72,16 @@ void CIRCLE_send_no_work(int dest);
 int  CIRCLE_check_for_term(CIRCLE_state_st* st);
 int  CIRCLE_wait_on_probe(CIRCLE_state_st* st, int source, int tag);
 
-int  CIRCLE_check_for_requests(CIRCLE_internal_queue_t* queue, CIRCLE_state_st* state);
-int  CIRCLE_request_work(CIRCLE_internal_queue_t* queue, CIRCLE_state_st* state);
-void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* queue, CIRCLE_state_st* state, \
+int  CIRCLE_check_for_requests(CIRCLE_internal_queue_t* queue, \
+                               CIRCLE_state_st* state);
+int  CIRCLE_request_work(CIRCLE_internal_queue_t* queue, \
+                         CIRCLE_state_st* state);
+
+void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* queue, \
+                              CIRCLE_state_st* state, \
                               int* requestors, int rcount);
-int  CIRCLE_send_work(CIRCLE_internal_queue_t* queue, CIRCLE_state_st* state, \
+int  CIRCLE_send_work(CIRCLE_internal_queue_t* queue, \
+                      CIRCLE_state_st* state, \
                       int dest, int count);
 
 void CIRCLE_bcast_abort(void);
