@@ -25,10 +25,9 @@ To enable output from libcircle (including fatal errors), run configure with
 
 RPM Build and Install
 ---------------------
-The RPM spec file isn't really complete yet. Still working on it. However,
-when it does work, you'll be able to build and install like this:
+To build an RPM, use the following instructions:
 
-1. rpmbuild -ta libcircle-*.tar.gz
+1. rpmbuild -ta libcircle-<version>-<release>.tgz
 2. rpm --install <the appropriate RPM files>
 
 Developer API Information
