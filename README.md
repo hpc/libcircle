@@ -32,6 +32,11 @@ To build an RPM, use the following instructions:
 
 Developer API Information
 -------------------------
+The basic program flow when using libcircle is the following:
+
+1. Define callbacks which enqueue or dequeue strings from the queue.
+2. Execute the program.
+
 ```C
 #include <libcircle.h>
 
