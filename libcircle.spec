@@ -40,7 +40,10 @@ rm -rf $RPM_BUILD_ROOT
 
 ###############################################################################
 
-%defattr(-,root,root)                                                           
-%dir %attr(0755,root,root) %{_prefix}/include/libcircle
-%{_prefix}/include/libcircle/*
+%files
+%defattr(-,root,root,0755)
+%{_prefix}/include/libcircle.h
+%{_libdir}/libcircle.so*
+%{_libdir}/pkgconfig/libcircle.pc
+%{_libdir}/libcircle.a
 %{_libdir}/libcircle.la
