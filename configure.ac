@@ -52,8 +52,7 @@ echo "  Doxygen ........................................ $x_ac_libcircle_doxygen
 echo "========================================================"
 echo
 
-AC_CONFIG_FILES([Makefile       \
-                 tests/Makefile \
-                 doc/Makefile   \
-                 libcircle.pc:libcircle.pc.in])
-AC_OUTPUT
+AC_OUTPUT([Makefile      \
+          tests/Makefile \
+          doc/Makefile   \
+          libcircle.pc:libcircle.pc.in])
