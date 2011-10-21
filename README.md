@@ -40,6 +40,7 @@ The basic program flow when using libcircle is the following:
 ```C
 #include <libcircle.h>
 
+/* An example of a create callback defined by your program */
 void my_create_some_work(CIRCLE_handle *handle)
 {
     /*
@@ -56,6 +57,7 @@ void my_create_some_work(CIRCLE_handle *handle)
     }
 }
 
+/* An example of a process callback defined by your program. */
 void my_process_some_work(CIRCLE_handle *handle)
 {
     /*
