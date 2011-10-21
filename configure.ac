@@ -54,5 +54,6 @@ echo
 
 AC_CONFIG_FILES([Makefile       \
                  tests/Makefile \
+                 doc/Makefile   \
                  libcircle.pc:libcircle.pc.in])
 AC_OUTPUT
