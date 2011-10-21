@@ -5,7 +5,7 @@ Release: 1
 Source: %{name}-%{version}-%{release}.tgz                                       
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}                            
 URL: http://github.com/hpc/libcircle
-Summary: The libcircle library.
+Summary: A library used to distribute workloads.
 Group: Development/Libraries
 License: Copyright (c) 2007-2011 Los Alamos National Security, LLC. All rights reserved.
 
