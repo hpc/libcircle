@@ -75,7 +75,8 @@ int CIRCLE_local_queue_size()
  */
 int _CIRCLE_read_restarts()
 {
-    return CIRCLE_internal_queue_read(CIRCLE_INPUT_ST.queue, CIRCLE_global_rank);
+    return CIRCLE_internal_queue_read(CIRCLE_INPUT_ST.queue, \
+                                      CIRCLE_global_rank);
 }
 
 /**
@@ -83,7 +84,8 @@ int _CIRCLE_read_restarts()
  */
 int _CIRCLE_checkpoint()
 {
-    return CIRCLE_internal_queue_write(CIRCLE_INPUT_ST.queue, CIRCLE_global_rank);
+    return CIRCLE_internal_queue_write(CIRCLE_INPUT_ST.queue, \
+                                       CIRCLE_global_rank);
 }
 
 /**
@@ -100,12 +102,21 @@ void CIRCLE_init_local_state(CIRCLE_state_st* local_state, int size)
     local_state->request_pending_receive = 0;
     local_state->term_pending_receive = 0;
     local_state->incoming_token = BLACK;
-    local_state->request_offsets = (unsigned int*) calloc(CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE, sizeof(unsigned int));
-    local_state->work_offsets = (unsigned int*) calloc(CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE, sizeof(unsigned int));
+
+    local_state->request_offsets = (unsigned int*) calloc(\
+                                   CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE, \
+                                   sizeof(unsigned int));
+    local_state->work_offsets = (unsigned int*) calloc(\
+                                CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE, \
+                                sizeof(unsigned int));
     local_state->request_flag = (int*) calloc(size, sizeof(int));
     local_state->request_recv_buf = (int*) calloc(size, sizeof(int));
-    local_state->mpi_state_st->request_status = (MPI_Status*) malloc(sizeof(MPI_Status) * size);
-    local_state->mpi_state_st->request_request = (MPI_Request*) malloc(sizeof(MPI_Request) * size);
+
+    local_state->mpi_state_st->request_status = \
+            (MPI_Status*) malloc(sizeof(MPI_Status) * size);
+    local_state->mpi_state_st->request_request = \
+            (MPI_Request*) malloc(sizeof(MPI_Request) * size);
+
     local_state->mpi_state_st->work_comm = CIRCLE_INPUT_ST.work_comm;
     local_state->mpi_state_st->token_comm = CIRCLE_INPUT_ST.token_comm;
 
@@ -188,9 +199,12 @@ void CIRCLE_cleanup_mpi_messages(CIRCLE_state_st* sptr)
                 sptr->request_flag[i] = 0;
 
                 if(MPI_Test(&sptr->mpi_state_st->request_request[i], \
-                            &sptr->request_flag[i], &sptr->mpi_state_st->request_status[i]) \
+                            &sptr->request_flag[i], \
+                            &sptr->mpi_state_st->request_status[i]) \
                         != MPI_SUCCESS) {
-                    MPI_Abort(*sptr->mpi_state_st->work_comm, LIBCIRCLE_MPI_ERROR);
+
+                    MPI_Abort(*sptr->mpi_state_st->work_comm, \
+                              LIBCIRCLE_MPI_ERROR);
                 }
 
                 if(sptr->request_flag[i]) {
@@ -269,19 +283,24 @@ int CIRCLE_worker()
         CIRCLE_checkpoint();
     }
 
-    MPI_Gather(&local_objects_processed, 1, MPI_INT, &total_objects_processed_array[0], 1, MPI_INT, 0, *mpi_s.work_comm);
-    MPI_Reduce(&local_objects_processed, &total_objects_processed, 1, MPI_INT, MPI_SUM, 0, *mpi_s.work_comm);
+    MPI_Gather(&local_objects_processed, 1, MPI_INT, \
+               &total_objects_processed_array[0], 1, MPI_INT, 0, \
+               *mpi_s.work_comm);
+    MPI_Reduce(&local_objects_processed, &total_objects_processed, 1, \
+               MPI_INT, MPI_SUM, 0, *mpi_s.work_comm);
 
     if(rank == 0) {
         for(i = 0; i < size; i++) {
             LOG(CIRCLE_LOG_INFO, "Rank %d\tObjects Processed %d\t%lf%%\n", i, \
                 total_objects_processed_array[i], \
-                (double)total_objects_processed_array[i] / (double)total_objects_processed * 100.0);
+                (double)total_objects_processed_array[i] / \
+                (double)total_objects_processed * 100.0);
         }
     }
 
     if(rank == 0) {
-        LOG(CIRCLE_LOG_INFO, "Total Objects Processed: %d\n", total_objects_processed);
+        LOG(CIRCLE_LOG_INFO, \
+            "Total Objects Processed: %d\n", total_objects_processed);
     }
 
     return 0;

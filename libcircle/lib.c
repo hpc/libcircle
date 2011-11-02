@@ -36,14 +36,23 @@ __inline__ int CIRCLE_init(int argc, char* argv[])
 {
     CIRCLE_debug_stream = stdout;
     CIRCLE_debug_level = CIRCLE_LOG_INFO;
+
     CIRCLE_INPUT_ST.work_comm = (MPI_Comm*) malloc(sizeof(MPI_Comm));
     CIRCLE_INPUT_ST.token_comm = (MPI_Comm*) malloc(sizeof(MPI_Comm));
+
     MPI_Init(&argc, &argv);
+
     MPI_Comm_dup(MPI_COMM_WORLD, CIRCLE_INPUT_ST.work_comm);
     MPI_Comm_dup(MPI_COMM_WORLD, CIRCLE_INPUT_ST.token_comm);
+
     MPI_Comm_rank(*CIRCLE_INPUT_ST.token_comm, &CIRCLE_global_rank);
+
     CIRCLE_INPUT_ST.queue = CIRCLE_internal_queue_init();
-    return CIRCLE_global_rank;
+
+    if(CIRCLE_INPUT_ST.queue == NULL)
+        return -1;
+    else
+        return CIRCLE_global_rank;
 }
 
 /**

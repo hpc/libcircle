@@ -12,6 +12,7 @@ AC_DEFUN([X_AC_LIBCIRCLE_DOXYGEN], [
   )
   AM_CONDITIONAL([HAVE_DOXYGEN],
     [test -n "$DOXYGEN"])
-  AM_COND_IF([HAVE_DOXYGEN],
-    [AC_CONFIG_FILES([doc/Doxyfile])])
+  if test [HAVE_DOXYGEN]; then 
+    AC_OUTPUT([doc/Doxyfile])
+  fi
 ])

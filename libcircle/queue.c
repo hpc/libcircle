@@ -28,16 +28,21 @@ CIRCLE_internal_queue_t* CIRCLE_internal_queue_init(void)
     LOG(CIRCLE_LOG_DBG, "Allocating a queue structure.");
 
     qp = (CIRCLE_internal_queue_t*) malloc(sizeof(CIRCLE_internal_queue_t));
-    qp->base = (char*) malloc(sizeof(char) * CIRCLE_MAX_STRING_LEN * CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE);
-    qp->strings = (char**) malloc(sizeof(char*) * CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE);
+    qp->base = (char*) malloc(sizeof(char) * \
+                              CIRCLE_MAX_STRING_LEN * \
+                              CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE);
+    qp->strings = (char**) malloc(sizeof(char*) * \
+                                  CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE);
 
     if(!qp || !qp->base || !qp->strings) {
         LOG(CIRCLE_LOG_ERR, "Failed to allocate a basic queue structure.");
+        return (CIRCLE_internal_queue_t *) NULL;
     }
 
     qp->count = 0;
     qp->head = qp->base;
-    qp->end = qp->base + (CIRCLE_MAX_STRING_LEN * CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE);
+    qp->end = qp->base + \
+              (CIRCLE_MAX_STRING_LEN * CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE);
 
     return qp;
 }
@@ -98,7 +103,8 @@ void CIRCLE_internal_queue_print(CIRCLE_internal_queue_t* qp)
     int i = 0;
 
     for(i = 0; i < qp->count; i++) {
-        LOG(CIRCLE_LOG_DBG, "\t[%p][%d] %s", qp->strings[i], i, qp->strings[i]);
+        LOG(CIRCLE_LOG_DBG, "\t[%p][%d] %s", \
+            qp->strings[i], i, qp->strings[i]);
     }
 }
 
@@ -124,17 +130,20 @@ int CIRCLE_internal_queue_push(CIRCLE_internal_queue_t* qp, char* str)
 
     if(qp->count > 0) {
         if(qp->strings[qp->count - 1] + CIRCLE_MAX_STRING_LEN >= qp->end) {
-            LOG(CIRCLE_LOG_ERR, "The queue is not large enough to add another value.");
+            LOG(CIRCLE_LOG_ERR, \
+                "The queue is not large enough to add another value.");
             return -1;
         }
     }
 
     if(strlen(str) > CIRCLE_MAX_STRING_LEN) {
-        LOG(CIRCLE_LOG_ERR, "Attempted to push a value that was larger than expected.");
+        LOG(CIRCLE_LOG_ERR, \
+            "Attempted to push a value that was larger than expected.");
         return -1;
     }
 
-    //LOG(CIRCLE_LOG_DBG, "Pushing \"%s\" onto a queue of count %d.", str, qp->count);
+    //LOG(CIRCLE_LOG_DBG,
+    //    "Pushing \"%s\" onto a queue of count %d.", str, qp->count);
 
     /* Set our write location to the end of the current strings array. */
     qp->strings[qp->count] = qp->head;
@@ -175,7 +184,8 @@ int CIRCLE_internal_queue_pop(CIRCLE_internal_queue_t* qp, char* str)
     }
 
     if(!str) {
-        LOG(CIRCLE_LOG_ERR, "You must allocate a buffer for storing the result.");
+        LOG(CIRCLE_LOG_ERR, \
+            "You must allocate a buffer for storing the result.");
         return -1;
     }
 
@@ -206,7 +216,8 @@ int CIRCLE_internal_queue_read(CIRCLE_internal_queue_t* qp, int rank)
     LOG(CIRCLE_LOG_DBG, "Reading from checkpoint file %d.", rank);
 
     if(qp->count != 0) {
-        LOG(CIRCLE_LOG_WARN, "Warning: Reading items from checkpoint file into non-empty work queue.");
+        LOG(CIRCLE_LOG_WARN, \
+            "Reading items from checkpoint file into non-empty work queue.");
     }
 
     char filename[256];
@@ -256,7 +267,8 @@ int CIRCLE_internal_queue_read(CIRCLE_internal_queue_t* qp, int rank)
  */
 int CIRCLE_internal_queue_write(CIRCLE_internal_queue_t* qp, int rank)
 {
-    LOG(CIRCLE_LOG_INFO, "Writing checkpoint file with %d elements.", qp->count);
+    LOG(CIRCLE_LOG_INFO, \
+        "Writing checkpoint file with %d elements.", qp->count);
 
     if(qp->count == 0) {
         return 0;
