@@ -239,7 +239,8 @@ int CIRCLE_wait_on_probe(CIRCLE_state_st* st, int source, int tag)
     }
 
     if(flag) {
-        return temp._count;
+        MPI_Get_count(&temp, MPI_INT, &flag);
+        return flag;
     }
     else {
         return 0;
