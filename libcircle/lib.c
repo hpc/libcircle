@@ -50,36 +50,31 @@ __inline__ int CIRCLE_init(int argc, char* argv[])
     CIRCLE_INPUT_ST.queue = CIRCLE_internal_queue_init();
 
     if(CIRCLE_INPUT_ST.queue == NULL)
-        return -1;
+        { return -1; }
     else
-        return CIRCLE_global_rank;
+        { return CIRCLE_global_rank; }
 }
 
-/**
- * Processing and creating work is done through callbacks. Here's how we tell
- * libcircle about our function which creates an initial workload. This call
- * is optional.
- *
- * @param func the callback to be used in the creation stage.
- */
-__inline__ void CIRCLE_cb_create(CIRCLE_cb func)
+__inline__ int CIRCLE_create_queue(int id, CIRCLE_cb start, CIRCLE_cb process)
 {
-    CIRCLE_INPUT_ST.create_cb = func;
-}
 
-/**
- * After you give libcircle a way to create work, you need to tell it how that
- * work should be processed.
- *
- * @param func the callback to be used in the process stage.
- */
-__inline__ void CIRCLE_cb_process(CIRCLE_cb func)
-{
-    if(CIRCLE_INPUT_ST.create_cb == NULL) {
-        CIRCLE_INPUT_ST.create_cb = func;
+    if(start == NULL) {
+        LOG(LOG_DBG, \
+            "Start callback is null for this queue. But that's ok...");
+    }
+    else {
+        if(CIRCLE_multi_add_start(id, start) < 0) {
+            LOG(LOG_ERR, \
+                "Failed to add a new start callback. Queues may be corrupted.");
+            return -1;
+        }
     }
 
-    CIRCLE_INPUT_ST.process_cb = func;
+    if(CIRCLE_multi_add_process(id, process) < 0) {
+        LOG(LOG_ERR, \
+            "Failed to add a new process callback. Queues may be corrupted.");
+        return -1;
+    }
 }
 
 /**

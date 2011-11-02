@@ -49,7 +49,7 @@ int CIRCLE_init(int argc, char* argv[]);
  * executed.
  *
  * @param id a queue unique identifier for accessing this new queue.
- * @param start a callback function for the initial queue data.
+ * @param start a callback function for the initial queue data. May be null.
  * @param process a callback for processing the work in the queue.
  * @return a positive value if successful, negative otherwise.
  */
