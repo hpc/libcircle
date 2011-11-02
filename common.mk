@@ -1,1 +1,1 @@
-AM_CFLAGS = -Wall -Wextra -std=gnu99 -g
+AM_CFLAGS = -W -Wall -Wextra -Wshadow -Wwrite-strings -std=c99

@@ -1,6 +1,6 @@
 include $(top_srcdir)/common.mk
 
-SUBDIRS = tests
+SUBDIRS = tests doc
 
 AUTOMAKE_OPTIONS = subdir-objects foreign
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
@@ -41,6 +41,8 @@ mrproper: distclean-local clean
 	-(cd $(top_srcdir)/m4 && rm -f libtool.m4 ltoptions.m4)
 	-(cd $(top_srcdir)/m4 && rm -f ltsugar.m4 ltversion.m4)
 	-(cd $(top_srcdir)/m4 && rm -f lt~obsolete.m4)
+	-(cd $(top_srcdir)/doc && rm -f Doxyfile)
+	-(cd $(top_srcdir)/tests && rm -f circle*.txt)
 	-find $(top_srcdir)/ -name "Makefile" -exec rm {} \;
 	-find $(top_srcdir)/ -name "Makefile.in" -exec rm {} \;
 	-find $(top_srcdir)/ -name ".dirstamp" -exec rm {} \;

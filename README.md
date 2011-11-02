@@ -25,17 +25,22 @@ To enable output from libcircle (including fatal errors), run configure with
 
 RPM Build and Install
 ---------------------
-The RPM spec file isn't really complete yet. Still working on it. However,
-when it does work, you'll be able to build and install like this:
+To build an RPM, use the following instructions:
 
-1. rpmbuild -ta libcircle-*.tar.gz
-2. rpm --install <the appropriate RPM files>
+1. ```rpmbuild -ta libcircle-<version>-<release>.tgz```
+2. ```rpm --install <the appropriate RPM files>```
 
 Developer API Information
 -------------------------
+The basic program flow when using libcircle is the following:
+
+1. Define callbacks which enqueue or dequeue strings from the queue.
+2. Execute the program.
+
 ```C
 #include <libcircle.h>
 
+/* An example of a create callback defined by your program */
 void my_create_some_work(CIRCLE_handle *handle)
 {
     /*
@@ -52,6 +57,7 @@ void my_create_some_work(CIRCLE_handle *handle)
     }
 }
 
+/* An example of a process callback defined by your program. */
 void my_process_some_work(CIRCLE_handle *handle)
 {
     /*

@@ -14,12 +14,16 @@ AM_PROG_CC_C_O
 # Needed for tests
 X_AC_LIBCIRCLE_CHECK
 
+# Needed for docs
+X_AC_LIBCIRCLE_DOXYGEN
+
 # Pull in libtool. We need to support ancient autotools, so don't use LT_INIT.
 #LT_INIT
 AC_PROG_LIBTOOL
 
 # Checks for typedefs, structs, and compiler options.
 AC_TYPE_SIZE_T
+AC_C_INLINE
 
 # Checks for library functs.
 AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
@@ -44,10 +48,11 @@ echo "  MPI ............................................ $have_C_mpi"
 echo
 echo "Build Options:"
 echo "  Unit tests ..................................... $x_ac_libcircle_check"
+echo "  Doxygen ........................................ $x_ac_libcircle_doxygen"
 echo "========================================================"
 echo
 
-AC_CONFIG_FILES([Makefile       \
-                 tests/Makefile \
-                 libcircle.pc:libcircle.pc.in])
-AC_OUTPUT
+AC_OUTPUT([Makefile      \
+          tests/Makefile \
+          doc/Makefile   \
+          libcircle.pc:libcircle.pc.in])
