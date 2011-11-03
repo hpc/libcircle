@@ -13,14 +13,14 @@ __inline__ int CIRCLE_multi_add_process(unsigned int queue_id, CIRCLE_cb func)
     return _CIRCLE_multi_add(queue_id, func, &CIRCLE_multi_jump_process);
 }
 
-__inline__ int CIRCLE_multi_exec_start(\
-                                       unsigned int queue_id, CIRCLE_handle* handle)
+__inline__ int CIRCLE_multi_exec_start(unsigned int queue_id, \
+                                       CIRCLE_handle* handle)
 {
     return _CIRCLE_multi_exec(queue_id, handle, &CIRCLE_multi_jump_start);
 }
 
-__inline__ int CIRCLE_multi_exec_process(\
-        unsigned int queue_id, CIRCLE_handle* handle)
+__inline__ int CIRCLE_multi_exec_process(unsigned int queue_id, \
+        CIRCLE_handle* handle)
 {
     return _CIRCLE_multi_exec(queue_id, handle, &CIRCLE_multi_jump_process);
 }
@@ -37,8 +37,8 @@ int _CIRCLE_multi_add(unsigned int queue_id, CIRCLE_cb func, CIRCLE_cb* jump)
     return 1;
 }
 
-int _CIRCLE_multi_exec(\
-                       unsigned int queue_id, CIRCLE_handle* handle, CIRCLE_cb* jump)
+int _CIRCLE_multi_exec(unsigned int queue_id, \
+                       CIRCLE_handle* handle, CIRCLE_cb* jump)
 {
     if(jump[queue_id] == NULL) {
         LOG(CIRCLE_LOG_ERR, \
