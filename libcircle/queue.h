@@ -3,16 +3,22 @@
 
 /* The initial queue size for malloc. */
 #ifndef CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE
-#define CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE 400000
+  #define CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE 400000
 #endif
+
+typedef struct CIRCLE_internal_queue_ele_t {
+    int32_t type;
+    size_t data_len;
+    char *data;
+} CIRCLE_internal_queue_ele_t;
 
 typedef struct CIRCLE_internal_queue_t {
     char* base;     /* Base of the memory pool */
     char* end;      /* End of the memory pool */
     char* next;     /* The location of the next string */
     char* head;     /* The location of the next free byte */
-    char** strings; /* The string data */
     int count;      /* The number of strings */
+    CIRCLE_internal_queue_ele_t** elements; /* The data */
 } CIRCLE_internal_queue_t;
 
 CIRCLE_internal_queue_t* CIRCLE_internal_queue_init(void);
