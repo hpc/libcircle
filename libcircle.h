@@ -1,6 +1,6 @@
 #ifndef LIBCIRCLE_H
 #define LIBCIRCLE_H
-
+#include <stdint.h>
 /**
  * The maximum length of a string value which is allowed to be placed on the
  * queue structure.
@@ -25,9 +25,9 @@ typedef enum CIRCLE_loglevel
  * terminated string.
  */
 typedef struct {
-    int (*enqueue)(char *element);
-    int (*dequeue)(char *element);
-    int (*local_queue_size)();
+    int8_t (*enqueue)(char *element);
+    int8_t (*dequeue)(char *element);
+    uint32_t (*local_queue_size)();
 } CIRCLE_handle;
 
 /**

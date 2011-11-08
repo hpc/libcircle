@@ -4,6 +4,7 @@
  */
 
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -12,7 +13,7 @@
 #include "queue.h"
 #include "log.h"
 
-extern int CIRCLE_ABORT_FLAG;
+extern int8_t CIRCLE_ABORT_FLAG;
 
 /**
  * Allocate memory for the basic queue structure used by libcircle.
@@ -53,7 +54,7 @@ CIRCLE_internal_queue_t* CIRCLE_internal_queue_init(void)
  * @param qp the reference to the queue that should be freed.
  * @return a negative value on failure, a positive one on success.
  */
-int CIRCLE_internal_queue_free(CIRCLE_internal_queue_t* qp)
+int8_t CIRCLE_internal_queue_free(CIRCLE_internal_queue_t* qp)
 {
     if(qp) {
         if(qp->strings) {
@@ -79,7 +80,7 @@ int CIRCLE_internal_queue_free(CIRCLE_internal_queue_t* qp)
  */
 void CIRCLE_internal_queue_dump(CIRCLE_internal_queue_t* qp)
 {
-    int i = 0;
+    uint32_t i = 0;
     char* p = qp->base;
 
     while(p++ != (qp->strings[qp->count - 1] + \
@@ -100,7 +101,7 @@ void CIRCLE_internal_queue_dump(CIRCLE_internal_queue_t* qp)
  */
 void CIRCLE_internal_queue_print(CIRCLE_internal_queue_t* qp)
 {
-    int i = 0;
+    uint32_t i = 0;
 
     for(i = 0; i < qp->count; i++) {
         LOG(CIRCLE_LOG_DBG, "\t[%p][%d] %s", \
@@ -116,14 +117,14 @@ void CIRCLE_internal_queue_print(CIRCLE_internal_queue_t* qp)
  *
  * @return a positive number on success, a negative one on failure.
  */
-int CIRCLE_internal_queue_push(CIRCLE_internal_queue_t* qp, char* str)
+int8_t CIRCLE_internal_queue_push(CIRCLE_internal_queue_t* qp, char* str)
 {
     if(!str) {
         LOG(CIRCLE_LOG_ERR, "Attempted to push null pointer.");
         return -1;
     }
-
-    if(strlen(str) <= 0) {
+    uint32_t len = strlen(str);
+    if(len <= 0) {
         LOG(CIRCLE_LOG_ERR, "Attempted to push an empty string onto a queue.");
         return -1;
     }
@@ -136,7 +137,7 @@ int CIRCLE_internal_queue_push(CIRCLE_internal_queue_t* qp, char* str)
         }
     }
 
-    if(strlen(str) > CIRCLE_MAX_STRING_LEN) {
+    if(len > CIRCLE_MAX_STRING_LEN) {
         LOG(CIRCLE_LOG_ERR, \
             "Attempted to push a value that was larger than expected.");
         return -1;
@@ -171,7 +172,7 @@ int CIRCLE_internal_queue_push(CIRCLE_internal_queue_t* qp, char* str)
  *
  * @return a positive value on success, a negative one otherwise.
  */
-int CIRCLE_internal_queue_pop(CIRCLE_internal_queue_t* qp, char* str)
+int8_t CIRCLE_internal_queue_pop(CIRCLE_internal_queue_t* qp, char* str)
 {
     if(!qp) {
         LOG(CIRCLE_LOG_ERR, "Attempted to pop from an invalid queue.");
@@ -206,7 +207,7 @@ int CIRCLE_internal_queue_pop(CIRCLE_internal_queue_t* qp, char* str)
  *
  * @return a positive value on success, a negative one otherwise.
  */
-int CIRCLE_internal_queue_read(CIRCLE_internal_queue_t* qp, int rank)
+int8_t CIRCLE_internal_queue_read(CIRCLE_internal_queue_t* qp, int rank)
 {
     if(!qp) {
         LOG(CIRCLE_LOG_ERR, "Libcircle queue not initialized.");
@@ -234,7 +235,7 @@ int CIRCLE_internal_queue_read(CIRCLE_internal_queue_t* qp, int rank)
 
     LOG(CIRCLE_LOG_DBG, "Checkpoint file opened.");
 
-    int len = 0;
+    uint32_t len = 0;
     char str[CIRCLE_MAX_STRING_LEN];
 
     while(fgets(str, CIRCLE_MAX_STRING_LEN, checkpoint_file) != NULL) {
@@ -265,7 +266,7 @@ int CIRCLE_internal_queue_read(CIRCLE_internal_queue_t* qp, int rank)
  *
  * @return a positive value on success, negative otherwise.
  */
-int CIRCLE_internal_queue_write(CIRCLE_internal_queue_t* qp, int rank)
+int8_t CIRCLE_internal_queue_write(CIRCLE_internal_queue_t* qp, int rank)
 {
     LOG(CIRCLE_LOG_INFO, \
         "Writing checkpoint file with %d elements.", qp->count);

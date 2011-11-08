@@ -5,8 +5,8 @@
 
 #define LIBCIRCLE_MPI_ERROR 32
 
-int CIRCLE_worker();
-int _CIRCLE_read_restarts();
-int _CIRCLE_checkpoint();
+int8_t CIRCLE_worker();
+int8_t _CIRCLE_read_restarts();
+int8_t _CIRCLE_checkpoint();
 
 #endif /* WORKER_H */
