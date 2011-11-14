@@ -7,6 +7,7 @@
 #include <mpi.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 #include "libcircle.h"
@@ -14,7 +15,7 @@
 #include "token.h"
 #include "queue.h"
 
-extern int CIRCLE_ABORT_FLAG;
+extern int8_t CIRCLE_ABORT_FLAG;
 extern CIRCLE_input_st CIRCLE_INPUT_ST;
 /**
  * Sends an abort message to all ranks.
@@ -30,7 +31,7 @@ void CIRCLE_bcast_abort(void)
     int buffer = ABORT;
     int size = 0;
     int i = 0;
-    int rank = -1;
+    int32_t rank = -1;
 
     MPI_Comm_rank(*CIRCLE_INPUT_ST.work_comm, &rank);
     MPI_Comm_size(*CIRCLE_INPUT_ST.work_comm, &size);
@@ -64,7 +65,7 @@ void CIRCLE_bcast_abort(void)
  *
  * @param st the libcircle state struct.
  */
-int CIRCLE_check_for_term(CIRCLE_state_st* st)
+int32_t CIRCLE_check_for_term(CIRCLE_state_st* st)
 {
     /* If I have the token (I am already idle) */
     if(st->have_token) {
@@ -190,9 +191,9 @@ int CIRCLE_check_for_term(CIRCLE_state_st* st)
 /**
  * This returns a random rank (not yourself).
  */
-inline int CIRCLE_get_next_proc(int rank, int size)
+inline uint32_t CIRCLE_get_next_proc(uint32_t rank, uint32_t size)
 {
-    int result = rand() % size;
+    uint32_t result = rand() % size;
 
     while(result == rank) {
         result = rand() % size;
@@ -209,10 +210,10 @@ inline int CIRCLE_get_next_proc(int rank, int size)
  * If a message is pending, it will return it's size.  Otherwise
  * it returns 0.
  */
-int CIRCLE_wait_on_probe(CIRCLE_state_st* st, int source, int tag)
+int32_t CIRCLE_wait_on_probe(CIRCLE_state_st* st, int32_t source, int32_t tag)
 {
-    int flag = 0;
-    int i = 0;
+    int32_t flag = 0;
+    uint32_t i = 0;
     MPI_Status temp;
 
     while(!flag) {
@@ -254,11 +255,11 @@ int CIRCLE_wait_on_probe(CIRCLE_state_st* st, int source, int tag)
  * rank.  If it doesn't receive work, a different rank will be asked during
  * the next iteration.
  */
-int CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
+int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 {
     LOG(CIRCLE_LOG_DBG, "Sending work request to %d...", st->next_processor);
 
-    int temp_buffer = 3;
+    int32_t temp_buffer = 3;
 
     if(CIRCLE_ABORT_FLAG) {
         temp_buffer = ABORT;
@@ -271,7 +272,7 @@ int CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
     st->work_offsets[0] = 0;
 
     /* Wait for an answer... */
-    int size = CIRCLE_wait_on_probe(st, st->next_processor, WORK);
+    int32_t size = CIRCLE_wait_on_probe(st, st->next_processor, WORK);
 
     if(size == TERMINATE) {
         return TERMINATE;
@@ -291,12 +292,12 @@ int CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
              &st->mpi_state_st->work_offsets_status);
 
     /* We'll ask somebody else next time */
-    int source = st->next_processor;
+    int32_t source = st->next_processor;
 
     st->next_processor = CIRCLE_get_next_proc(st->rank, st->size);
 
-    int chars = st->work_offsets[1];
-    int items = st->work_offsets[0];
+    int32_t chars = st->work_offsets[1];
+    int32_t items = st->work_offsets[0];
 
     if(items == -1) {
         return -1;
@@ -329,7 +330,7 @@ int CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
              *st->mpi_state_st->work_comm, MPI_STATUS_IGNORE);
 
     qp->count = items;
-    int i = 0;
+    uint32_t i = 0;
 
     for(i = 0; i < qp->count; i++) {
         qp->strings[i] = qp->base + st->work_offsets[i + 2];
@@ -358,9 +359,9 @@ int CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 /**
  * Sends a no work reply to someone requesting work.
  */
-void CIRCLE_send_no_work(int dest)
+void CIRCLE_send_no_work(uint32_t dest)
 {
-    int no_work[2];
+    int32_t no_work[2];
 
     no_work[0] = (CIRCLE_ABORT_FLAG) ? ABORT : 0;
     no_work[1] = 0;
@@ -376,9 +377,9 @@ void CIRCLE_send_no_work(int dest)
  * Distributes a random amount of the local work queue to the n requestors.
  */
 void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
-                              CIRCLE_state_st* st, int* requestors, int rcount)
+                              CIRCLE_state_st* st, int* requestors, int32_t rcount)
 {
-    int i = 0;
+    int32_t i = 0;
 
     if(rcount <= 0) {
         LOG(CIRCLE_LOG_FATAL,
@@ -386,10 +387,10 @@ void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
         exit(EXIT_FAILURE);
     }
 
-    int total_amount = rand() % (qp->count) + 1;
+    int32_t total_amount = rand() % (qp->count) + 1;
 
     /* Get size of chunk */
-    int increment = total_amount / rcount;
+    int32_t increment = total_amount / rcount;
 
     for(i = 0; i < rcount; i ++) {
         total_amount -= increment;
@@ -405,8 +406,8 @@ void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
 /**
  * Sends work to a requestor
  */
-int CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
-                     int dest, int count)
+int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
+                     int32_t dest, int32_t count)
 {
     if(count <= 0) {
         CIRCLE_send_no_work(dest);
@@ -414,7 +415,7 @@ int CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
     }
 
     /* For termination detection */
-    if(dest < st->rank || dest == st->token_partner) {
+    if((int)dest < (int)st->rank || (int)dest == (int)st->token_partner) {
         st->token = BLACK;
     }
 
@@ -443,10 +444,10 @@ int CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
         exit(EXIT_FAILURE);
     }
 
-    int j = qp->count - count;
-    int i = 0;
+    int32_t j = qp->count - count;
+    int32_t i = 0;
 
-    for(i = 0; i < (int)st->request_offsets[0]; i++) {
+    for(i = 0; i < (int32_t)st->request_offsets[0]; i++) {
         st->request_offsets[i + 2] = qp->strings[j++] - b;
     }
 
@@ -471,12 +472,11 @@ int CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
 /**
  * Checks for outstanding work requests
  */
-int CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
+int32_t CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 {
     int* requestors = (int*)calloc(st->size, sizeof(int));
-    int i = 0;
-    int rcount = 0;
-
+    uint32_t i = 0;
+    uint32_t rcount = 0;
     /* This loop is only excuted once.  It is used to initiate receives.
      * When a received is completed, we repost it immediately to capture
      * the next request */
@@ -511,7 +511,7 @@ int CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
                     return ABORT;
                 }
 
-                // LOG(CIRCLE_LOG_DBG,"Received work request from %d\n",i);
+//                LOG(CIRCLE_LOG_DBG,"Received work request from %d\n",i);
                 requestors[rcount++] = i;
                 st->request_flag[i] = 0;
             }
@@ -548,9 +548,9 @@ int CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 /**
  * Print the offsets of a copied queue.
  */
-void CIRCLE_print_offsets(unsigned int* offsets, int count)
+void CIRCLE_print_offsets(uint32_t* offsets, int32_t count)
 {
-    int i = 0;
+    int32_t i = 0;
 
     for(i = 0; i < count; i++) {
         LOG(CIRCLE_LOG_DBG, "\t[%d] %d", i, offsets[i]);

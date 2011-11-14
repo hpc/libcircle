@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <dirent.h>
 #include <sys/stat.h>
 #include <mpi.h>
@@ -17,10 +18,10 @@
 #include "worker.h"
 
 extern CIRCLE_input_st CIRCLE_INPUT_ST;
-int local_objects_processed = 0;
-int total_objects_processed = 0;
+int32_t local_objects_processed = 0;
+int32_t total_objects_processed = 0;
 
-int CIRCLE_ABORT_FLAG = 0;
+int8_t CIRCLE_ABORT_FLAG = 0;
 
 /**
  * @brief Function to be called in the event of an MPI error.
@@ -49,7 +50,7 @@ void CIRCLE_MPI_error_handler(MPI_Comm* comm, int* err, ...)
  * Wrapper for pushing an element on the queue
  *
  */
-int CIRCLE_enqueue(char* element)
+int8_t CIRCLE_enqueue(char* element)
 {
     return CIRCLE_internal_queue_push(CIRCLE_INPUT_ST.queue, element);
 }
@@ -57,7 +58,7 @@ int CIRCLE_enqueue(char* element)
 /**
  * Wrapper for popping an element
  */
-int CIRCLE_dequeue(char* element)
+int8_t CIRCLE_dequeue(char* element)
 {
     return CIRCLE_internal_queue_pop(CIRCLE_INPUT_ST.queue, element);
 }
@@ -65,7 +66,7 @@ int CIRCLE_dequeue(char* element)
 /**
  * Wrapper for getting the local queue size
  */
-int CIRCLE_local_queue_size()
+uint32_t CIRCLE_local_queue_size()
 {
     return CIRCLE_INPUT_ST.queue->count;
 }
@@ -73,7 +74,7 @@ int CIRCLE_local_queue_size()
 /**
  * Wrapper for reading in restart files
  */
-int _CIRCLE_read_restarts()
+int8_t _CIRCLE_read_restarts()
 {
     return CIRCLE_internal_queue_read(CIRCLE_INPUT_ST.queue, \
                                       CIRCLE_global_rank);
@@ -82,7 +83,7 @@ int _CIRCLE_read_restarts()
 /**
  * Wrapper for checkpointing
  */
-int _CIRCLE_checkpoint()
+int8_t _CIRCLE_checkpoint()
 {
     return CIRCLE_internal_queue_write(CIRCLE_INPUT_ST.queue, \
                                        CIRCLE_global_rank);
@@ -91,7 +92,7 @@ int _CIRCLE_checkpoint()
 /**
  * Initializes all variables local to a rank
  */
-void CIRCLE_init_local_state(CIRCLE_state_st* local_state, int size)
+void CIRCLE_init_local_state(CIRCLE_state_st* local_state, int32_t size)
 {
     int i = 0;
     local_state->token = WHITE;
@@ -103,14 +104,14 @@ void CIRCLE_init_local_state(CIRCLE_state_st* local_state, int size)
     local_state->term_pending_receive = 0;
     local_state->incoming_token = BLACK;
 
-    local_state->request_offsets = (unsigned int*) calloc(\
+    local_state->request_offsets = (uint32_t*) calloc(\
                                    CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE, \
-                                   sizeof(unsigned int));
-    local_state->work_offsets = (unsigned int*) calloc(\
+                                   sizeof(uint32_t));
+    local_state->work_offsets = (uint32_t*) calloc(\
                                 CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE, \
                                 sizeof(unsigned int));
-    local_state->request_flag = (int*) calloc(size, sizeof(int));
-    local_state->request_recv_buf = (int*) calloc(size, sizeof(int));
+    local_state->request_flag = (int32_t*) calloc(size, sizeof(int32_t));
+    local_state->request_recv_buf = (int32_t*) calloc(size, sizeof(int32_t));
 
     local_state->mpi_state_st->request_status = \
             (MPI_Status*) malloc(sizeof(MPI_Status) * size);
@@ -189,8 +190,8 @@ void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* queue_handle)
  */
 void CIRCLE_cleanup_mpi_messages(CIRCLE_state_st* sptr)
 {
-    int i = 0;
-    int j = 0;
+    uint32_t i = 0;
+    uint32_t j = 0;
 
     /* Make sure that all pending work requests are answered. */
     for(j = 0; j < sptr->size; j++) {
@@ -227,7 +228,7 @@ void CIRCLE_cleanup_mpi_messages(CIRCLE_state_st* sptr)
  *     -# Calls libcircle's main work loop function.
  *     -# Checkpoints if CIRCLE_abort has been called by a rank.
  */
-int CIRCLE_worker()
+int8_t CIRCLE_worker()
 {
     int rank = -1;
     int size = -1;
@@ -269,7 +270,7 @@ int CIRCLE_worker()
     total_objects_processed = 0;
 
     /* Master rank starts out with the initial data creation */
-    int* total_objects_processed_array = (int*) calloc(size, sizeof(int));
+    uint32_t* total_objects_processed_array = (uint32_t*) calloc(size, sizeof(uint32_t));
 
     if(rank == 0) {
         (*(CIRCLE_INPUT_ST.create_cb))(&queue_handle);
