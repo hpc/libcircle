@@ -123,7 +123,7 @@ __inline__ void CIRCLE_abort(void)
 __inline__ void CIRCLE_finalize(void)
 {
     CIRCLE_debug_stream = NULL;
-
+    CIRCLE_internal_queue_free(CIRCLE_INPUT_ST.queue);
     MPI_Finalize();
 }
 

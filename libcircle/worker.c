@@ -20,7 +20,10 @@
 extern CIRCLE_input_st CIRCLE_INPUT_ST;
 int32_t local_objects_processed = 0;
 int32_t total_objects_processed = 0;
-
+int32_t local_work_requested = 0;
+int32_t total_work_requested = 0;
+int32_t local_no_work_received = 0;
+int32_t total_no_work_received = 0;
 int8_t CIRCLE_ABORT_FLAG = 0;
 
 /**
@@ -271,6 +274,8 @@ int8_t CIRCLE_worker()
 
     /* Master rank starts out with the initial data creation */
     uint32_t* total_objects_processed_array = (uint32_t*) calloc(size, sizeof(uint32_t));
+    uint32_t* total_work_requests_array = (uint32_t*) calloc(size, sizeof(uint32_t));
+    uint32_t* total_no_work_received_array = (uint32_t*) calloc(size, sizeof(uint32_t));
 
     if(rank == 0) {
         (*(CIRCLE_INPUT_ST.create_cb))(&queue_handle);
@@ -287,15 +292,23 @@ int8_t CIRCLE_worker()
     MPI_Gather(&local_objects_processed, 1, MPI_INT, \
                &total_objects_processed_array[0], 1, MPI_INT, 0, \
                *mpi_s.work_comm);
+    MPI_Gather(&local_work_requested, 1, MPI_INT, \
+               &total_work_requests_array[0], 1, MPI_INT, 0, \
+               *mpi_s.work_comm);
+    MPI_Gather(&local_no_work_received, 1, MPI_INT, \
+               &total_no_work_received_array[0], 1, MPI_INT, 0, \
+               *mpi_s.work_comm);
     MPI_Reduce(&local_objects_processed, &total_objects_processed, 1, \
                MPI_INT, MPI_SUM, 0, *mpi_s.work_comm);
 
     if(rank == 0) {
         for(i = 0; i < size; i++) {
-            LOG(CIRCLE_LOG_INFO, "Rank %d\tObjects Processed %d\t%lf%%\n", i, \
+            LOG(CIRCLE_LOG_INFO, "Rank %d\tObjects Processed %d\t%lf%%", i, \
                 total_objects_processed_array[i], \
                 (double)total_objects_processed_array[i] / \
                 (double)total_objects_processed * 100.0);
+            LOG(CIRCLE_LOG_INFO, "Rank %d\tWork requests: %d",i,total_work_requests_array[i]);
+            LOG(CIRCLE_LOG_INFO, "Rank %d\tNo work replies: %d",i, total_no_work_received_array[i]);
         }
     }
 

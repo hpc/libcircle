@@ -16,6 +16,8 @@
 #include "queue.h"
 
 extern int8_t CIRCLE_ABORT_FLAG;
+extern uint32_t local_work_requested;
+extern uint32_t local_no_work_received;
 extern CIRCLE_input_st CIRCLE_INPUT_ST;
 /**
  * Sends an abort message to all ranks.
@@ -258,7 +260,7 @@ int32_t CIRCLE_wait_on_probe(CIRCLE_state_st* st, int32_t source, int32_t tag)
 int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 {
     LOG(CIRCLE_LOG_DBG, "Sending work request to %d...", st->next_processor);
-
+    local_work_requested++;
     int32_t temp_buffer = 3;
 
     if(CIRCLE_ABORT_FLAG) {
@@ -304,6 +306,7 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
     }
     else if(items == 0) {
         LOG(CIRCLE_LOG_DBG, "Received no work.");
+        local_no_work_received++;
         return 0;
     }
     else if(items == ABORT) {
@@ -352,7 +355,6 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 
     qp->head = qp->strings[qp->count - 1] + strlen(qp->strings[qp->count - 1]);
 
-    CIRCLE_internal_queue_print(qp);
     return 0;
 }
 
@@ -387,7 +389,8 @@ void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
         exit(EXIT_FAILURE);
     }
 
-    int32_t total_amount = rand() % (qp->count) + 1;
+    //int32_t total_amount = (((qp->count) + 1) / (rcount+1))*rcount;
+    int32_t total_amount = rand() % qp->count + 1;
 
     /* Get size of chunk */
     int32_t increment = total_amount / rcount;
@@ -398,7 +401,6 @@ void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
         if(total_amount < increment) {
             increment += total_amount;
         }
-
         CIRCLE_send_work(qp, st, requestors[i], increment);
     }
 }
@@ -462,9 +464,9 @@ int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
     MPI_Ssend(b, (diff + 1) * sizeof(char), MPI_BYTE, \
               dest, WORK, *st->mpi_state_st->work_comm);
 
+    LOG(CIRCLE_LOG_DBG,
+    "Sent %d of %d items to %d.", st->request_offsets[0],qp->count, dest);
     qp->count = qp->count - count;
-    //LOG(CIRCLE_LOG_DBG,
-    //    "Sent %d items to %d.", st->request_offsets[0], dest);
 
     return 0;
 }
@@ -511,7 +513,7 @@ int32_t CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* 
                     return ABORT;
                 }
 
-//                LOG(CIRCLE_LOG_DBG,"Received work request from %d\n",i);
+                LOG(CIRCLE_LOG_DBG,"Received work request from %d\n",i);
                 requestors[rcount++] = i;
                 st->request_flag[i] = 0;
             }
