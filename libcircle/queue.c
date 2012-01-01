@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-
+#include <unistd.h>
 #include "libcircle.h"
 #include "queue.h"
 #include "log.h"
@@ -29,11 +29,15 @@ CIRCLE_internal_queue_t* CIRCLE_internal_queue_init(void)
     LOG(CIRCLE_LOG_DBG, "Allocating a queue structure.");
 
     qp = (CIRCLE_internal_queue_t*) malloc(sizeof(CIRCLE_internal_queue_t));
+    /* Number of string pointers we have allocated */
+    qp->str_count = CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE;
+    /* Base address of string pool */
     qp->base = (char*) malloc(sizeof(char) * \
                               CIRCLE_MAX_STRING_LEN * \
-                              CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE);
+                              qp->str_count);
+    /* String pointer array */
     qp->strings = (char**) malloc(sizeof(char*) * \
-                                  CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE);
+                                  qp->str_count);
 
     if(!qp || !qp->base || !qp->strings) {
         LOG(CIRCLE_LOG_ERR, "Failed to allocate a basic queue structure.");
@@ -43,7 +47,7 @@ CIRCLE_internal_queue_t* CIRCLE_internal_queue_init(void)
     qp->count = 0;
     qp->head = qp->base;
     qp->end = qp->base + \
-              (CIRCLE_MAX_STRING_LEN * CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE);
+              (CIRCLE_MAX_STRING_LEN * qp->str_count);
 
     return qp;
 }
@@ -108,6 +112,44 @@ void CIRCLE_internal_queue_print(CIRCLE_internal_queue_t* qp)
             qp->strings[i], i, qp->strings[i]);
     }
 }
+/**
+ * Extend the string array size size
+ *
+ */
+int8_t CIRCLE_internal_queue_str_extend(CIRCLE_internal_queue_t * qp)
+{
+    LOG(CIRCLE_LOG_DBG, "Reallocing string array.");
+    qp->str_count += 4096;
+    qp->strings = (char**) realloc(qp->strings, sizeof(char*) * \
+                                  qp->str_count);
+    if(!qp->strings)
+    {
+        LOG(CIRCLE_LOG_ERR,"Unable to realloc string array.");
+        return -1;
+    }
+    return 0;
+}
+
+/**
+ * Extend the circle queue size
+ *
+ */
+int8_t CIRCLE_internal_queue_extend(CIRCLE_internal_queue_t * qp)
+{
+    LOG(CIRCLE_LOG_DBG, "Reallocing queue.");
+    size_t current = qp->end - qp->base;
+    size_t head_offset = qp->head - qp->base;
+    current+= sysconf(_SC_PAGESIZE)*4096;
+    qp->base = (char*) realloc(qp->base,current);
+    if(!qp->base) {
+        LOG(CIRCLE_LOG_ERR, "Failed to reallocate a basic queue structure.");
+        return -1;
+    }
+    qp->head = qp->base + head_offset;
+    qp->end = qp->base + \
+              (current);
+    return 0;
+}
 
 /**
  * Push the specified string onto the queue structure.
@@ -128,12 +170,17 @@ int8_t CIRCLE_internal_queue_push(CIRCLE_internal_queue_t* qp, char* str)
         LOG(CIRCLE_LOG_ERR, "Attempted to push an empty string onto a queue.");
         return -1;
     }
-
+    if(qp->count > qp->str_count)
+    {
+        if(CIRCLE_internal_queue_str_extend(qp) < 0)
+            return -1;
+    }
     if(qp->count > 0) {
         if(qp->strings[qp->count - 1] + CIRCLE_MAX_STRING_LEN >= qp->end) {
             LOG(CIRCLE_LOG_ERR, \
                 "The queue is not large enough to add another value.");
-            return -1;
+            if(CIRCLE_internal_queue_extend(qp) < 0)
+                return -1;
         }
     }
 

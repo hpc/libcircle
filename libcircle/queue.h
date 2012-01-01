@@ -3,7 +3,7 @@
 #include<stdint.h>
 /* The initial queue size for malloc. */
 #ifndef CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE
-#define CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE 400000
+#define CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE 4000
 #endif
 
 typedef struct CIRCLE_internal_queue_t {
@@ -12,6 +12,7 @@ typedef struct CIRCLE_internal_queue_t {
     char* next;     /* The location of the next string */
     char* head;     /* The location of the next free byte */
     char** strings; /* The string data */
+    uint32_t str_count;
     uint32_t count;      /* The number of strings */
 } CIRCLE_internal_queue_t;
 
@@ -26,5 +27,6 @@ void CIRCLE_internal_queue_print(CIRCLE_internal_queue_t* qp);
 
 int8_t CIRCLE_internal_queue_write(CIRCLE_internal_queue_t* qp, int rank);
 int8_t CIRCLE_internal_queue_read(CIRCLE_internal_queue_t* qp, int rank);
-
+int8_t CIRCLE_internal_queue_extend(CIRCLE_internal_queue_t* qp);
+int8_t CIRCLE_internal_queue_str_extend(CIRCLE_internal_queue_t* qp);
 #endif /* QUEUE_H */

@@ -249,7 +249,20 @@ int32_t CIRCLE_wait_on_probe(CIRCLE_state_st* st, int32_t source, int32_t tag)
         return 0;
     }
 }
-
+/**
+ * @brief Extend the offset arrays.
+ */
+int8_t CIRCLE_extend_offsets(CIRCLE_state_st* st, uint32_t size)
+{
+    uint32_t count = st->offset_count;
+    while(count < size)
+        count+=4096;
+    st->work_offsets = (uint32_t*) realloc(st->work_offsets, count * sizeof(uint32_t));
+    st->request_offsets = (uint32_t*) realloc(st->request_offsets, count *sizeof(uint32_t));
+    if(!st->work_offsets || !st->request_offsets)
+        return -1;
+    return 0;
+}
 /**
  * @brief Requests work from other ranks.
  *
@@ -284,7 +297,16 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
         st->next_processor = CIRCLE_get_next_proc(st->rank, st->size);
         return 0;
     }
-
+    /* Check to see if the offset array is large enough */
+    if(size >= (signed)st->offset_count)
+    {
+        LOG(CIRCLE_LOG_DBG, "Extending offset arrays.");
+        if(CIRCLE_extend_offsets(st,size)<0)
+        {
+            LOG(CIRCLE_LOG_ERR,"Error: Unable to extend offsets.");
+            return -1;
+        }
+    }
     /*
      * If we get here, there was definitely an answer.
      * Receives the offsets then
@@ -324,7 +346,24 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
     if(size == 0) {
         return 0;
     }
-
+    /* Make sure our queue is large enough */
+    while((qp->base + chars + 1) > qp->end)
+    {
+        if(CIRCLE_internal_queue_extend(qp) < 0)
+        {
+            LOG(CIRCLE_LOG_ERR,"Error: Unable to realloc string pool.");
+            return -1;
+        }
+    }
+    /* Make sure the queue string array is large enough */
+    while(items > (signed)qp->str_count)
+    {
+        if(CIRCLE_internal_queue_str_extend(qp) < 0)
+        {
+            LOG(CIRCLE_LOG_ERR,"Error: Unable to realloc string array.");
+            return -1;
+        }
+    }
     /*
      * Good, we have a pending message from source with a WORK tag.
      * It can only be a work queue.
@@ -440,7 +479,7 @@ int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
     st->request_offsets[0] = count;
     st->request_offsets[1] = diff;
 
-    if(diff >= (CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE * CIRCLE_MAX_STRING_LEN)) {
+    if(diff >= (qp->str_count * CIRCLE_MAX_STRING_LEN)) {
         LOG(CIRCLE_LOG_FATAL, \
             "We're trying to throw away part of the queue for some reason.");
         exit(EXIT_FAILURE);

@@ -108,11 +108,12 @@ void CIRCLE_init_local_state(CIRCLE_state_st* local_state, int32_t size)
     local_state->incoming_token = BLACK;
 
     local_state->request_offsets = (uint32_t*) calloc(\
-                                   CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE, \
+                                   CIRCLE_INPUT_ST.queue->str_count, \
                                    sizeof(uint32_t));
     local_state->work_offsets = (uint32_t*) calloc(\
-                                CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE, \
+                                CIRCLE_INPUT_ST.queue->str_count, \
                                 sizeof(unsigned int));
+    local_state->offset_count = CIRCLE_INPUT_ST.queue->str_count;
     local_state->request_flag = (int32_t*) calloc(size, sizeof(int32_t));
     local_state->request_recv_buf = (int32_t*) calloc(size, sizeof(int32_t));
 
