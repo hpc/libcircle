@@ -28,5 +28,5 @@ void CIRCLE_internal_queue_print(CIRCLE_internal_queue_t* qp);
 int8_t CIRCLE_internal_queue_write(CIRCLE_internal_queue_t* qp, int rank);
 int8_t CIRCLE_internal_queue_read(CIRCLE_internal_queue_t* qp, int rank);
 int8_t CIRCLE_internal_queue_extend(CIRCLE_internal_queue_t* qp);
-int8_t CIRCLE_internal_queue_str_extend(CIRCLE_internal_queue_t* qp);
+int8_t CIRCLE_internal_queue_str_extend(CIRCLE_internal_queue_t* qp, int new_size);
 #endif /* QUEUE_H */

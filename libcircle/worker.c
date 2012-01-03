@@ -121,12 +121,13 @@ void CIRCLE_init_local_state(CIRCLE_state_st* local_state, int32_t size)
             (MPI_Status*) malloc(sizeof(MPI_Status) * size);
     local_state->mpi_state_st->request_request = \
             (MPI_Request*) malloc(sizeof(MPI_Request) * size);
-
+    
     local_state->mpi_state_st->work_comm = CIRCLE_INPUT_ST.work_comm;
     local_state->mpi_state_st->token_comm = CIRCLE_INPUT_ST.token_comm;
 
     for(i = 0; i < size; i++) {
         local_state->mpi_state_st->request_request[i] = MPI_REQUEST_NULL;
+        LOG(CIRCLE_LOG_DBG,"Request [%d] Address: [%p]",i,local_state->mpi_state_st->request_request[i]);
     }
 
     local_state->work_request_tries = 0;
@@ -150,11 +151,13 @@ void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* queue_handle)
     int token = WHITE;
     int work_status = -1;
     int term_status = -1;
-
+    int i = 0;
     /* Loop until done */
     while(token != DONE) {
         /* Check for and service work requests */
-        //LOG(CIRCLE_LOG_DBG, "Checking for requestlocal_state...");
+
+//        for(i = 0; i < sptr->size; i++)
+   //         LOG(CIRCLE_LOG_DBG,"Request [%d] Address [%p]",i,sptr->mpi_state_st->request_request[i]);
         CIRCLE_check_for_requests(CIRCLE_INPUT_ST.queue, sptr);
 
         /* If I have no work, request work from another rank */

@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #include "libcircle.h"
 #include "log.h"
@@ -257,8 +258,11 @@ int8_t CIRCLE_extend_offsets(CIRCLE_state_st* st, uint32_t size)
     uint32_t count = st->offset_count;
     while(count < size)
         count+=4096;
+    LOG(CIRCLE_LOG_DBG, "Extending offset arrays from %d to %d.",st->offset_count,size);
     st->work_offsets = (uint32_t*) realloc(st->work_offsets, count * sizeof(uint32_t));
     st->request_offsets = (uint32_t*) realloc(st->request_offsets, count *sizeof(uint32_t));
+    LOG(CIRCLE_LOG_DBG,"Work offsets: [%p] -> [%p]",st->work_offsets,st->work_offsets+(count*sizeof(uint32_t)));
+    LOG(CIRCLE_LOG_DBG,"Request offsets: [%p] -> [%p]",st->request_offsets,st->request_offsets+(count*sizeof(uint32_t)));
     if(!st->work_offsets || !st->request_offsets)
         return -1;
     return 0;
@@ -300,7 +304,6 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
     /* Check to see if the offset array is large enough */
     if(size >= (signed)st->offset_count)
     {
-        LOG(CIRCLE_LOG_DBG, "Extending offset arrays.");
         if(CIRCLE_extend_offsets(st,size)<0)
         {
             LOG(CIRCLE_LOG_ERR,"Error: Unable to extend offsets.");
@@ -356,9 +359,9 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
         }
     }
     /* Make sure the queue string array is large enough */
-    while(items > (signed)qp->str_count)
+    if(items > (signed)qp->str_count)
     {
-        if(CIRCLE_internal_queue_str_extend(qp) < 0)
+        if(CIRCLE_internal_queue_str_extend(qp,items) < 0)
         {
             LOG(CIRCLE_LOG_ERR,"Error: Unable to realloc string array.");
             return -1;
@@ -442,6 +445,7 @@ void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
         }
         CIRCLE_send_work(qp, st, requestors[i], increment);
     }
+    LOG(CIRCLE_LOG_DBG,"Done servicing requests.");
 }
 
 /**
@@ -578,7 +582,10 @@ int32_t CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* 
     }
 
     for(i = 0; i < rcount; i++) {
-        MPI_Start(&st->mpi_state_st->request_request[requestors[i]]);
+        int rc;
+        LOG(CIRCLE_LOG_DBG,"Restarting request for requestor [%d]",i);
+        assert (MPI_SUCCESS == (rc =
+            MPI_Start(&st->mpi_state_st->request_request[requestors[i]])));
     }
 
     free(requestors);

@@ -116,12 +116,13 @@ void CIRCLE_internal_queue_print(CIRCLE_internal_queue_t* qp)
  * Extend the string array size size
  *
  */
-int8_t CIRCLE_internal_queue_str_extend(CIRCLE_internal_queue_t * qp)
+int8_t CIRCLE_internal_queue_str_extend(CIRCLE_internal_queue_t * qp, int new_size)
 {
-    LOG(CIRCLE_LOG_DBG, "Reallocing string array.");
-    qp->str_count += 4096;
+    while(qp->str_count < new_size)
+        qp->str_count += 4096;
     qp->strings = (char**) realloc(qp->strings, sizeof(char*) * \
                                   qp->str_count);
+    LOG(CIRCLE_LOG_DBG, "Reallocing string array to [%d] [%p] -> [%p]",qp->str_count,qp->strings,qp->strings+(sizeof(char*)*qp->str_count));
     if(!qp->strings)
     {
         LOG(CIRCLE_LOG_ERR,"Unable to realloc string array.");
@@ -136,11 +137,11 @@ int8_t CIRCLE_internal_queue_str_extend(CIRCLE_internal_queue_t * qp)
  */
 int8_t CIRCLE_internal_queue_extend(CIRCLE_internal_queue_t * qp)
 {
-    LOG(CIRCLE_LOG_DBG, "Reallocing queue.");
     size_t current = qp->end - qp->base;
     size_t head_offset = qp->head - qp->base;
     current+= sysconf(_SC_PAGESIZE)*4096;
     qp->base = (char*) realloc(qp->base,current);
+    LOG(CIRCLE_LOG_DBG, "Reallocing queue to [%zd] [%p] -> [%p].",current,qp->base,qp->base+current);
     if(!qp->base) {
         LOG(CIRCLE_LOG_ERR, "Failed to reallocate a basic queue structure.");
         return -1;
@@ -172,8 +173,9 @@ int8_t CIRCLE_internal_queue_push(CIRCLE_internal_queue_t* qp, char* str)
     }
     if(qp->count > qp->str_count)
     {
-        if(CIRCLE_internal_queue_str_extend(qp) < 0)
-            return -1;
+        LOG(CIRCLE_LOG_DBG,"Extending string array by 4096.");
+        if(CIRCLE_internal_queue_str_extend(qp,qp->count+4096) < 0)
+        return -1;
     }
     if(qp->count > 0) {
         if(qp->strings[qp->count - 1] + CIRCLE_MAX_STRING_LEN >= qp->end) {
@@ -241,7 +243,6 @@ int8_t CIRCLE_internal_queue_pop(CIRCLE_internal_queue_t* qp, char* str)
     strcpy(str, qp->strings[qp->count - 1]);
     qp->count = qp->count - 1;
 
-    //LOG(CIRCLE_LOG_DBG, "Poping a string from the queue: \"%s\".", str);
 
     return 0;
 }
