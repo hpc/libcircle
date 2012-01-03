@@ -407,7 +407,7 @@ void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
  * Sends work to a requestor
  */
 int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
-                     int32_t dest, int32_t count)
+                         int32_t dest, int32_t count)
 {
     if(count <= 0) {
         CIRCLE_send_no_work(dest);
@@ -477,6 +477,7 @@ int32_t CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* 
     int* requestors = (int*)calloc(st->size, sizeof(int));
     uint32_t i = 0;
     uint32_t rcount = 0;
+
     /* This loop is only excuted once.  It is used to initiate receives.
      * When a received is completed, we repost it immediately to capture
      * the next request */
@@ -502,8 +503,9 @@ int32_t CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* 
 
             if(MPI_Test(&st->mpi_state_st->request_request[i], \
                         &st->request_flag[i], \
-                        &st->mpi_state_st->request_status[i]) != MPI_SUCCESS)
-                { exit(EXIT_FAILURE); }
+                        &st->mpi_state_st->request_status[i]) != MPI_SUCCESS) {
+                exit(EXIT_FAILURE);
+            }
 
             if(st->request_flag[i]) {
                 if(st->request_recv_buf[i] == ABORT) {
@@ -511,7 +513,7 @@ int32_t CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* 
                     return ABORT;
                 }
 
-//                LOG(CIRCLE_LOG_DBG,"Received work request from %d\n",i);
+                //                LOG(CIRCLE_LOG_DBG,"Received work request from %d\n",i);
                 requestors[rcount++] = i;
                 st->request_flag[i] = 0;
             }

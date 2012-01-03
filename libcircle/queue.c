@@ -37,7 +37,7 @@ CIRCLE_internal_queue_t* CIRCLE_internal_queue_init(void)
 
     if(!qp || !qp->base || !qp->strings) {
         LOG(CIRCLE_LOG_ERR, "Failed to allocate a basic queue structure.");
-        return (CIRCLE_internal_queue_t *) NULL;
+        return (CIRCLE_internal_queue_t*) NULL;
     }
 
     qp->count = 0;
@@ -123,7 +123,9 @@ int8_t CIRCLE_internal_queue_push(CIRCLE_internal_queue_t* qp, char* str)
         LOG(CIRCLE_LOG_ERR, "Attempted to push null pointer.");
         return -1;
     }
+
     uint32_t len = strlen(str);
+
     if(len <= 0) {
         LOG(CIRCLE_LOG_ERR, "Attempted to push an empty string onto a queue.");
         return -1;
