@@ -3,7 +3,7 @@
 #include<stdint.h>
 /* The initial queue size for malloc. */
 #ifndef CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE
-#define CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE 4000
+#define CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE 4096
 #endif
 
 typedef struct CIRCLE_internal_queue_t {

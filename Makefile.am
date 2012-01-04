@@ -12,7 +12,7 @@ libcircle_la_LDFLAGS = -version-info $(LIBCIRCLE_SO_VERSION)
 libcircle_la_SOURCES = libcircle/lib.c    \
                                                 libcircle/queue.c  \
                                                 libcircle/worker.c \
-                                                libcircle/token.c
+                                                libcircle/token.c  
 
 libcircle_includedir = $(includedir)/
 nobase_libcircle_include_HEADERS = libcircle.h

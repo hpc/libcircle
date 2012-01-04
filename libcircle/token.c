@@ -470,7 +470,17 @@ int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
     /* Distance between them */
     size_t diff = e - b;
     diff += strlen(qp->base+e);
-
+   
+    /* Check to see if the offset array is large enough */
+    if(count >= (signed)st->offset_count)
+    {
+        if(CIRCLE_extend_offsets(st,count)<0)
+        {
+            LOG(CIRCLE_LOG_ERR,"Error: Unable to extend offsets.");
+            return -1;
+        }
+    }
+ 
     /* offsets[0] = number of strings */
     /* offsets[1] = number of chars being sent */
     st->request_offsets[0] = count;
@@ -569,10 +579,8 @@ int32_t CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* 
     }
 
     for(i = 0; i < rcount; i++) {
-        int rc;
-        LOG(CIRCLE_LOG_DBG,"Restarting request for requestor %d [%d]",i,requestors[i]);
-        assert (MPI_SUCCESS == (rc =
-            MPI_Start(&st->mpi_state_st->request_request[requestors[i]])));
+        LOG(CIRCLE_LOG_DBG,"Restarting request for requestor %d [%d] [%p]",i,requestors[i],st->mpi_state_st->request_request[requestors[i]]);
+        MPI_Start(&st->mpi_state_st->request_request[requestors[i]]);
     }
 
     free(requestors);
