@@ -378,10 +378,7 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
     uint32_t i = 0;
 
     for(i = 0; i < qp->count; i++) {
-        qp->strings[i] = qp->base + st->work_offsets[i + 2];
-        //LOG(CIRCLE_LOG_DBG,
-        //    "Item [%d] Offset [%d] String [%s]",
-        //    i, st->work_offsets[i + 2], qp->strings[i]);
+        qp->strings[i] = st->work_offsets[i + 2];
     }
 
     if(size == 0) {
@@ -389,13 +386,13 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
         return 0;
     }
 
-    if(qp->strings[0] != qp->base) {
+    if(qp->strings[0] != 0) {
         LOG(CIRCLE_LOG_FATAL, \
             "The base address of the queue doesn't match what it should be.");
         exit(EXIT_FAILURE);
     }
 
-    qp->head = qp->strings[qp->count - 1] + strlen(qp->strings[qp->count - 1]);
+    qp->head = qp->strings[qp->count - 1] + strlen(qp->base+qp->strings[qp->count - 1]);
 
     return 0;
 }
@@ -465,29 +462,19 @@ int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
     }
 
     /* Base address of the buffer to be sent */
-    char* b = qp->strings[qp->count - count];
+    uintptr_t b = qp->strings[qp->count - count];
 
     /* Address of the beginning of the last string to be sent */
-    char* e = qp->strings[qp->count - 1];
+    uintptr_t e = qp->strings[qp->count - 1];
 
     /* Distance between them */
     size_t diff = e - b;
-    diff += strlen(e);
-
-    if(qp->count < 10) {
-        CIRCLE_internal_queue_print(qp);
-    }
+    diff += strlen(qp->base+e);
 
     /* offsets[0] = number of strings */
     /* offsets[1] = number of chars being sent */
     st->request_offsets[0] = count;
     st->request_offsets[1] = diff;
-
-    if(diff >= (qp->str_count * CIRCLE_MAX_STRING_LEN)) {
-        LOG(CIRCLE_LOG_FATAL, \
-            "We're trying to throw away part of the queue for some reason.");
-        exit(EXIT_FAILURE);
-    }
 
     int32_t j = qp->count - count;
     int32_t i = 0;
@@ -497,14 +484,14 @@ int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
     }
 
     /* offsets[qp->count - qp->count/2+2]  is the size of the last string */
-    st->request_offsets[count + 2] = strlen(qp->strings[qp->count - 1]);
+    st->request_offsets[count + 2] = strlen(qp->base + qp->strings[qp->count - 1]);
 
 
     MPI_Ssend(st->request_offsets, st->request_offsets[0] + 2, \
               MPI_INT, dest, WORK, *st->mpi_state_st->work_comm);
 
 
-    MPI_Ssend(b, (diff + 1) * sizeof(char), MPI_BYTE, \
+    MPI_Ssend(qp->base+b, (diff + 1) * sizeof(char), MPI_BYTE, \
               dest, WORK, *st->mpi_state_st->work_comm);
 
     LOG(CIRCLE_LOG_DBG,
@@ -519,7 +506,7 @@ int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
  */
 int32_t CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 {
-    int* requestors = (int*)calloc(st->size, sizeof(int));
+    int* requestors = (int*)calloc(st->size, sizeof(*requestors));
     uint32_t i = 0;
     uint32_t rcount = 0;
     /* This loop is only excuted once.  It is used to initiate receives.
@@ -583,7 +570,7 @@ int32_t CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* 
 
     for(i = 0; i < rcount; i++) {
         int rc;
-        LOG(CIRCLE_LOG_DBG,"Restarting request for requestor [%d]",i);
+        LOG(CIRCLE_LOG_DBG,"Restarting request for requestor %d [%d]",i,requestors[i]);
         assert (MPI_SUCCESS == (rc =
             MPI_Start(&st->mpi_state_st->request_request[requestors[i]])));
     }

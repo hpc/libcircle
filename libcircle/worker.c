@@ -151,7 +151,6 @@ void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* queue_handle)
     int token = WHITE;
     int work_status = -1;
     int term_status = -1;
-    int i = 0;
     /* Loop until done */
     while(token != DONE) {
         /* Check for and service work requests */

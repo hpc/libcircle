@@ -9,9 +9,9 @@
 typedef struct CIRCLE_internal_queue_t {
     char* base;     /* Base of the memory pool */
     char* end;      /* End of the memory pool */
-    char* next;     /* The location of the next string */
-    char* head;     /* The location of the next free byte */
-    char** strings; /* The string data */
+    uintptr_t next;     /* The location of the next string */
+    uintptr_t head;     /* The location of the next free byte */
+    uintptr_t* strings; /* The string data */
     uint32_t str_count;
     uint32_t count;      /* The number of strings */
 } CIRCLE_internal_queue_t;
