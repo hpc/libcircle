@@ -14,6 +14,7 @@
 #include "libcircle.h"
 #include "log.h"
 #include "token.h"
+#include "worker.h"
 #include "queue.h"
 
 extern int8_t CIRCLE_ABORT_FLAG;
