@@ -63,13 +63,14 @@ typedef struct CIRCLE_state_st {
     uint32_t rank;
     uint32_t size;
     uint32_t next_processor;
+    uint32_t* request_field;
     uint32_t offset_count;
     uint32_t* work_offsets;
     uint32_t* request_offsets;
 
    } CIRCLE_state_st;
 
-uint32_t  CIRCLE_get_next_proc(uint32_t rank, uint32_t size);
+uint32_t  CIRCLE_get_next_proc(CIRCLE_state_st* st);
 void CIRCLE_send_no_work(uint32_t dest);
 int32_t  CIRCLE_check_for_term(CIRCLE_state_st* st);
 int32_t  CIRCLE_wait_on_probe(CIRCLE_state_st* st, int32_t source, int32_t tag);

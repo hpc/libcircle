@@ -116,7 +116,8 @@ void CIRCLE_init_local_state(CIRCLE_state_st* local_state, int32_t size)
     local_state->offset_count = CIRCLE_INPUT_ST.queue->str_count;
     local_state->request_flag = (int32_t*) calloc(size, sizeof(int32_t));
     local_state->request_recv_buf = (int32_t*) calloc(size, sizeof(int32_t));
-
+    
+    local_state->request_field = (uint32_t*) calloc(size,sizeof(int32_t));
     local_state->mpi_state_st->request_status = \
             (MPI_Status*) malloc(sizeof(MPI_Status) * size);
     local_state->mpi_state_st->request_request = \

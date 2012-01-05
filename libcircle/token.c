@@ -194,14 +194,16 @@ int32_t CIRCLE_check_for_term(CIRCLE_state_st* st)
 /**
  * This returns a random rank (not yourself).
  */
-inline uint32_t CIRCLE_get_next_proc(uint32_t rank, uint32_t size)
+inline uint32_t CIRCLE_get_next_proc(CIRCLE_state_st * st)
 {
-    uint32_t result = rand() % size;
-
-    while(result == rank) {
-        result = rand() % size;
+    st->request_field[st->next_processor] = 1;
+    uint32_t result = st->next_processor+1;
+    if(result == st->rank) {
+        result++;
     }
-
+    if(result == st->size) {
+        result = 0;
+    }
     return result;
 }
 
@@ -298,7 +300,7 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
     }
 
     if(size == 0) {
-        st->next_processor = CIRCLE_get_next_proc(st->rank, st->size);
+        st->next_processor = CIRCLE_get_next_proc(st);
         return 0;
     }
     /* Check to see if the offset array is large enough */
@@ -321,7 +323,7 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
     /* We'll ask somebody else next time */
     int32_t source = st->next_processor;
 
-    st->next_processor = CIRCLE_get_next_proc(st->rank, st->size);
+    st->next_processor = CIRCLE_get_next_proc(st);
 
     int32_t chars = st->work_offsets[1];
     int32_t items = st->work_offsets[0];
