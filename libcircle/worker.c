@@ -225,6 +225,7 @@ void CIRCLE_cleanup_mpi_messages(CIRCLE_state_st* sptr)
 
     return;
 }
+
 /**
   * Qsort comparator, used by CIRCLE_get_color to call qsort
   */
@@ -233,6 +234,7 @@ cmp_uli(const void* p1, const void* p2)
 {
     return (*(unsigned long int*)p1 - * (unsigned long int*)p2);
 }
+
 /**
  * Gets a ranks color, where the color is an int used to divide nodes in a communicator.
  */
@@ -257,6 +259,7 @@ CIRCLE_get_color(CIRCLE_state_st* st, unsigned long int* net_nums)
     st->mpi_state_st->color = node_i;
     return node_i;
 }
+
 /**
  * Get network number, which is unique to ranks, except those that share a node.
  */
@@ -273,17 +276,25 @@ CIRCLE_get_net_num(CIRCLE_state_st* st)
     return htonl(inet_network(inet_ntoa(*(struct in_addr*)host->h_addr)));
 
 }
+
 /**
-  * Initializes the request vector, which is the list of ranks to request work from.
-  * Thanks to Samuel Gutierrez for the help.
-  * -First, every rank gets its own net number.
-  * -An all gather is performed to exchange net numbers.
-  * -Each rank's color is determined by sorting the net numbers, and finding it's place in the list.
-  * -The global work communicator is partitioned by colors, so that colocated ranks are in the same color.
-  * -Nodes initialize the first few entries of their request vector to these colocated ranks (albeit translated to global rank numbers).
-  * -The set of ranks that are non local are found by excluding local ranks from the global communicator.
-  * -These ranks are then used to fill the rest of the request vector.
-  */
+ * @brief Initializes the request vector, which is the list of ranks to
+ *        request work from.
+ *
+ * Thanks to Samuel Gutierrez <samuel@lanl.gov> for the help.
+ *
+ * #- First, every rank gets its own net number.
+ * #- An all gather is performed to exchange net numbers.
+ * #- Each rank's color is determined by sorting the net numbers, and finding
+ *    its place in the list.
+ * #- The global work communicator is partitioned by colors, so that
+ *    colocated ranks are in the same color.
+ * #- Nodes initialize the first few entries of their request vector to these
+ *    colocated ranks (albeit translated to global rank numbers).
+ * #- The set of ranks that are non local are found by excluding local ranks
+ *    from the global communicator.
+ * #- These ranks are then used to fill the rest of the request vector.
+ */
 int8_t CIRCLE_initialize_request_vector(CIRCLE_state_st* st)
 {
     int i;
@@ -358,6 +369,7 @@ int8_t CIRCLE_initialize_request_vector(CIRCLE_state_st* st)
 
     return 0;
 }
+
 /**
  * @brief Sets up libcircle, calls work loop function
  *

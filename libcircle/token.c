@@ -272,15 +272,15 @@ int8_t CIRCLE_extend_offsets(CIRCLE_state_st* st, uint32_t size)
     st->work_offsets = (uint32_t*) realloc(st->work_offsets, \
                                            count * sizeof(uint32_t));
     st->request_offsets = (uint32_t*) realloc(st->request_offsets, \
-                                              count * sizeof(uint32_t));
+                          count * sizeof(uint32_t));
 
     LOG(CIRCLE_LOG_DBG, "Work offsets: [%p] -> [%p]", \
-        (void *) st->work_offsets, \
-        (void *) ( st->work_offsets + (count * sizeof(uint32_t))));
+        (void*) st->work_offsets, \
+        (void*)(st->work_offsets + (count * sizeof(uint32_t))));
 
     LOG(CIRCLE_LOG_DBG, "Request offsets: [%p] -> [%p]", \
-        (void *) st->request_offsets, \
-        (void *) st->request_offsets + (count * sizeof(uint32_t)));
+        (void*) st->request_offsets, \
+        (void*) st->request_offsets + (count * sizeof(uint32_t)));
 
     if(!st->work_offsets || !st->request_offsets) {
         return -1;
