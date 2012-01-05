@@ -271,6 +271,18 @@ CIRCLE_get_net_num(CIRCLE_state_st * st)
     
 }
 /**
+  * Reset request vector
+  * Makes the next work request be sent to the first rank in the list that isn't 'self'
+  */
+void
+CIRCLE_reset_request_vector(CIRCLE_state_st *st)
+{
+    st->mpi_state_st->request_field_index = 0;
+    st->next_processor = st->mpi_state_st->request_field[st->mpi_state_st->request_field_index];
+    if(st->next_processor == st->rank)
+        st->next_processor = st->mpi_state_st->request_field[++(st->mpi_state_st->request_field_index)];
+}
+/**
   * Initializes the request vector, which is the list of ranks to request work from.
   * Thanks to Samuel Gutierrez for the help.
   * -First, every rank gets its own net number.
@@ -281,7 +293,8 @@ CIRCLE_get_net_num(CIRCLE_state_st * st)
   * -The set of ranks that are non local are found by excluding local ranks from the global communicator.
   * -These ranks are then used to fill the rest of the request vector.
   */
-int8_t CIRCLE_initialize_request_vector(CIRCLE_state_st *st)
+int8_t 
+CIRCLE_initialize_request_vector(CIRCLE_state_st *st)
 {
     int i;
     if(MPI_Get_processor_name(st->mpi_state_st->hostname,&st->mpi_state_st->hostname_length) != MPI_SUCCESS)
@@ -332,17 +345,10 @@ int8_t CIRCLE_initialize_request_vector(CIRCLE_state_st *st)
         non_locals[i] = i;
     MPI_Group_translate_ranks(st->mpi_state_st->nonlocal_group, group_size, non_locals, st->mpi_state_st->world_group, st->mpi_state_st->request_field+st->mpi_state_st->local_size); 
     free(non_locals);
-    for(i = 0; i < (signed)st->size; i++)
-    {
-        LOG(CIRCLE_LOG_DBG,"Requestee [%d] [%d]",i,st->mpi_state_st->request_field[i]);
-    }
     if(st->token_partner < 0) {
         st->token_partner = st->size - 1;
     }
-    st->mpi_state_st->request_field_index = 0;
-    st->next_processor = st->mpi_state_st->request_field[st->mpi_state_st->request_field_index];
-    if(st->next_processor == st->rank)
-        st->next_processor = st->mpi_state_st->request_field[++(st->mpi_state_st->request_field_index)];
+    CIRCLE_reset_request_vector(st);
     return 0;
 }
 /**

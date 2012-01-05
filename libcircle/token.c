@@ -321,7 +321,7 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 
     /* We'll ask somebody else next time */
     int32_t source = st->next_processor;
-
+    
     st->next_processor = CIRCLE_get_next_proc(st);
 
     int32_t chars = st->work_offsets[1];
@@ -339,6 +339,8 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
         CIRCLE_ABORT_FLAG = 1;
         return ABORT;
     }
+
+    CIRCLE_reset_request_vector(st);
 
     /* Wait and see if they sent the work over */
     size = CIRCLE_wait_on_probe(st, source, WORK);
@@ -429,8 +431,8 @@ void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
         exit(EXIT_FAILURE);
     }
 
-    //int32_t total_amount = (((qp->count) + 1) / (rcount+1))*rcount;
-    int32_t total_amount = rand() % qp->count + 1;
+    int32_t total_amount = (((qp->count) + 1) / (rcount+1))*rcount;
+//    int32_t total_amount = rand() % qp->count + 1;
 
     /* Get size of chunk */
     int32_t increment = total_amount / rcount;
