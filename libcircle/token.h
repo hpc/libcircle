@@ -72,7 +72,7 @@ typedef struct CIRCLE_state_st {
     int32_t work_request_tries;
     int32_t token_partner;
     int32_t term_flag;
-    
+
     uint32_t rank;
     uint32_t size;
     uint32_t next_processor;
@@ -80,7 +80,7 @@ typedef struct CIRCLE_state_st {
     uint32_t* work_offsets;
     uint32_t* request_offsets;
 
-   } CIRCLE_state_st;
+} CIRCLE_state_st;
 
 uint32_t  CIRCLE_get_next_proc(CIRCLE_state_st* st);
 void CIRCLE_send_no_work(uint32_t dest);
@@ -88,16 +88,16 @@ int32_t  CIRCLE_check_for_term(CIRCLE_state_st* st);
 int32_t  CIRCLE_wait_on_probe(CIRCLE_state_st* st, int32_t source, int32_t tag);
 
 int32_t  CIRCLE_check_for_requests(CIRCLE_internal_queue_t* queue, \
-                               CIRCLE_state_st* state);
+                                   CIRCLE_state_st* state);
 int32_t  CIRCLE_request_work(CIRCLE_internal_queue_t* queue, \
-                         CIRCLE_state_st* state);
+                             CIRCLE_state_st* state);
 
 void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* queue, \
                               CIRCLE_state_st* state, \
                               int* requestors, int32_t rcount);
 int32_t  CIRCLE_send_work(CIRCLE_internal_queue_t* queue, \
-                      CIRCLE_state_st* state, \
-                      int32_t dest, int32_t count);
+                          CIRCLE_state_st* state, \
+                          int32_t dest, int32_t count);
 
 void CIRCLE_bcast_abort(void);
 

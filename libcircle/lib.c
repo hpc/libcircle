@@ -49,10 +49,12 @@ __inline__ int32_t CIRCLE_init(int argc, char* argv[])
 
     CIRCLE_INPUT_ST.queue = CIRCLE_internal_queue_init();
 
-    if(CIRCLE_INPUT_ST.queue == NULL)
+    if(CIRCLE_INPUT_ST.queue == NULL) {
         return -1;
-    else
+    }
+    else {
         return CIRCLE_global_rank;
+    }
 }
 
 /**
