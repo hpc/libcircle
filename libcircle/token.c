@@ -198,8 +198,9 @@ inline uint32_t CIRCLE_get_next_proc(CIRCLE_state_st* st)
 {
     st->mpi_state_st->request_field_index++;
 
-    if(st->mpi_state_st->request_field_index == (signed)st->rank)
-    { st->mpi_state_st->request_field_index++; }
+    if(st->mpi_state_st->request_field_index == (signed)st->rank) {
+        st->mpi_state_st->request_field_index++;
+    }
 
     if(st->mpi_state_st->request_field_index == (signed)st->size) {
         st->mpi_state_st->request_field_index = 0;
@@ -253,6 +254,7 @@ int32_t CIRCLE_wait_on_probe(CIRCLE_state_st* st, int32_t source, int32_t tag)
         return 0;
     }
 }
+
 /**
  * @brief Extend the offset arrays.
  */
@@ -260,20 +262,33 @@ int8_t CIRCLE_extend_offsets(CIRCLE_state_st* st, uint32_t size)
 {
     uint32_t count = st->offset_count;
 
-    while(count < size)
-    { count += 4096; }
+    while(count < size) {
+        count += 4096;
+    }
 
-    LOG(CIRCLE_LOG_DBG, "Extending offset arrays from %d to %d.", st->offset_count, size);
-    st->work_offsets = (uint32_t*) realloc(st->work_offsets, count * sizeof(uint32_t));
-    st->request_offsets = (uint32_t*) realloc(st->request_offsets, count * sizeof(uint32_t));
-    LOG(CIRCLE_LOG_DBG, "Work offsets: [%p] -> [%p]", st->work_offsets, st->work_offsets + (count * sizeof(uint32_t)));
-    LOG(CIRCLE_LOG_DBG, "Request offsets: [%p] -> [%p]", st->request_offsets, st->request_offsets + (count * sizeof(uint32_t)));
+    LOG(CIRCLE_LOG_DBG, "Extending offset arrays from %d to %d.", \
+        st->offset_count, size);
 
-    if(!st->work_offsets || !st->request_offsets)
-    { return -1; }
+    st->work_offsets = (uint32_t*) realloc(st->work_offsets, \
+                                           count * sizeof(uint32_t));
+    st->request_offsets = (uint32_t*) realloc(st->request_offsets, \
+                                              count * sizeof(uint32_t));
+
+    LOG(CIRCLE_LOG_DBG, "Work offsets: [%p] -> [%p]", \
+        (void *) st->work_offsets, \
+        (void *) ( st->work_offsets + (count * sizeof(uint32_t))));
+
+    LOG(CIRCLE_LOG_DBG, "Request offsets: [%p] -> [%p]", \
+        (void *) st->request_offsets, \
+        (void *) st->request_offsets + (count * sizeof(uint32_t)));
+
+    if(!st->work_offsets || !st->request_offsets) {
+        return -1;
+    }
 
     return 0;
 }
+
 /**
  * @brief Requests work from other ranks.
  *
