@@ -132,8 +132,8 @@ int8_t CIRCLE_internal_queue_str_extend(CIRCLE_internal_queue_t* qp, \
     qp->strings = (uintptr_t*) realloc(qp->strings, size);
 
     LOG(CIRCLE_LOG_DBG, "Reallocing string array from" \
-        " [%d] to [%d] [%p] -> [%p]", rc, qp->str_count, qp->strings, \
-        qp->strings + size);
+        " [%d] to [%d] [%p] -> [%p]", rc, qp->str_count, \
+        (void *) qp->strings, (void *) qp->strings + size);
 
     if(!qp->strings) {
         LOG(CIRCLE_LOG_ERR, "Unable to realloc string array.");
