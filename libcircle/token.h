@@ -38,8 +38,21 @@ typedef struct CIRCLE_mpi_state_st {
     MPI_Request work_request;
     MPI_Request* request_request;
 
+    MPI_Group local_group;
+    MPI_Group world_group;
+    MPI_Group nonlocal_group;
     MPI_Comm* token_comm;
     MPI_Comm* work_comm;
+    MPI_Comm* local_comm;
+    MPI_Comm* current;
+    int local_size;
+    int local_rank;
+    int* request_field;
+    int request_field_index;
+    uint32_t color;
+    unsigned long int net_num;
+    int hostname_length;
+    char hostname[MPI_MAX_PROCESSOR_NAME];
 } CIRCLE_mpi_state_st;
 
 typedef struct CIRCLE_state_st {
@@ -63,7 +76,6 @@ typedef struct CIRCLE_state_st {
     uint32_t rank;
     uint32_t size;
     uint32_t next_processor;
-    uint32_t* request_field;
     uint32_t offset_count;
     uint32_t* work_offsets;
     uint32_t* request_offsets;

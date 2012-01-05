@@ -196,15 +196,14 @@ int32_t CIRCLE_check_for_term(CIRCLE_state_st* st)
  */
 inline uint32_t CIRCLE_get_next_proc(CIRCLE_state_st * st)
 {
-    st->request_field[st->next_processor] = 1;
-    uint32_t result = st->next_processor+1;
-    if(result == st->rank) {
-        result++;
+    st->mpi_state_st->request_field_index++;
+    if(st->mpi_state_st->request_field_index == (signed)st->rank)
+        st->mpi_state_st->request_field_index++;
+    if(st->mpi_state_st->request_field_index == (signed)st->size)
+    {
+        st->mpi_state_st->request_field_index = 0;
     }
-    if(result == st->size) {
-        result = 0;
-    }
-    return result;
+    return st->mpi_state_st->request_field_index;
 }
 
 /**
@@ -581,7 +580,6 @@ int32_t CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* 
     }
 
     for(i = 0; i < rcount; i++) {
-        LOG(CIRCLE_LOG_DBG,"Restarting request for requestor %d [%d] [%p]",i,requestors[i],st->mpi_state_st->request_request[requestors[i]]);
         MPI_Start(&st->mpi_state_st->request_request[requestors[i]]);
     }
 
