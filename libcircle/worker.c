@@ -278,7 +278,6 @@ CIRCLE_get_net_num(CIRCLE_state_st* st)
 }
 
 /**
-<<<<<<< HEAD:libcircle/worker.c
   * Reset request vector
   * Makes the next work request be sent to the first rank in the list that isn't 'self'
   */
