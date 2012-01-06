@@ -284,7 +284,11 @@ CIRCLE_get_net_num(CIRCLE_state_st* st)
 void
 CIRCLE_reset_request_vector(CIRCLE_state_st *st)
 {
-    st->mpi_state_st->request_field_index = 0;
+    /* Is this a local master rank? */
+    if(st->mpi_state_st->local_rank == 0)
+        st->mpi_state_st->request_field_index = st->mpi_state_st->local_size;
+    else
+        st->mpi_state_st->request_field_index = 0;
     st->next_processor = st->mpi_state_st->request_field[st->mpi_state_st->request_field_index];
     if(st->next_processor == st->rank)
         st->next_processor = st->mpi_state_st->request_field[++(st->mpi_state_st->request_field_index)];
@@ -310,7 +314,6 @@ CIRCLE_reset_request_vector(CIRCLE_state_st *st)
 int8_t CIRCLE_initialize_request_vector(CIRCLE_state_st* st)
 {
     int i;
-
     if(MPI_Get_processor_name(st->mpi_state_st->hostname, &st->mpi_state_st->hostname_length) != MPI_SUCCESS) {
         LOG(CIRCLE_LOG_ERR, "Unable to get processor name");
     }
@@ -433,7 +436,7 @@ int8_t CIRCLE_worker()
 
     CIRCLE_work_loop(sptr, &queue_handle);
     CIRCLE_cleanup_mpi_messages(sptr);
-
+    MPI_Barrier(mpi_s.work_comm);
     if(CIRCLE_ABORT_FLAG) {
         CIRCLE_checkpoint();
     }

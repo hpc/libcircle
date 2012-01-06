@@ -193,21 +193,33 @@ int32_t CIRCLE_check_for_term(CIRCLE_state_st* st)
 }
 
 /**
- * This returns a random rank (not yourself).
+ * This returns a rank (not yourself).
  */
 inline uint32_t CIRCLE_get_next_proc(CIRCLE_state_st* st)
 {
+
+    if(!CIRCLE_INPUT_ST.options & CIRCLE_ENABLE_LOCALITY)
+    {
+        st->next_processor = rand() % st->size;
+        if(st->next_processor == st->rank)
+            st->next_processor++;
+        if(st->next_processor >= st->size)
+            st->next_processor = 0;
+        return 0;
+    }
     st->mpi_state_st->request_field_index++;
 
-    if(st->mpi_state_st->request_field_index == (signed)st->rank) {
+    if(st->mpi_state_st->request_field[st->mpi_state_st->request_field_index]
+            == (signed)st->rank) {
         st->mpi_state_st->request_field_index++;
     }
 
-    if(st->mpi_state_st->request_field_index == (signed)st->size) {
+    if(st->mpi_state_st->request_field[st->mpi_state_st->request_field_index]
+            == (signed)st->size) {
         st->mpi_state_st->request_field_index = 0;
     }
-
-    return st->mpi_state_st->request_field_index;
+    st->next_processor = st->mpi_state_st->request_field[st->mpi_state_st->request_field_index];
+    return 0;
 }
 
 /**
@@ -321,7 +333,6 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
     }
 
     if(size == 0) {
-        st->next_processor = CIRCLE_get_next_proc(st);
         return 0;
     }
 
@@ -344,7 +355,7 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
     /* We'll ask somebody else next time */
     int32_t source = st->next_processor;
     
-    st->next_processor = CIRCLE_get_next_proc(st);
+    CIRCLE_get_next_proc(st);
 
     int32_t chars = st->work_offsets[1];
     int32_t items = st->work_offsets[0];
@@ -417,6 +428,7 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
     }
 
     qp->head = qp->strings[qp->count - 1] + strlen(qp->base + qp->strings[qp->count - 1]);
+    LOG(CIRCLE_LOG_DBG,"Received %d items from %d",qp->count, source);
 
     return 0;
 }
@@ -444,19 +456,29 @@ void CIRCLE_send_no_work(uint32_t dest)
 void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
                               CIRCLE_state_st* st, int* requestors, int32_t rcount)
 {
-    int32_t i = 0;
+    int32_t i = 0, total_amount = 0, increment = 0;
 
     if(rcount <= 0) {
         LOG(CIRCLE_LOG_FATAL,
             "Something is wrong with the amount of work we think we have.");
         exit(EXIT_FAILURE);
     }
-
-    int32_t total_amount = (((qp->count) + 1) / (rcount+1))*rcount;
-//    int32_t total_amount = rand() % qp->count + 1;
+    
+    if(CIRCLE_INPUT_ST.options & CIRCLE_SPLIT_RANDOM)
+    {
+        total_amount = rand() % qp->count + 1;
+    }
+    else if(CIRCLE_INPUT_ST.options & CIRCLE_SPLIT_EQUAL)
+    {
+        total_amount = (((qp->count) + 1) / (rcount+1))*rcount;
+    }
+    else
+    {
+        total_amount = rand() % qp->count + 1;
+    }
 
     /* Get size of chunk */
-    int32_t increment = total_amount / rcount;
+    increment = total_amount / rcount;
 
     for(i = 0; i < rcount; i ++) {
         total_amount -= increment;

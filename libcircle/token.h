@@ -22,6 +22,7 @@ enum tags {
     ABORT = -32
 };
 
+
 typedef struct options {
     char* beginning_path;
     int  verbose;

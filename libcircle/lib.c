@@ -32,14 +32,14 @@ CIRCLE_input_st CIRCLE_INPUT_ST;
  *
  * @return the rank value of the current process.
  */
-__inline__ int32_t CIRCLE_init(int argc, char* argv[])
+__inline__ int32_t CIRCLE_init(int argc, char* argv[], int options)
 {
     CIRCLE_debug_stream = stdout;
     CIRCLE_debug_level = CIRCLE_LOG_INFO;
 
     CIRCLE_INPUT_ST.work_comm = (MPI_Comm*) malloc(sizeof(MPI_Comm));
     CIRCLE_INPUT_ST.token_comm = (MPI_Comm*) malloc(sizeof(MPI_Comm));
-
+    CIRCLE_INPUT_ST.options = options;
     MPI_Init(&argc, &argv);
 
     MPI_Comm_dup(MPI_COMM_WORLD, CIRCLE_INPUT_ST.work_comm);

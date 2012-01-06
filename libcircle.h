@@ -7,6 +7,10 @@
  */
 #define CIRCLE_MAX_STRING_LEN (4096*sizeof(char))
 
+#define CIRCLE_SPLIT_RANDOM     (1 << 0)     /* Split work randomly. */
+#define CIRCLE_SPLIT_EQUAL      (1 << 1)     /* Split work evenly */
+#define CIRCLE_ENABLE_LOCALITY  (1 << 2)     /* Enable proximity awareness */
+
 /**
  * The various logging levels that libcircle will output.
  */
@@ -39,7 +43,7 @@ typedef void (*CIRCLE_cb)(CIRCLE_handle *handle);
  * Initialize internal state needed by libcircle. This should be called before
  * any other libcircle API call. This returns the MPI rank value.
  */
-int CIRCLE_init(int argc, char *argv[]);
+int CIRCLE_init(int argc, char *argv[], int options);
 
 /**
  * Processing and creating work is done through callbacks. Here's how we tell
