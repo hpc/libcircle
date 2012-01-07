@@ -195,31 +195,32 @@ int32_t CIRCLE_check_for_term(CIRCLE_state_st* st)
 /**
  * This returns a rank (not yourself).
  */
-inline uint32_t CIRCLE_get_next_proc(CIRCLE_state_st* st)
+inline void
+CIRCLE_get_next_proc(CIRCLE_state_st* st)
 {
-
-    if(!CIRCLE_INPUT_ST.options & CIRCLE_ENABLE_LOCALITY)
+    /* Locality awareness disabled. */
+    if(! (CIRCLE_INPUT_ST.options & CIRCLE_ENABLE_LOCALITY))
     {
         st->next_processor = rand() % st->size;
-        if(st->next_processor == st->rank)
-            st->next_processor++;
-        if(st->next_processor >= st->size)
-            st->next_processor = 0;
-        return 0;
+        while(st->next_processor == st->rank)
+            st->next_processor = rand() % st->size;
     }
-    st->mpi_state_st->request_field_index++;
-
-    if(st->mpi_state_st->request_field[st->mpi_state_st->request_field_index]
-            == (signed)st->rank) {
+    else
+    {
+        /* Locality awareness enabled */
         st->mpi_state_st->request_field_index++;
-    }
 
-    if(st->mpi_state_st->request_field[st->mpi_state_st->request_field_index]
-            == (signed)st->size) {
-        st->mpi_state_st->request_field_index = 0;
+        if(st->mpi_state_st->request_field[st->mpi_state_st->request_field_index]
+                == (signed)st->rank) {
+            st->mpi_state_st->request_field_index++;
+        }
+
+        if(st->mpi_state_st->request_field[st->mpi_state_st->request_field_index]
+                == (signed)st->size) {
+            st->mpi_state_st->request_field_index = 0;
+        }
+        st->next_processor = st->mpi_state_st->request_field[st->mpi_state_st->request_field_index];
     }
-    st->next_processor = st->mpi_state_st->request_field[st->mpi_state_st->request_field_index];
-    return 0;
 }
 
 /**
@@ -372,8 +373,10 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
         CIRCLE_ABORT_FLAG = 1;
         return ABORT;
     }
-
-    CIRCLE_reset_request_vector(st);
+    if(!CIRCLE_INPUT_ST.options & CIRCLE_ENABLE_LOCALITY)
+        CIRCLE_get_next_proc(st);
+    else
+        CIRCLE_reset_request_vector(st);
 
     /* Wait and see if they sent the work over */
     size = CIRCLE_wait_on_probe(st, source, WORK);
@@ -600,7 +603,7 @@ int32_t CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* 
                     return ABORT;
                 }
 
-                LOG(CIRCLE_LOG_DBG, "Received work request from %d\n", i);
+                LOG(CIRCLE_LOG_DBG, "Received work request from %d", i);
                 requestors[rcount++] = i;
                 st->request_flag[i] = 0;
             }

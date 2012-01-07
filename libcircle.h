@@ -5,11 +5,15 @@
  * The maximum length of a string value which is allowed to be placed on the
  * queue structure.
  */
-#define CIRCLE_MAX_STRING_LEN (4096*sizeof(char))
+#define CIRCLE_MAX_STRING_LEN   4096                /* How long can a string be? */
 
-#define CIRCLE_SPLIT_RANDOM     (1 << 0)     /* Split work randomly. */
-#define CIRCLE_SPLIT_EQUAL      (1 << 1)     /* Split work evenly */
-#define CIRCLE_ENABLE_LOCALITY  (1 << 2)     /* Enable proximity awareness */
+/**
+  * Run time flags
+  */
+#define CIRCLE_SPLIT_RANDOM     (1 << 0)              /* Split work randomly. */
+#define CIRCLE_SPLIT_EQUAL      (1 << 1)              /* Split work evenly */
+#define CIRCLE_ENABLE_LOCALITY  (1 << 2)              /* Enable proximity awareness */
+#define CIRCLE_DEFAULT_FLAGS    CIRCLE_SPLIT_RANDOM   /* Default behavior is random work stealing */
 
 /**
  * The various logging levels that libcircle will output.
@@ -44,6 +48,12 @@ typedef void (*CIRCLE_cb)(CIRCLE_handle *handle);
  * any other libcircle API call. This returns the MPI rank value.
  */
 int CIRCLE_init(int argc, char *argv[], int options);
+
+
+/**
+ * Change run time flags
+ */
+void CIRCLE_set_options(int options);
 
 /**
  * Processing and creating work is done through callbacks. Here's how we tell

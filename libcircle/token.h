@@ -83,7 +83,7 @@ typedef struct CIRCLE_state_st {
 
 } CIRCLE_state_st;
 
-uint32_t  CIRCLE_get_next_proc(CIRCLE_state_st* st);
+void CIRCLE_get_next_proc(CIRCLE_state_st* st);
 void CIRCLE_send_no_work(uint32_t dest);
 int32_t  CIRCLE_check_for_term(CIRCLE_state_st* st);
 int32_t  CIRCLE_wait_on_probe(CIRCLE_state_st* st, int32_t source, int32_t tag);

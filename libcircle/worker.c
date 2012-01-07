@@ -421,13 +421,22 @@ int8_t CIRCLE_worker()
     local_state.rank = rank;
     local_state.token_partner = (rank - 1) % size;
     CIRCLE_initialize_request_vector(&local_state);
+
     /* Initial local state */
     local_objects_processed = 0;
     total_objects_processed = 0;
+
     /* Master rank starts out with the initial data creation */
     uint32_t* total_objects_processed_array = (uint32_t*) calloc(size, sizeof(uint32_t));
     uint32_t* total_work_requests_array = (uint32_t*) calloc(size, sizeof(uint32_t));
     uint32_t* total_no_work_received_array = (uint32_t*) calloc(size, sizeof(uint32_t));
+
+    if(CIRCLE_INPUT_ST.options & CIRCLE_SPLIT_EQUAL)
+        LOG(CIRCLE_LOG_DBG,"Using equalized load splitting.");
+    if(CIRCLE_INPUT_ST.options & CIRCLE_SPLIT_RANDOM)
+        LOG(CIRCLE_LOG_DBG,"Using randomized load splitting.");
+    if(CIRCLE_INPUT_ST.options & CIRCLE_ENABLE_LOCALITY)
+        LOG(CIRCLE_LOG_DBG,"Using locality awareness.");
 
     if(rank == 0) {
         (*(CIRCLE_INPUT_ST.create_cb))(&queue_handle);
@@ -436,10 +445,11 @@ int8_t CIRCLE_worker()
 
     CIRCLE_work_loop(sptr, &queue_handle);
     CIRCLE_cleanup_mpi_messages(sptr);
-    MPI_Barrier(mpi_s.work_comm);
+
     if(CIRCLE_ABORT_FLAG) {
         CIRCLE_checkpoint();
     }
+    
 
     MPI_Gather(&local_objects_processed, 1, MPI_INT, \
                &total_objects_processed_array[0], 1, MPI_INT, 0, \

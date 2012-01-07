@@ -32,14 +32,14 @@ CIRCLE_input_st CIRCLE_INPUT_ST;
  *
  * @return the rank value of the current process.
  */
-__inline__ int32_t CIRCLE_init(int argc, char* argv[], int options)
+__inline__ int32_t CIRCLE_init(int argc, char* argv[], int user_options)
 {
     CIRCLE_debug_stream = stdout;
     CIRCLE_debug_level = CIRCLE_LOG_INFO;
 
     CIRCLE_INPUT_ST.work_comm = (MPI_Comm*) malloc(sizeof(MPI_Comm));
     CIRCLE_INPUT_ST.token_comm = (MPI_Comm*) malloc(sizeof(MPI_Comm));
-    CIRCLE_INPUT_ST.options = options;
+    CIRCLE_set_options(user_options);
     MPI_Init(&argc, &argv);
 
     MPI_Comm_dup(MPI_COMM_WORLD, CIRCLE_INPUT_ST.work_comm);
@@ -67,6 +67,16 @@ __inline__ int32_t CIRCLE_init(int argc, char* argv[], int options)
 __inline__ void CIRCLE_cb_create(CIRCLE_cb func)
 {
     CIRCLE_INPUT_ST.create_cb = func;
+}
+
+
+/**
+ * Change run time flags
+ */
+void CIRCLE_set_options(int user_options)
+{
+    CIRCLE_INPUT_ST.options = user_options;
+    LOG(CIRCLE_LOG_DBG,"Circle options set: %X",user_options);
 }
 
 /**
@@ -124,9 +134,9 @@ __inline__ void CIRCLE_abort(void)
  */
 __inline__ void CIRCLE_finalize(void)
 {
-    CIRCLE_debug_stream = NULL;
     CIRCLE_internal_queue_free(CIRCLE_INPUT_ST.queue);
     MPI_Finalize();
+    CIRCLE_debug_stream = NULL;
 }
 
 /**
