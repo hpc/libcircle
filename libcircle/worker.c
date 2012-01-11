@@ -22,10 +22,12 @@
 extern CIRCLE_input_st CIRCLE_INPUT_ST;
 int32_t local_objects_processed = 0;
 int32_t total_objects_processed = 0;
-int32_t local_work_requested = 0;
-int32_t total_work_requested = 0;
-int32_t local_no_work_received = 0;
-int32_t total_no_work_received = 0;
+uint32_t local_work_requested = 0;
+uint32_t total_work_requested = 0;
+uint32_t local_no_work_received = 0;
+uint32_t total_no_work_received = 0;
+uint64_t local_hop_bytes = 0;
+uint64_t total_hop_bytes = 0;
 int8_t CIRCLE_ABORT_FLAG = 0;
 
 /**
@@ -42,12 +44,15 @@ void CIRCLE_MPI_error_handler(MPI_Comm* comm, int* err, ...)
         LOG(CIRCLE_LOG_ERR, "Libcircle received abort signal, checkpointing.");
     }
     else {
+        char error[MPI_MAX_ERROR_STRING];
+        int error_len = 0;
+        MPI_Error_string(*err, error,&error_len); 
+        LOG(CIRCLE_LOG_ERR, "MPI Error: %s",error);
         LOG(CIRCLE_LOG_ERR, "Libcircle received MPI error, checkpointing.");
     }
 
     CIRCLE_checkpoint();
-
-    return;
+    exit(EXIT_FAILURE);
 }
 #pragma GCC diagnostic warning "-Wunused-parameter"
 
@@ -462,6 +467,8 @@ int8_t CIRCLE_worker()
                *mpi_s.work_comm);
     MPI_Reduce(&local_objects_processed, &total_objects_processed, 1, \
                MPI_INT, MPI_SUM, 0, *mpi_s.work_comm);
+    MPI_Reduce(&local_hop_bytes, &total_hop_bytes, 1, \
+               MPI_INT, MPI_SUM, 0, *mpi_s.work_comm);
 
     if(rank == 0) {
         for(i = 0; i < size; i++) {
@@ -476,7 +483,11 @@ int8_t CIRCLE_worker()
 
     if(rank == 0) {
         LOG(CIRCLE_LOG_INFO, \
-            "Total Objects Processed: %d\n", total_objects_processed);
+            "Total Objects Processed: %d", total_objects_processed);
+        LOG(CIRCLE_LOG_INFO, \
+            "Total hop-bytes: %lu", total_hop_bytes);
+        LOG(CIRCLE_LOG_INFO, \
+            "Hop-bytes per file: %f", (float)total_hop_bytes/(float)total_objects_processed);
     }
 
     return 0;

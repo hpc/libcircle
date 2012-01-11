@@ -20,6 +20,8 @@
 extern int8_t CIRCLE_ABORT_FLAG;
 extern uint32_t local_work_requested;
 extern uint32_t local_no_work_received;
+extern uint64_t local_hop_bytes;
+
 extern CIRCLE_input_st CIRCLE_INPUT_ST;
 /**
  * Sends an abort message to all ranks.
@@ -192,6 +194,20 @@ int32_t CIRCLE_check_for_term(CIRCLE_state_st* st)
     return 0;
 }
 
+inline int
+CIRCLE_get_hop_count_from_rank(CIRCLE_state_st* st, int rank)
+{
+    int i = 0;
+    for(i = 0; i < st->size; i++)
+        if(st->mpi_state_st->request_field[i] == rank)
+            break;
+    return (i <= st->mpi_state_st->local_size)?1:2;
+}
+inline int
+CIRCLE_get_hop_count(CIRCLE_state_st* st)
+{
+    return (st->mpi_state_st->request_field_index <= st->mpi_state_st->local_size)?1:2;
+}
 /**
  * This returns a rank (not yourself).
  */
@@ -210,15 +226,18 @@ CIRCLE_get_next_proc(CIRCLE_state_st* st)
         /* Locality awareness enabled */
         st->mpi_state_st->request_field_index++;
 
+        /* Reset to zero if outside array bound */
+        if(st->mpi_state_st->request_field_index
+                == (signed)st->size) {
+            st->mpi_state_st->request_field_index = 0;
+        }
+
+        /* Make sure a rank doesn't ask itself for work */
         if(st->mpi_state_st->request_field[st->mpi_state_st->request_field_index]
                 == (signed)st->rank) {
             st->mpi_state_st->request_field_index++;
         }
 
-        if(st->mpi_state_st->request_field[st->mpi_state_st->request_field_index]
-                == (signed)st->size) {
-            st->mpi_state_st->request_field_index = 0;
-        }
         st->next_processor = st->mpi_state_st->request_field[st->mpi_state_st->request_field_index];
     }
 }
@@ -251,6 +270,7 @@ int32_t CIRCLE_wait_on_probe(CIRCLE_state_st* st, int32_t source, int32_t tag)
                 if(st->request_flag[i]) {
                     CIRCLE_send_no_work(i);
                     MPI_Start(&st->mpi_state_st->request_request[i]);
+                    local_hop_bytes += 1*CIRCLE_get_hop_count_from_rank(st, i);
                 }
             }
         }
@@ -324,6 +344,10 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
     MPI_Send(&temp_buffer, 1, MPI_INT, st->next_processor, \
              WORK_REQUEST, *st->mpi_state_st->work_comm);
 
+    /* Count cost of message
+     * one integer * hops 
+     */
+    local_hop_bytes += 1*CIRCLE_get_hop_count(st);
     st->work_offsets[0] = 0;
 
     /* Wait for an answer... */
@@ -373,6 +397,7 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
         CIRCLE_ABORT_FLAG = 1;
         return ABORT;
     }
+    /* If locality awareness is not enabled */
     if(!CIRCLE_INPUT_ST.options & CIRCLE_ENABLE_LOCALITY)
         CIRCLE_get_next_proc(st);
     else
@@ -504,6 +529,8 @@ int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
 {
     if(count <= 0) {
         CIRCLE_send_no_work(dest);
+        /* Add cost of message */
+        local_hop_bytes += 1*CIRCLE_get_hop_count_from_rank(st,dest);
         return 0;
     }
 
@@ -548,11 +575,14 @@ int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
 
     MPI_Ssend(st->request_offsets, st->request_offsets[0] + 2, \
               MPI_INT, dest, WORK, *st->mpi_state_st->work_comm);
-
+    
 
     MPI_Ssend(qp->base + b, (diff + 1) * sizeof(char), MPI_BYTE, \
               dest, WORK, *st->mpi_state_st->work_comm);
 
+    /* Add cost of sending offsets and data */
+    local_hop_bytes += (((st->request_offsets[0]+2)*CIRCLE_get_hop_count_from_rank(st,dest))
+                    +  ((diff+1*sizeof(char))*CIRCLE_get_hop_count_from_rank(st,dest) ) );
     LOG(CIRCLE_LOG_DBG,
         "Sent %d of %d items to %d.", st->request_offsets[0], qp->count, dest);
     qp->count = qp->count - count;
@@ -618,6 +648,7 @@ int32_t CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* 
     if(qp->count == 0 || CIRCLE_ABORT_FLAG) {
         for(i = 0; i < rcount; i++) {
             CIRCLE_send_no_work(requestors[i]);
+            local_hop_bytes += 1*CIRCLE_get_hop_count_from_rank(st,requestors[i]);
         }
     }
     /*
