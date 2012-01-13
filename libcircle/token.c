@@ -217,9 +217,11 @@ CIRCLE_get_next_proc(CIRCLE_state_st* st)
     /* Locality awareness disabled. */
     if(! (CIRCLE_INPUT_ST.options & CIRCLE_ENABLE_LOCALITY))
     {
-        st->next_processor = rand() % st->size;
-        while(st->next_processor == st->rank)
+        do
+        {
             st->next_processor = rand() % st->size;
+        }
+        while(st->next_processor == st->rank);
     }
     else
     {

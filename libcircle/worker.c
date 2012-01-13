@@ -18,6 +18,9 @@
 #include "token.h"
 #include "lib.h"
 #include "worker.h"
+    
+
+CIRCLE_handle queue_handle;
 
 extern CIRCLE_input_st CIRCLE_INPUT_ST;
 int32_t local_objects_processed = 0;
@@ -410,7 +413,6 @@ int8_t CIRCLE_worker()
     local_state.mpi_state_st = &mpi_s;
 
     /* Provides an interface to the queue. */
-    CIRCLE_handle queue_handle;
     queue_handle.enqueue = &CIRCLE_enqueue;
     queue_handle.dequeue = &CIRCLE_dequeue;
     queue_handle.local_queue_size = &CIRCLE_local_queue_size;

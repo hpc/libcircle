@@ -23,6 +23,14 @@ int32_t  CIRCLE_global_rank;
 /** A struct which holds a reference to all input given through the API. */
 CIRCLE_input_st CIRCLE_INPUT_ST;
 
+/** Handle to the queue */
+extern CIRCLE_handle queue_handle;
+
+CIRCLE_handle * CIRCLE_get_handle()
+{
+    return &queue_handle;
+}
+
 /**
  * Initialize internal state needed by libcircle. This should be called before
  * any other libcircle API call.
@@ -40,7 +48,11 @@ __inline__ int32_t CIRCLE_init(int argc, char* argv[], int user_options)
     CIRCLE_INPUT_ST.work_comm = (MPI_Comm*) malloc(sizeof(MPI_Comm));
     CIRCLE_INPUT_ST.token_comm = (MPI_Comm*) malloc(sizeof(MPI_Comm));
     CIRCLE_set_options(user_options);
-    MPI_Init(&argc, &argv);
+    if(MPI_Init(&argc, &argv) != MPI_SUCCESS)
+    {
+        LOG(CIRCLE_LOG_FATAL,"Unable to initialize MPI.");
+        return -1;
+    }
 
     MPI_Comm_dup(MPI_COMM_WORLD, CIRCLE_INPUT_ST.work_comm);
     MPI_Comm_dup(MPI_COMM_WORLD, CIRCLE_INPUT_ST.token_comm);

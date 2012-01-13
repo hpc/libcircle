@@ -85,6 +85,12 @@ void CIRCLE_abort(void);
 void CIRCLE_checkpoint();
 
 /**
+  * Function to return a pointer to the handle.  Useful for threaded applications.
+  * You are responsible for maintaining mutual exclusion.
+  */
+CIRCLE_handle* CIRCLE_get_handle();
+
+/**
  * Call this function to initialize libcircle queues from restart files
  * created by CIRCLE_checkpoint.
  */
