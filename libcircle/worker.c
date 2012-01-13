@@ -156,7 +156,7 @@ void CIRCLE_init_local_state(CIRCLE_state_st* local_state, int32_t size)
  *     -# If after requesting work, this rank still doesn't have any,
  *        check for termination conditions.
  */
-void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* queue_handle)
+void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
 {
     int token = WHITE;
     int work_status = -1;
@@ -180,7 +180,7 @@ void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* queue_handle)
 
         /* If I have some work, process one work item */
         if(CIRCLE_INPUT_ST.queue->count > 0 && !CIRCLE_ABORT_FLAG) {
-            (*(CIRCLE_INPUT_ST.process_cb))(queue_handle);
+            (*(CIRCLE_INPUT_ST.process_cb))(q_handle);
             local_objects_processed++;
         }
         /* If I don't have work, check for termination */
