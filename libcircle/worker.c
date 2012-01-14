@@ -43,6 +43,9 @@ int8_t CIRCLE_ABORT_FLAG = 0;
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 void CIRCLE_MPI_error_handler(MPI_Comm* comm, int* err, ...)
 {
+    char name[MPI_MAX_OBJECT_NAME];
+    int namelen;
+    MPI_Comm_get_name( *comm, name, &namelen ); 
     if(*err == LIBCIRCLE_MPI_ERROR) {
         LOG(CIRCLE_LOG_ERR, "Libcircle received abort signal, checkpointing.");
     }
@@ -50,7 +53,7 @@ void CIRCLE_MPI_error_handler(MPI_Comm* comm, int* err, ...)
         char error[MPI_MAX_ERROR_STRING];
         int error_len = 0;
         MPI_Error_string(*err, error,&error_len); 
-        LOG(CIRCLE_LOG_ERR, "MPI Error: %s",error);
+        LOG(CIRCLE_LOG_ERR, "MPI Error in Comm [%s]: %s",name, error);
         LOG(CIRCLE_LOG_ERR, "Libcircle received MPI error, checkpointing.");
     }
 

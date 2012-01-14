@@ -198,7 +198,7 @@ inline int
 CIRCLE_get_hop_count_from_rank(CIRCLE_state_st* st, int rank)
 {
     int i = 0;
-    for(i = 0; i < st->size; i++)
+    for(i = 0; i < (signed)st->size; i++)
         if(st->mpi_state_st->request_field[i] == rank)
             break;
     return (i <= st->mpi_state_st->local_size)?1:2;
@@ -316,7 +316,7 @@ int8_t CIRCLE_extend_offsets(CIRCLE_state_st* st, uint32_t size)
 
     LOG(CIRCLE_LOG_DBG, "Request offsets: [%p] -> [%p]", \
         (void*) st->request_offsets, \
-        (void*) st->request_offsets + (count * sizeof(uint32_t)));
+        (void*) (st->request_offsets + (count * sizeof(uint32_t))));
 
     if(!st->work_offsets || !st->request_offsets) {
         return -1;

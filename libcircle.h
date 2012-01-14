@@ -1,11 +1,17 @@
 #ifndef LIBCIRCLE_H
 #define LIBCIRCLE_H
 #include <stdint.h>
+#include <limits.h>
 /**
  * The maximum length of a string value which is allowed to be placed on the
  * queue structure.
  */
-#define CIRCLE_MAX_STRING_LEN   4096                /* How long can a string be? */
+
+#ifdef PATH_MAX
+    #define CIRCLE_MAX_STRING_LEN PATH_MAX
+#else
+    #define CIRCLE_MAX_STRING_LEN   4096                /* How long can a string be? */
+#endif
 
 /**
   * Run time flags
