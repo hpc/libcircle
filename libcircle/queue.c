@@ -198,7 +198,7 @@ int8_t CIRCLE_internal_queue_push(CIRCLE_internal_queue_t* qp, char* str)
     if(qp->count > 0) {
         if(qp->base + qp->strings[qp->count - 1] + \
                 CIRCLE_MAX_STRING_LEN >= qp->end) {
-            LOG(CIRCLE_LOG_ERR, \
+            LOG(CIRCLE_LOG_DBG, \
                 "The queue is not large enough to add another value.");
 
             if(CIRCLE_internal_queue_extend(qp) < 0) {
