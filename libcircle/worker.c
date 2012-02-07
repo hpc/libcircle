@@ -295,6 +295,7 @@ CIRCLE_get_net_num(CIRCLE_state_st* st)
 void
 CIRCLE_reset_request_vector(CIRCLE_state_st *st)
 {
+    LOG(CIRCLE_LOG_DBG,"Resetting request vector.");
     /* Is this a local master rank? */
     if(st->mpi_state_st->local_rank == 0)
         st->mpi_state_st->request_field_index = st->mpi_state_st->local_size;
@@ -484,9 +485,6 @@ int8_t CIRCLE_worker()
             LOG(CIRCLE_LOG_INFO, "Rank %d\tWork requests: %d", i, total_work_requests_array[i]);
             LOG(CIRCLE_LOG_INFO, "Rank %d\tNo work replies: %d", i, total_no_work_received_array[i]);
         }
-    }
-
-    if(rank == 0) {
         LOG(CIRCLE_LOG_INFO, \
             "Total Objects Processed: %d", total_objects_processed);
         LOG(CIRCLE_LOG_INFO, \
