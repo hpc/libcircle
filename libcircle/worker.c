@@ -11,7 +11,9 @@
 #include <sys/stat.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-#include <mpi.h> #include "log.h"
+#include <mpi.h>
+
+#include "log.h"
 #include "libcircle.h"
 #include "token.h"
 #include "lib.h"
