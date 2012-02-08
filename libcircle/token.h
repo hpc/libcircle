@@ -10,6 +10,7 @@
 
 #include "queue.h"
 #include "lib.h"
+
 enum tags {
     WHITE,
     BLACK,
@@ -21,7 +22,6 @@ enum tags {
     SUCCESS,
     ABORT = -32
 };
-
 
 typedef struct options {
     char* beginning_path;

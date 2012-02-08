@@ -191,8 +191,9 @@ int8_t CIRCLE_internal_queue_push(CIRCLE_internal_queue_t* qp, char* str)
     if(qp->count > qp->str_count) {
         LOG(CIRCLE_LOG_DBG, "Extending string array by 4096.");
 
-        if(CIRCLE_internal_queue_str_extend(qp, qp->count + 4096) < 0)
-        { return -1; }
+        if(CIRCLE_internal_queue_str_extend(qp, qp->count + 4096) < 0) {
+            return -1;
+        }
     }
 
     if(qp->count > 0) {

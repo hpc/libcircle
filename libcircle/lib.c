@@ -31,7 +31,7 @@ CIRCLE_input_st CIRCLE_INPUT_ST;
 /** Handle to the queue */
 extern CIRCLE_handle queue_handle;
 
-CIRCLE_handle * CIRCLE_get_handle()
+CIRCLE_handle* CIRCLE_get_handle()
 {
     return &queue_handle;
 }
@@ -53,9 +53,9 @@ __inline__ int32_t CIRCLE_init(int argc, char* argv[], int user_options)
     CIRCLE_INPUT_ST.work_comm = (MPI_Comm*) malloc(sizeof(MPI_Comm));
     CIRCLE_INPUT_ST.token_comm = (MPI_Comm*) malloc(sizeof(MPI_Comm));
     CIRCLE_set_options(user_options);
-    if(MPI_Init(&argc, &argv) != MPI_SUCCESS)
-    {
-        LOG(CIRCLE_LOG_FATAL,"Unable to initialize MPI.");
+
+    if(MPI_Init(&argc, &argv) != MPI_SUCCESS) {
+        LOG(CIRCLE_LOG_FATAL, "Unable to initialize MPI.");
         return -1;
     }
 
@@ -94,7 +94,7 @@ __inline__ void CIRCLE_cb_create(CIRCLE_cb func)
 void CIRCLE_set_options(int user_options)
 {
     CIRCLE_INPUT_ST.options = user_options;
-    LOG(CIRCLE_LOG_DBG,"Circle options set: %X",user_options);
+    LOG(CIRCLE_LOG_DBG, "Circle options set: %X", user_options);
 }
 
 /**
