@@ -17,6 +17,8 @@ libcircle_la_SOURCES = libcircle/lib.c    \
 libcircle_includedir = $(includedir)/
 nobase_libcircle_include_HEADERS = libcircle.h
 
+INCLUDES = $(MPI_CFLAGS)
+
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libcircle.pc
 

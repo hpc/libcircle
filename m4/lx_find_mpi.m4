@@ -169,8 +169,8 @@ AC_DEFUN([LX_QUERY_MPI_COMPILER],
          # Create variables and clean up newlines and multiple spaces
          MPI_$3FLAGS="$lx_mpi_defines $lx_mpi_includes"
          MPI_$3LDFLAGS="$lx_mpi_link_paths $lx_mpi_libs $lx_mpi_link_args"
-         MPI_$3FLAGS=`  echo "$MPI_$3FLAGS"   | tr '\n' ' ' | sed 's/^[[ \t]]*//;s/[[ \t]]*$//' | sed 's/  */ /g'`
-         MPI_$3LDFLAGS=`echo "$MPI_$3LDFLAGS" | tr '\n' ' ' | sed 's/^[[ \t]]*//;s/[[ \t]]*$//' | sed 's/  */ /g'`
+         MPI_$3FLAGS=`  echo "$MPI_$3FLAGS"   | tr '\n' ' ' | sed 's/^[[ \t]]*//;s/[[ \t]]*$//' | sed 's/  +/ /g'`
+         MPI_$3LDFLAGS=`echo "$MPI_$3LDFLAGS" | tr '\n' ' ' | sed 's/^[[ \t]]*//;s/[[ \t]]*$//' | sed 's/  +/ /g'`
 
          OLD_CPPFLAGS=$CPPFLAGS
          OLD_LIBS=$LIBS
@@ -197,7 +197,7 @@ AC_DEFUN([LX_QUERY_MPI_COMPILER],
          LIBS=$OLD_LIBS
          CPPFLAGS=$OLD_CPPFLAGS
      else
-         echo Unable to find suitable MPI Compiler. Try setting $1.
+         Echo Unable to find suitable MPI Compiler. Try setting $1.
          have_$3_mpi='no'         
      fi
 ])
