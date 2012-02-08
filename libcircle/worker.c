@@ -36,7 +36,7 @@ int8_t CIRCLE_ABORT_FLAG = 0;
  * Define as described in gethostent(3) for backwards compatibility.
  */
 #ifndef h_addr
-    #define h_addr h_addr_list[0]
+#define h_addr h_addr_list[0]
 #endif /* h_addr */
 
 /**
@@ -319,23 +319,24 @@ CIRCLE_reset_request_vector(CIRCLE_state_st* st)
     }
 }
 
-/* @brief Initializes the request vector, which is the list of ranks to
-*        request work from.
-*
-* Thanks to Samuel Gutierrez <samuel@lanl.gov> for the help.
-*
-* #- First, every rank gets its own net number.
-* #- An all gather is performed to exchange net numbers.
-* #- Each rank's color is determined by sorting the net numbers, and finding
-*    its place in the list.
-* #- The global work communicator is partitioned by colors, so that
-*    colocated ranks are in the same color.
-* #- Nodes initialize the first few entries of their request vector to these
-*    colocated ranks (albeit translated to global rank numbers).
-* #- The set of ranks that are non local are found by excluding local ranks
-*    from the global communicator.
-* #- These ranks are then used to fill the rest of the request vector.
-*/
+/**
+ * @brief Initializes the request vector, which is the list of ranks to
+ *        request work from.
+ *
+ * Thanks to Samuel Gutierrez <samuel@lanl.gov> for the help.
+ *
+ * #- First, every rank gets its own net number.
+ * #- An all gather is performed to exchange net numbers.
+ * #- Each rank's color is determined by sorting the net numbers, and finding
+ *    its place in the list.
+ * #- The global work communicator is partitioned by colors, so that
+ *    colocated ranks are in the same color.
+ * #- Nodes initialize the first few entries of their request vector to these
+ *    colocated ranks (albeit translated to global rank numbers).
+ * #- The set of ranks that are non local are found by excluding local ranks
+ *    from the global communicator.
+ * #- These ranks are then used to fill the rest of the request vector.
+ */
 int8_t CIRCLE_initialize_request_vector(CIRCLE_state_st* st)
 {
     int i;
