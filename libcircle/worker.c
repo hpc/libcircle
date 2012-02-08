@@ -11,14 +11,11 @@
 #include <sys/stat.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-#include <mpi.h>
-
-#include "log.h"
+#include <mpi.h> #include "log.h"
 #include "libcircle.h"
 #include "token.h"
 #include "lib.h"
 #include "worker.h"
-    
 
 CIRCLE_handle queue_handle;
 
@@ -33,6 +30,13 @@ uint64_t local_hop_bytes = 0;
 uint64_t total_hop_bytes = 0;
 int8_t CIRCLE_ABORT_FLAG = 0;
 
+/*
+ * Define as described in gethostent(3) for backwards compatibility.
+ */
+#ifndef h_addr
+    #define h_addr h_addr_list[0]
+#endif /* h_addr */
+
 /**
  * @brief Function to be called in the event of an MPI error.
  *
@@ -45,15 +49,16 @@ void CIRCLE_MPI_error_handler(MPI_Comm* comm, int* err, ...)
 {
     char name[MPI_MAX_OBJECT_NAME];
     int namelen;
-    MPI_Comm_get_name( *comm, name, &namelen ); 
+    MPI_Comm_get_name(*comm, name, &namelen);
+
     if(*err == LIBCIRCLE_MPI_ERROR) {
         LOG(CIRCLE_LOG_ERR, "Libcircle received abort signal, checkpointing.");
     }
     else {
         char error[MPI_MAX_ERROR_STRING];
         int error_len = 0;
-        MPI_Error_string(*err, error,&error_len); 
-        LOG(CIRCLE_LOG_ERR, "MPI Error in Comm [%s]: %s",name, error);
+        MPI_Error_string(*err, error, &error_len);
+        LOG(CIRCLE_LOG_ERR, "MPI Error in Comm [%s]: %s", name, error);
         LOG(CIRCLE_LOG_ERR, "Libcircle received MPI error, checkpointing.");
     }
 
@@ -293,39 +298,46 @@ CIRCLE_get_net_num(CIRCLE_state_st* st)
   * Makes the next work request be sent to the first rank in the list that isn't 'self'
   */
 void
-CIRCLE_reset_request_vector(CIRCLE_state_st *st)
+CIRCLE_reset_request_vector(CIRCLE_state_st* st)
 {
-    LOG(CIRCLE_LOG_DBG,"Resetting request vector.");
+    LOG(CIRCLE_LOG_DBG, "Resetting request vector.");
+
     /* Is this a local master rank? */
-    if(st->mpi_state_st->local_rank == 0)
+    if(st->mpi_state_st->local_rank == 0) {
         st->mpi_state_st->request_field_index = st->mpi_state_st->local_size;
-    else
+    }
+    else {
         st->mpi_state_st->request_field_index = 0;
+    }
+
     st->next_processor = st->mpi_state_st->request_field[st->mpi_state_st->request_field_index];
-    if(st->next_processor == st->rank)
+
+    if(st->next_processor == st->rank) {
         st->next_processor = st->mpi_state_st->request_field[++(st->mpi_state_st->request_field_index)];
+    }
 }
-  
- /* @brief Initializes the request vector, which is the list of ranks to
- *        request work from.
- *
- * Thanks to Samuel Gutierrez <samuel@lanl.gov> for the help.
- *
- * #- First, every rank gets its own net number.
- * #- An all gather is performed to exchange net numbers.
- * #- Each rank's color is determined by sorting the net numbers, and finding
- *    its place in the list.
- * #- The global work communicator is partitioned by colors, so that
- *    colocated ranks are in the same color.
- * #- Nodes initialize the first few entries of their request vector to these
- *    colocated ranks (albeit translated to global rank numbers).
- * #- The set of ranks that are non local are found by excluding local ranks
- *    from the global communicator.
- * #- These ranks are then used to fill the rest of the request vector.
- */
+
+/* @brief Initializes the request vector, which is the list of ranks to
+*        request work from.
+*
+* Thanks to Samuel Gutierrez <samuel@lanl.gov> for the help.
+*
+* #- First, every rank gets its own net number.
+* #- An all gather is performed to exchange net numbers.
+* #- Each rank's color is determined by sorting the net numbers, and finding
+*    its place in the list.
+* #- The global work communicator is partitioned by colors, so that
+*    colocated ranks are in the same color.
+* #- Nodes initialize the first few entries of their request vector to these
+*    colocated ranks (albeit translated to global rank numbers).
+* #- The set of ranks that are non local are found by excluding local ranks
+*    from the global communicator.
+* #- These ranks are then used to fill the rest of the request vector.
+*/
 int8_t CIRCLE_initialize_request_vector(CIRCLE_state_st* st)
 {
     int i;
+
     if(MPI_Get_processor_name(st->mpi_state_st->hostname, &st->mpi_state_st->hostname_length) != MPI_SUCCESS) {
         LOG(CIRCLE_LOG_ERR, "Unable to get processor name");
     }
@@ -357,38 +369,46 @@ int8_t CIRCLE_initialize_request_vector(CIRCLE_state_st* st)
     /* Translate locals to globals */
     MPI_Group_translate_ranks(st->mpi_state_st->local_group, (st->mpi_state_st->local_size), locals, st->mpi_state_st->world_group, st->mpi_state_st->request_field);
 
-    for(i = 0; i < st->mpi_state_st->local_size; i++)
-    { LOG(CIRCLE_LOG_DBG, "Local rank %d is global %d", locals[i], st->mpi_state_st->request_field[i]); }
+    for(i = 0; i < st->mpi_state_st->local_size; i++) {
+        LOG(CIRCLE_LOG_DBG, "Local rank %d is global %d", locals[i], st->mpi_state_st->request_field[i]);
+    }
 
     free(locals);
+
     /* Find the compliment of locals */
     int ranges[1][3];
     ranges[0][0] = st->mpi_state_st->request_field[0];
     ranges[0][1] = st->mpi_state_st->request_field[st->mpi_state_st->local_size - 1];
     ranges[0][2] = 1;
     LOG(CIRCLE_LOG_DBG, "Excluding ranks %d to %d from world comm.", ranges[0][0], ranges[0][1]);
+
     /* This group will contain only non local processes */
     MPI_Group_range_excl(st->mpi_state_st->world_group, 1, ranges, &st->mpi_state_st->nonlocal_group);
     int group_size = 0;
+
     /* Size of non local group */
     MPI_Group_size(st->mpi_state_st->nonlocal_group, &group_size);
     int* non_locals = (int*)malloc(sizeof(int) * group_size);
 
-    for(i = 0; i < group_size; i++)
-    { non_locals[i] = i; }
+    for(i = 0; i < group_size; i++) {
+        non_locals[i] = i;
+    }
 
     MPI_Group_translate_ranks(st->mpi_state_st->nonlocal_group, group_size, non_locals, st->mpi_state_st->world_group, st->mpi_state_st->request_field + st->mpi_state_st->local_size);
     free(non_locals);
+
     if(st->token_partner < 0) {
         st->token_partner = st->size - 1;
     }
+
     CIRCLE_reset_request_vector(st);
 
     st->mpi_state_st->request_field_index = 0;
     st->next_processor = st->mpi_state_st->request_field[st->mpi_state_st->request_field_index];
 
-    if(st->next_processor == st->rank)
-    { st->next_processor = st->mpi_state_st->request_field[++(st->mpi_state_st->request_field_index)]; }
+    if(st->next_processor == st->rank) {
+        st->next_processor = st->mpi_state_st->request_field[++(st->mpi_state_st->request_field_index)];
+    }
 
     return 0;
 }
@@ -442,12 +462,17 @@ int8_t CIRCLE_worker()
     uint32_t* total_work_requests_array = (uint32_t*) calloc(size, sizeof(uint32_t));
     uint32_t* total_no_work_received_array = (uint32_t*) calloc(size, sizeof(uint32_t));
 
-    if(CIRCLE_INPUT_ST.options & CIRCLE_SPLIT_EQUAL)
-        LOG(CIRCLE_LOG_DBG,"Using equalized load splitting.");
-    if(CIRCLE_INPUT_ST.options & CIRCLE_SPLIT_RANDOM)
-        LOG(CIRCLE_LOG_DBG,"Using randomized load splitting.");
-    if(CIRCLE_INPUT_ST.options & CIRCLE_ENABLE_LOCALITY)
-        LOG(CIRCLE_LOG_DBG,"Using locality awareness.");
+    if(CIRCLE_INPUT_ST.options & CIRCLE_SPLIT_EQUAL) {
+        LOG(CIRCLE_LOG_DBG, "Using equalized load splitting.");
+    }
+
+    if(CIRCLE_INPUT_ST.options & CIRCLE_SPLIT_RANDOM) {
+        LOG(CIRCLE_LOG_DBG, "Using randomized load splitting.");
+    }
+
+    if(CIRCLE_INPUT_ST.options & CIRCLE_ENABLE_LOCALITY) {
+        LOG(CIRCLE_LOG_DBG, "Using locality awareness.");
+    }
 
     if(rank == 0) {
         (*(CIRCLE_INPUT_ST.create_cb))(&queue_handle);
@@ -460,7 +485,7 @@ int8_t CIRCLE_worker()
     if(CIRCLE_ABORT_FLAG) {
         CIRCLE_checkpoint();
     }
-    
+
 
     MPI_Gather(&local_objects_processed, 1, MPI_INT, \
                &total_objects_processed_array[0], 1, MPI_INT, 0, \
@@ -485,12 +510,13 @@ int8_t CIRCLE_worker()
             LOG(CIRCLE_LOG_INFO, "Rank %d\tWork requests: %d", i, total_work_requests_array[i]);
             LOG(CIRCLE_LOG_INFO, "Rank %d\tNo work replies: %d", i, total_no_work_received_array[i]);
         }
+
         LOG(CIRCLE_LOG_INFO, \
             "Total Objects Processed: %d", total_objects_processed);
         LOG(CIRCLE_LOG_INFO, \
             "Total hop-bytes: %lu", total_hop_bytes);
         LOG(CIRCLE_LOG_INFO, \
-            "Hop-bytes per file: %f", (float)total_hop_bytes/(float)total_objects_processed);
+            "Hop-bytes per file: %f", (float)total_hop_bytes / (float)total_objects_processed);
     }
 
     return 0;
