@@ -17,7 +17,7 @@
   * Run time flags
   */
 #define CIRCLE_SPLIT_RANDOM     (1 << 0)              /* Split work randomly. */
-#define CIRCLE_SPLIT_EQUAL      (1 << 1)              /* Split work evenly */
+#define CIRCLE_SPLIT_EQUAL      ~CIRCLE_SPLIT_RANDOM  /* Split work evenly */
 #define CIRCLE_ENABLE_LOCALITY  (1 << 2)              /* Enable proximity awareness */
 #define CIRCLE_DEFAULT_FLAGS    CIRCLE_SPLIT_RANDOM   /* Default behavior is random work stealing */
 

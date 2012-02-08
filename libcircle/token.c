@@ -385,6 +385,8 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
     /* We'll ask somebody else next time */
     int32_t source = st->next_processor;
 
+    CIRCLE_get_next_proc(st);
+
     int32_t chars = st->work_offsets[1];
     int32_t items = st->work_offsets[0];
 
@@ -401,13 +403,6 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
         return ABORT;
     }
 
-    /* If locality awareness is not enabled */
-    if(!CIRCLE_INPUT_ST.options & CIRCLE_ENABLE_LOCALITY) {
-        CIRCLE_get_next_proc(st);
-    }
-    else {
-        CIRCLE_reset_request_vector(st);
-    }
 
     /* Wait and see if they sent the work over */
     size = CIRCLE_wait_on_probe(st, source, WORK);
