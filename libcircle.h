@@ -113,4 +113,9 @@ void CIRCLE_finalize(void);
  */
 void CIRCLE_enable_logging(enum CIRCLE_loglevel level);
 
+/**
+ * Returns an elapsed time on the calling processor for benchmarking purposes.
+ */
+double CIRCLE_wtime(void);
+
 #endif /* LIBCIRCLE_H */
