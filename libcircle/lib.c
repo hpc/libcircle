@@ -167,4 +167,14 @@ __inline__ void CIRCLE_enable_logging(enum CIRCLE_loglevel level)
     CIRCLE_debug_level = level;
 }
 
+/**
+ * Returns an elapsed time on the calling processor for benchmarking purposes.
+ *
+ * @return time in seconds since an arbitrary time in the past.
+ */
+__inline__ double CIRCLE_wtime(void)
+{
+    return MPI_Wtime();
+}
+
 /* EOF */
