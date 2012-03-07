@@ -1,21 +1,21 @@
 #ifndef LIBCIRCLE_H
 #define LIBCIRCLE_H
+
 #include <stdint.h>
-#include <limits.h>
+
 /**
  * The maximum length of a string value which is allowed to be placed on the
  * queue structure.
  */
-
 #ifdef PATH_MAX
     #define CIRCLE_MAX_STRING_LEN PATH_MAX
 #else
-    #define CIRCLE_MAX_STRING_LEN   4096                /* How long can a string be? */
+    #define CIRCLE_MAX_STRING_LEN (4096)
 #endif
 
 /**
-  * Run time flags
-  */
+ * Run time flags for the behavior of splitting work.
+ */
 #define CIRCLE_SPLIT_RANDOM     (1 << 0)              /* Split work randomly. */
 #define CIRCLE_SPLIT_EQUAL      ~CIRCLE_SPLIT_RANDOM  /* Split work evenly */
 #define CIRCLE_ENABLE_LOCALITY  (1 << 2)              /* Enable proximity awareness */
@@ -54,7 +54,6 @@ typedef void (*CIRCLE_cb)(CIRCLE_handle *handle);
  * any other libcircle API call. This returns the MPI rank value.
  */
 int CIRCLE_init(int argc, char *argv[], int options);
-
 
 /**
  * Change run time flags
