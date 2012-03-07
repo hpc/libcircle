@@ -199,10 +199,10 @@ int32_t CIRCLE_check_for_term(CIRCLE_state_st* st)
 inline void
 CIRCLE_get_next_proc(CIRCLE_state_st* st)
 {
-        do {
-            st->next_processor = rand() % st->size;
-        }
-        while(st->next_processor == st->rank);
+    do {
+        st->next_processor = rand() % st->size;
+    }
+    while(st->next_processor == st->rank);
 }
 
 /**
