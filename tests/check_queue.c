@@ -9,7 +9,7 @@ START_TEST
     int free_result = -1;
 
     CIRCLE_internal_queue_t* q;
-    CIRCLE_init(0, NULL);
+    CIRCLE_init(0, NULL, CIRCLE_DEFAULT_FLAGS);
 
     q = CIRCLE_internal_queue_init();
     fail_if(q == NULL, "Initializing a queue failed.");
@@ -28,7 +28,7 @@ START_TEST
     char result[CIRCLE_MAX_STRING_LEN];
 
     CIRCLE_internal_queue_t* q;
-    CIRCLE_init(0, NULL);
+    CIRCLE_init(0, NULL, CIRCLE_DEFAULT_FLAGS);
 
     q = CIRCLE_internal_queue_init();
     fail_if(q == NULL, "Initializing a queue failed.");
@@ -52,7 +52,7 @@ START_TEST
     char result[CIRCLE_MAX_STRING_LEN];
 
     CIRCLE_internal_queue_t* q;
-    CIRCLE_init(0, NULL);
+    CIRCLE_init(0, NULL, CIRCLE_DEFAULT_FLAGS);
 
     q = CIRCLE_internal_queue_init();
     fail_if(q == NULL, "Initializing a queue failed.");
@@ -94,7 +94,7 @@ START_TEST
     test_strings[9] = "tenth test string";
 
     CIRCLE_internal_queue_t* q;
-    CIRCLE_init(0, NULL);
+    CIRCLE_init(0, NULL, CIRCLE_DEFAULT_FLAGS);
 
     q = CIRCLE_internal_queue_init();
     fail_unless(q != NULL, "Initializing a queue failed.");
