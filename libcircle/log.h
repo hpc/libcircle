@@ -1,6 +1,8 @@
 #ifndef LOG_H
 #define LOG_H
 
+#include "libcircle.h"
+
 #include <stdio.h>
 #include <stdint.h>
 #include <time.h>
