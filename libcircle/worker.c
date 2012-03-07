@@ -137,7 +137,6 @@ void CIRCLE_init_local_state(CIRCLE_state_st* local_state, int32_t size)
     local_state->request_flag = (int32_t*) calloc(size, sizeof(int32_t));
     local_state->request_recv_buf = (int32_t*) calloc(size, sizeof(int32_t));
 
-    local_state->mpi_state_st->request_field = (int*) calloc(size, sizeof(int));
     local_state->mpi_state_st->request_status = \
             (MPI_Status*) malloc(sizeof(MPI_Status) * size);
     local_state->mpi_state_st->request_request = \
@@ -245,178 +244,6 @@ void CIRCLE_cleanup_mpi_messages(CIRCLE_state_st* sptr)
 }
 
 /**
-  * Qsort comparator, used by CIRCLE_get_color to call qsort
-  */
-static int
-cmp_uli(const void* p1, const void* p2)
-{
-    return (*(unsigned long int*)p1 - * (unsigned long int*)p2);
-}
-
-/**
- * Gets a ranks color, where the color is an int used to divide nodes in a communicator.
- */
-static int
-CIRCLE_get_color(CIRCLE_state_st* st, unsigned long int* net_nums)
-{
-    unsigned int i = 1;
-    int node_i = 0;
-    unsigned long int prev_num;
-    qsort(net_nums, (size_t)st->size, sizeof(unsigned long int), cmp_uli);
-    prev_num = net_nums[0];
-
-    while(i < st->size && prev_num != st->mpi_state_st->net_num) {
-        while(net_nums[i] == prev_num) {
-            ++i;
-        }
-
-        ++node_i;
-        prev_num = net_nums[i];
-    }
-
-    st->mpi_state_st->color = node_i;
-    return node_i;
-}
-
-/**
- * Get network number, which is unique to ranks, except those that share a node.
- */
-static int
-CIRCLE_get_net_num(CIRCLE_state_st* st)
-{
-    struct hostent* host = NULL;
-
-    if(NULL == (host = gethostbyname(st->mpi_state_st->hostname))) {
-        LOG(CIRCLE_LOG_DBG, "Unable to get host name");
-        return -1;
-    }
-
-    return htonl(inet_network(inet_ntoa(*(struct in_addr*)host->h_addr)));
-
-}
-
-/**
-  * Reset request vector
-  * Makes the next work request be sent to the first rank in the list that isn't 'self'
-  */
-void
-CIRCLE_reset_request_vector(CIRCLE_state_st* st)
-{
-    LOG(CIRCLE_LOG_DBG, "Resetting request vector.");
-
-    /* Is this a local master rank? */
-    if(st->mpi_state_st->local_rank == 0) {
-        st->mpi_state_st->request_field_index = st->mpi_state_st->local_size;
-    }
-    else {
-        st->mpi_state_st->request_field_index = 0;
-    }
-
-    st->next_processor = st->mpi_state_st->request_field[st->mpi_state_st->request_field_index];
-
-    if(st->next_processor == st->rank) {
-        st->next_processor = st->mpi_state_st->request_field[++(st->mpi_state_st->request_field_index)];
-    }
-}
-
-/**
- * @brief Initializes the request vector, which is the list of ranks to
- *        request work from.
- *
- * Thanks to Samuel Gutierrez <samuel@lanl.gov> for the help.
- *
- * #- First, every rank gets its own net number.
- * #- An all gather is performed to exchange net numbers.
- * #- Each rank's color is determined by sorting the net numbers, and finding
- *    its place in the list.
- * #- The global work communicator is partitioned by colors, so that
- *    colocated ranks are in the same color.
- * #- Nodes initialize the first few entries of their request vector to these
- *    colocated ranks (albeit translated to global rank numbers).
- * #- The set of ranks that are non local are found by excluding local ranks
- *    from the global communicator.
- * #- These ranks are then used to fill the rest of the request vector.
- */
-int8_t CIRCLE_initialize_request_vector(CIRCLE_state_st* st)
-{
-    int i;
-
-    if(MPI_Get_processor_name(st->mpi_state_st->hostname, &st->mpi_state_st->hostname_length) != MPI_SUCCESS) {
-        LOG(CIRCLE_LOG_ERR, "Unable to get processor name");
-    }
-
-    st->mpi_state_st->net_num = CIRCLE_get_net_num(st);
-    unsigned long int* net_nums = (unsigned long int*)malloc(sizeof(unsigned long int) * st->size);
-    st->mpi_state_st->local_comm = (MPI_Comm*)malloc(sizeof(*st->mpi_state_st->local_comm));
-    MPI_Allgather(&st->mpi_state_st->net_num, 1, MPI_UNSIGNED_LONG, net_nums, 1, MPI_UNSIGNED_LONG, *st->mpi_state_st->work_comm);
-    st->mpi_state_st->color = CIRCLE_get_color(st, net_nums);
-    free(net_nums);
-
-    if(MPI_Comm_split(*st->mpi_state_st->work_comm, st->mpi_state_st->color, st->rank, st->mpi_state_st->local_comm) != MPI_SUCCESS) {
-        LOG(CIRCLE_LOG_ERR, "Unable to split communicator");
-    }
-
-    MPI_Comm_rank(*st->mpi_state_st->local_comm, &st->mpi_state_st->local_rank);
-    MPI_Comm_size(*st->mpi_state_st->local_comm, &st->mpi_state_st->local_size);
-    MPI_Comm_group(*st->mpi_state_st->local_comm, &st->mpi_state_st->local_group);
-    MPI_Comm_group(*st->mpi_state_st->work_comm, &st->mpi_state_st->world_group);
-    LOG(CIRCLE_LOG_DBG, "Rank [%d] on [%s] has local rank [%d] color [%d] netnum [%lu]", st->rank, st->mpi_state_st->hostname, st->mpi_state_st->local_rank, st->mpi_state_st->color, st->mpi_state_st->net_num);
-
-    /* For translating local ranks */
-    int* locals = (int*)malloc(sizeof(int) * (st->mpi_state_st->local_size));
-
-    for(i = 0; i < st->mpi_state_st->local_size; i++) {
-        locals[i] = i;
-    }
-
-    /* Translate locals to globals */
-    MPI_Group_translate_ranks(st->mpi_state_st->local_group, (st->mpi_state_st->local_size), locals, st->mpi_state_st->world_group, st->mpi_state_st->request_field);
-
-    for(i = 0; i < st->mpi_state_st->local_size; i++) {
-        LOG(CIRCLE_LOG_DBG, "Local rank %d is global %d", locals[i], st->mpi_state_st->request_field[i]);
-    }
-
-    free(locals);
-
-    /* Find the compliment of locals */
-    int ranges[1][3];
-    ranges[0][0] = st->mpi_state_st->request_field[0];
-    ranges[0][1] = st->mpi_state_st->request_field[st->mpi_state_st->local_size - 1];
-    ranges[0][2] = 1;
-    LOG(CIRCLE_LOG_DBG, "Excluding ranks %d to %d from world comm.", ranges[0][0], ranges[0][1]);
-
-    /* This group will contain only non local processes */
-    MPI_Group_range_excl(st->mpi_state_st->world_group, 1, ranges, &st->mpi_state_st->nonlocal_group);
-    int group_size = 0;
-
-    /* Size of non local group */
-    MPI_Group_size(st->mpi_state_st->nonlocal_group, &group_size);
-    int* non_locals = (int*)malloc(sizeof(int) * group_size);
-
-    for(i = 0; i < group_size; i++) {
-        non_locals[i] = i;
-    }
-
-    MPI_Group_translate_ranks(st->mpi_state_st->nonlocal_group, group_size, non_locals, st->mpi_state_st->world_group, st->mpi_state_st->request_field + st->mpi_state_st->local_size);
-    free(non_locals);
-
-    if(st->token_partner < 0) {
-        st->token_partner = st->size - 1;
-    }
-
-    CIRCLE_reset_request_vector(st);
-
-    st->mpi_state_st->request_field_index = 0;
-    st->next_processor = st->mpi_state_st->request_field[st->mpi_state_st->request_field_index];
-
-    if(st->next_processor == st->rank) {
-        st->next_processor = st->mpi_state_st->request_field[++(st->mpi_state_st->request_field_index)];
-    }
-
-    return 0;
-}
-
-/**
  * @brief Sets up libcircle, calls work loop function
  *
  * - Main worker function. This function:
@@ -454,7 +281,7 @@ int8_t CIRCLE_worker()
     srand(rank);
     local_state.rank = rank;
     local_state.token_partner = (rank - 1) % size;
-    CIRCLE_initialize_request_vector(&local_state);
+    local_state.next_processor = 0; 
 
     /* Initial local state */
     local_objects_processed = 0;
@@ -471,10 +298,6 @@ int8_t CIRCLE_worker()
 
     if(CIRCLE_INPUT_ST.options & CIRCLE_SPLIT_RANDOM) {
         LOG(CIRCLE_LOG_DBG, "Using randomized load splitting.");
-    }
-
-    if(CIRCLE_INPUT_ST.options & CIRCLE_ENABLE_LOCALITY) {
-        LOG(CIRCLE_LOG_DBG, "Using locality awareness.");
     }
 
     if(rank == 0) {
