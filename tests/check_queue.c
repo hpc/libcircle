@@ -27,6 +27,8 @@ START_TEST
     int free_result = -1;
     char result[CIRCLE_MAX_STRING_LEN];
 
+    memset(&result, 0, sizeof(char) * CIRCLE_MAX_STRING_LEN);
+
     CIRCLE_internal_queue_t* q;
     CIRCLE_init(0, NULL, CIRCLE_DEFAULT_FLAGS);
 

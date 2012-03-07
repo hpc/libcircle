@@ -262,7 +262,6 @@ int8_t CIRCLE_internal_queue_pop(CIRCLE_internal_queue_t* qp, char* str)
     strcpy(str, qp->base + qp->strings[qp->count - 1]);
     qp->count = qp->count - 1;
 
-
     return 0;
 }
 
