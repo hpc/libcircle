@@ -4,6 +4,7 @@
  * The abstraction of a worker process.
  */
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -340,7 +341,7 @@ int8_t CIRCLE_worker()
         LOG(CIRCLE_LOG_INFO, \
             "Total Objects Processed: %d", total_objects_processed);
         LOG(CIRCLE_LOG_INFO, \
-            "Total hop-bytes: %lu", total_hop_bytes);
+            "Total hop-bytes: %"PRIu64, total_hop_bytes);
         LOG(CIRCLE_LOG_INFO, \
             "Hop-bytes per file: %f", (float)total_hop_bytes / (float)total_objects_processed);
     }
