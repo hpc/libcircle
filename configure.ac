@@ -11,6 +11,9 @@ AC_CONFIG_HEADERS([config.h])
 AC_PROG_CC
 AM_PROG_CC_C_O
 
+# Check for pkg-config
+X_AC_LIBCIRCLE_PKG_CONFIG
+
 # Needed for tests
 X_AC_LIBCIRCLE_CHECK
 
