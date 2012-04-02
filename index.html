@@ -1,0 +1,163 @@
+<!doctype html>
+<!-- The Time Machine GitHub pages theme was designed and developed by Jon Rohan, on Feb 7, 2012. -->
+<!-- Follow him for fun. http://twitter.com/jonrohan. Tail his code on http://github.com/jonrohan -->
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+  <link rel="stylesheet" href="stylesheets/stylesheet.css" media="screen"/>
+  <link rel="stylesheet" href="stylesheets/pygment_trac.css"/>
+  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+  <script type="text/javascript" src="javascripts/script.js"></script>
+
+  <title>Libcircle</title>
+  <meta name="description" content="An API to provide an efficient distributed queue on a cluster. Libcircle is currently used in production to quickly traverse and perform operations on a file tree which contains several hundred-million file nodes. It has been tested at scale on several top500.org computers.">
+
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+
+</head>
+
+<body>
+
+  <div class="wrapper">
+    <header>
+      <h1 class="title">Libcircle</h1>
+    </header>
+    <div id="container">
+      <p class="tagline">An API to provide an efficient distributed queue on a cluster. Libcircle is currently used in production to quickly traverse and perform operations on a file tree which contains several hundred-million file nodes. It has been tested at scale on several top500.org computers.</p>
+      <div id="main" role="main">
+        <div class="download-bar">
+        <div class="inner">
+          <a href="https://github.com/hpc/libcircle/tarball/master" class="download-button tar"><span>Download</span></a>
+          <a href="https://github.com/hpc/libcircle/zipball/master" class="download-button zip"><span>Download</span></a>
+          <a href="https://github.com/hpc/libcircle" class="code">fork Libcircle on GitHub</a>
+        </div>
+        <span class="blc"></span><span class="trc"></span>
+        </div>
+        <article class="markdown-body">
+          <h2>Dependencies</h2>
+
+<ul>
+<li>Open MPI  <a href="http://www.open-mpi.org/">http://www.open-mpi.org/</a>
+</li>
+</ul><h2>Compile and install</h2>
+
+<pre><code>./configure
+make all check
+sudo make install
+</code></pre>
+
+<p>To enable output from libcircle (including fatal errors), run configure with
+"--enable-loglevel=number" where "number" is one of the following options:</p>
+
+<ul>
+<li>"1" fatal errors only.</li>
+<li>"2" errors and lower log levels.</li>
+<li>"3" warnings and lower log levels.</li>
+<li>"4" info messages on internal operations and lower log levels.</li>
+<li>"5" fine grained debug messages and lower log levels.</li>
+</ul><h2>RPM Build and Install</h2>
+
+<p>To build an RPM, use the following instructions:</p>
+
+<ol>
+<li><code>rpmbuild -ta libcircle-&lt;version&gt;-&lt;release&gt;.tgz</code></li>
+<li><code>rpm --install &lt;the appropriate RPM files&gt;</code></li>
+</ol><h2>Developer API Information</h2>
+
+<p>The basic program flow when using libcircle is the following:</p>
+
+<ol>
+<li>Define callbacks which enqueue or dequeue strings from the queue.</li>
+<li>Execute the program.</li>
+</ol><div class="highlight">
+<pre><span class="cp">#include &lt;libcircle.h&gt;</span>
+
+<span class="cm">/* An example of a create callback defined by your program */</span>
+<span class="kt">void</span> <span class="nf">my_create_some_work</span><span class="p">(</span><span class="n">CIRCLE_handle</span> <span class="o">*</span><span class="n">handle</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="cm">/*</span>
+<span class="cm">     * This is where you should generate work that needs to be processed.</span>
+<span class="cm">     * For example, if your goal is to lstat files on a large filesystem,</span>
+<span class="cm">     * this is where you would readdir() and and enqueue directory names.</span>
+<span class="cm">     *</span>
+<span class="cm">     * This should be a small amount of work. For example, only enqueue the</span>
+<span class="cm">     * filenames from a single directory.</span>
+<span class="cm">     */</span>
+    <span class="k">while</span><span class="p">((</span><span class="n">data_to_process</span> <span class="o">=</span> <span class="n">readdir</span><span class="p">(...))</span> <span class="o">!=</span> <span class="nb">NULL</span><span class="p">)</span>
+    <span class="p">{</span>
+        <span class="n">handle</span><span class="o">-&gt;</span><span class="n">enqueue</span><span class="p">(</span><span class="n">data_to_process</span><span class="p">);</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="cm">/* An example of a process callback defined by your program. */</span>
+<span class="kt">void</span> <span class="nf">my_process_some_work</span><span class="p">(</span><span class="n">CIRCLE_handle</span> <span class="o">*</span><span class="n">handle</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="cm">/*</span>
+<span class="cm">     * This is where work should be processed. For example, this is where you</span>
+<span class="cm">     * should lstat one of the files which was placed on the queue by your</span>
+<span class="cm">     * create_some_work callback. Again, you should try to keep this short and</span>
+<span class="cm">     * block as little as possible.</span>
+<span class="cm">     */</span>
+    <span class="n">handle</span><span class="o">-&gt;</span><span class="n">dequeue</span><span class="p">(</span><span class="o">&amp;</span><span class="n">my_data</span><span class="p">);</span>
+    <span class="p">...</span>
+    <span class="n">finished_work</span> <span class="o">=</span> <span class="n">lstat</span><span class="p">(</span><span class="n">my_data</span><span class="p">,</span> <span class="p">...);</span>
+    <span class="p">...</span>
+    <span class="n">store_in_database</span><span class="p">(</span><span class="n">finished_work</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="cm">/*</span>
+<span class="cm"> * Initialize state required by libcircle. Arguments should be those passed in</span>
+<span class="cm"> * by the launching process. argc is a pointer to the number of arguments,</span>
+<span class="cm"> * argv is the argument vector. The return value is the MPI rank of the current</span>
+<span class="cm"> * process.</span>
+<span class="cm"> */</span>
+<span class="kt">int</span> <span class="n">rank</span> <span class="o">=</span> <span class="n">CIRCLE_init</span><span class="p">(</span><span class="o">&amp;</span><span class="n">argc</span><span class="p">,</span> <span class="n">argv</span><span class="p">);</span>
+
+<span class="cm">/*</span>
+<span class="cm"> * Processing and creating work is done through callbacks. Here's how we tell</span>
+<span class="cm"> * libcircle about our function which creates the initial work. For MPI nerds,</span>
+<span class="cm"> * this is your rank 0 process.</span>
+<span class="cm"> */</span>
+<span class="n">CIRCLE_cb_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">my_create_some_work</span><span class="p">);</span>
+
+<span class="cm">/*</span>
+<span class="cm"> * After you give libcircle a way to create work, you need to tell it how that</span>
+<span class="cm"> * work should be processed.</span>
+<span class="cm"> */</span>
+<span class="n">CIRCLE_cb_process</span><span class="p">(</span><span class="o">&amp;</span><span class="n">my_process_some_work</span><span class="p">);</span>
+
+<span class="cm">/*</span>
+<span class="cm"> * Now that everything is setup, lets execute everything.</span>
+<span class="cm"> */</span>
+<span class="n">CIRCLE_begin</span><span class="p">();</span>
+
+<span class="cm">/*</span>
+<span class="cm"> * Finally, give libcircle a chance to clean up after itself.</span>
+<span class="cm"> */</span>
+<span class="n">CIRCLE_finalize</span><span class="p">();</span>
+</pre>
+</div>
+
+        </article>
+      </div>
+    </div>
+    <footer>
+      <div class="owner">
+      <p><a href="https://github.com/hpc" class="avatar"><img src="https://secure.gravatar.com/avatar/c7dd5401e27792432053724c85d9aa2c?s=30&amp;d=https://a248.e.akamai.net/assets.github.com%2Fimages%2Fgravatars%2Fgravatar-140.png" width="48" height="48"/></a> <a href="https://github.com/hpc">hpc</a> maintains <a href="https://github.com/hpc/libcircle">Libcircle</a></p>
+      </div>
+      <div class="creds">
+        <small>This page generated using <a href="https://pages.github.com/">GitHub Pages</a><br/>theme by <a href="http://twitter.com/jonrohan/">Jon Rohan</a></small>
+      </div>
+    </footer>
+  </div>
+  <div class="current-section">
+    <a href="#top">Scroll to top</a>
+    <a href="https://github.com/hpc/libcircle/tarball/master" class="tar">tar</a><a href="https://github.com/hpc/libcircle/zipball/master" class="zip">zip</a><a href="" class="code">source code</a>
+    <p class="name"></p>
+  </div>
+
+  
+</body>
+</html>
