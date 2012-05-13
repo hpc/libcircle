@@ -132,6 +132,19 @@ int CIRCLE_internal_queue_pop(CIRCLE_internal_queue_t *queue, \
 int CIRCLE_internal_queue_split(CIRCLE_internal_queue_t *a, \
                                 CIRCLE_internal_queue_t *b, int options)
 {
+    if(a == NULL && b == NULL) {
+        LOG(CIRCLE_LOG_FATAL, "Attempted to split two null queues.");
+        return -1;
+    }
+
+    if(a != NULL && b != NULL) {
+        LOG(CIRCLE_LOG_FATAL, "Attempted to split two allocated queues.");
+        return -1;
+    }
+
+    from_queue = a == NULL ? b : a;
+    to_queue = a == NULL ? a : b;
+
     /* TODO */
 }
 
