@@ -7,6 +7,18 @@
 #include "queue.h"
 #include "log.h"
 
+int CIRCLE_internal_queue_from_buffer(intptr_t *buf, \
+                                      CIRCLE_internal_queue_t *queue)
+{
+    /* TODO */
+}
+
+int CIRCLE_internal_queue_to_buffer(CIRCLE_internal_queue_t *queue, \
+                                    intptr_t *buf)
+{
+    /* TODO */
+}
+
 int CIRCLE_internal_queue_alloc(CIRCLE_internal_queue_t *queue)
 {
      if(queue != NULL) {
@@ -97,10 +109,28 @@ int CIRCLE_internal_queue_push(CIRCLE_internal_queue_t *queue, \
 int CIRCLE_internal_queue_pop(CIRCLE_internal_queue_t *queue, \
                               CIRCLE_internal_queue_item_t *item)
 {
-    /* TODO */
+    if(queue == NULL) {
+        LOG(CIRCLE_LOG_FATAL, "Attempted to pop an item from a null queue.");
+        return -1;
+    }
+
+    if(queue->item_count < 1) {
+        LOG(CIRCLE_LOG_DBG, "Attempted to pop and item from an empty queue.");
+        return 0;
+    }
+
+    queue->item_count--;
+    item = queue->items[queue->item_count];
+
+    if(item == NULL) {
+        LOG(CIRCLE_LOG_DBG, "Poping a null item.");
+    }
+
+    return 1;
 }
 
-int CIRCLE_internal_queue_split()
+int CIRCLE_internal_queue_split(CIRCLE_internal_queue_t *a, \
+                                CIRCLE_internal_queue_t *b, int options)
 {
     /* TODO */
 }
