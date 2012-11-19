@@ -1,6 +1,6 @@
 libcircle 0.0.1
 ===============
-libcircle is an API for distributing embarrassingly parallel workloads using self-stabilization. Local actions work towards a global objective in a finite number of operations. The core algorithm used is based on Dijkstra's 1974 token ring proposal and heavily uses MPI under the hood.
+libcircle is an API for distributing embarrassingly parallel workloads using self-stabilization. Details on the algorithms used may be found at <http://dl.acm.org/citation.cfm?id=2389114>.
 
 Dependencies
 ------------
