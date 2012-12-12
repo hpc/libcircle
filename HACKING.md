@@ -1,13 +1,6 @@
 Things that would be nice to have in libcircle
 ==============================================
 
-## Multi-Queue Support
-
-It would be useful to implement queue item tagging as part of the API. This
-would allow for providing a developer with the illusion of multiple queues
-without the overhead of actually running multiple instances of the libcircle
-algorithm.
-
 ## Variable-Size Queue Items
 
 Right now, the queue item size is fixed by the CIRCLE_MAX_STRING_LEN constant.
@@ -17,6 +10,14 @@ current fixed size design. Things like overhead to the MPI message size need
 to be considered so performance impact is minimized. Also, the internal queue
 structures would need to be designed differently. Performance should be
 considered when attempting to redesign the internal queue structure.
+
+## Multi-Queue Support
+
+It would be useful to implement queue item tagging as part of the API. This
+would allow for providing a developer with the illusion of multiple queues
+without the overhead of actually running multiple instances of the libcircle
+algorithm. This would be trivial to implement once variable-size queue items
+is implemented.
 
 ## Fault Tolerance
 
