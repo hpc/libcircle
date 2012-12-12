@@ -50,8 +50,8 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-TESTS = check_queue$(EXEEXT) check_checkpoint$(EXEEXT)
-check_PROGRAMS = check_queue$(EXEEXT) check_checkpoint$(EXEEXT)
+TESTS = check_queue$(EXEEXT)
+check_PROGRAMS = check_queue$(EXEEXT)
 subdir = tests
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -69,13 +69,6 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am_check_checkpoint_OBJECTS =  \
-	check_checkpoint-check_checkpoint.$(OBJEXT)
-check_checkpoint_OBJECTS = $(am_check_checkpoint_OBJECTS)
-check_checkpoint_DEPENDENCIES = $(top_builddir)/libcircle.la
-check_checkpoint_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(check_checkpoint_CFLAGS) \
-	$(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 am_check_queue_OBJECTS = check_queue-check_queue.$(OBJEXT)
 check_queue_OBJECTS = $(am_check_queue_OBJECTS)
 check_queue_DEPENDENCIES = $(top_builddir)/libcircle.la
@@ -95,8 +88,8 @@ CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(check_checkpoint_SOURCES) $(check_queue_SOURCES)
-DIST_SOURCES = $(check_checkpoint_SOURCES) $(check_queue_SOURCES)
+SOURCES = $(check_queue_SOURCES)
+DIST_SOURCES = $(check_queue_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -235,9 +228,6 @@ top_srcdir = @top_srcdir@
 check_queue_SOURCES = check_queue.c $(top_builddir)/libcircle.h
 check_queue_CFLAGS = -I$(top_builddir)/libcircle/ @CHECK_CFLAGS@
 check_queue_LDADD = $(top_builddir)/libcircle.la @CHECK_LIBS@
-check_checkpoint_SOURCES = check_checkpoint.c $(top_builddir)/libcircle.h
-check_checkpoint_CFLAGS = -I$(top_builddir)/libcircle/ @CHECK_CFLAGS@
-check_checkpoint_LDADD = $(top_builddir)/libcircle.la @CHECK_LIBS@
 all: all-am
 
 .SUFFIXES:
@@ -281,9 +271,6 @@ clean-checkPROGRAMS:
 	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
 	echo " rm -f" $$list; \
 	rm -f $$list
-check_checkpoint$(EXEEXT): $(check_checkpoint_OBJECTS) $(check_checkpoint_DEPENDENCIES) $(EXTRA_check_checkpoint_DEPENDENCIES) 
-	@rm -f check_checkpoint$(EXEEXT)
-	$(check_checkpoint_LINK) $(check_checkpoint_OBJECTS) $(check_checkpoint_LDADD) $(LIBS)
 check_queue$(EXEEXT): $(check_queue_OBJECTS) $(check_queue_DEPENDENCIES) $(EXTRA_check_queue_DEPENDENCIES) 
 	@rm -f check_queue$(EXEEXT)
 	$(check_queue_LINK) $(check_queue_OBJECTS) $(check_queue_LDADD) $(LIBS)
@@ -294,7 +281,6 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/check_checkpoint-check_checkpoint.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/check_queue-check_queue.Po@am__quote@
 
 .c.o:
@@ -317,20 +303,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
-
-check_checkpoint-check_checkpoint.o: check_checkpoint.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_checkpoint_CFLAGS) $(CFLAGS) -MT check_checkpoint-check_checkpoint.o -MD -MP -MF $(DEPDIR)/check_checkpoint-check_checkpoint.Tpo -c -o check_checkpoint-check_checkpoint.o `test -f 'check_checkpoint.c' || echo '$(srcdir)/'`check_checkpoint.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/check_checkpoint-check_checkpoint.Tpo $(DEPDIR)/check_checkpoint-check_checkpoint.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='check_checkpoint.c' object='check_checkpoint-check_checkpoint.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_checkpoint_CFLAGS) $(CFLAGS) -c -o check_checkpoint-check_checkpoint.o `test -f 'check_checkpoint.c' || echo '$(srcdir)/'`check_checkpoint.c
-
-check_checkpoint-check_checkpoint.obj: check_checkpoint.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_checkpoint_CFLAGS) $(CFLAGS) -MT check_checkpoint-check_checkpoint.obj -MD -MP -MF $(DEPDIR)/check_checkpoint-check_checkpoint.Tpo -c -o check_checkpoint-check_checkpoint.obj `if test -f 'check_checkpoint.c'; then $(CYGPATH_W) 'check_checkpoint.c'; else $(CYGPATH_W) '$(srcdir)/check_checkpoint.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/check_checkpoint-check_checkpoint.Tpo $(DEPDIR)/check_checkpoint-check_checkpoint.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='check_checkpoint.c' object='check_checkpoint-check_checkpoint.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_checkpoint_CFLAGS) $(CFLAGS) -c -o check_checkpoint-check_checkpoint.obj `if test -f 'check_checkpoint.c'; then $(CYGPATH_W) 'check_checkpoint.c'; else $(CYGPATH_W) '$(srcdir)/check_checkpoint.c'; fi`
 
 check_queue-check_queue.o: check_queue.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(check_queue_CFLAGS) $(CFLAGS) -MT check_queue-check_queue.o -MD -MP -MF $(DEPDIR)/check_queue-check_queue.Tpo -c -o check_queue-check_queue.o `test -f 'check_queue.c' || echo '$(srcdir)/'`check_queue.c
@@ -650,6 +622,10 @@ uninstall-am:
 	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
 	tags uninstall uninstall-am
 
+
+#check_checkpoint_SOURCES = check_checkpoint.c $(top_builddir)/libcircle.h
+#check_checkpoint_CFLAGS = -I$(top_builddir)/libcircle/ @CHECK_CFLAGS@
+#check_checkpoint_LDADD = $(top_builddir)/libcircle.la @CHECK_LIBS@
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

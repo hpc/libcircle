@@ -336,7 +336,8 @@ ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 lib_LTLIBRARIES = libcircle.la
 @USE_BUILTIN_TOMPI_FALSE@libcircle_la_LIBADD = $(MPI_CLDFLAGS)
 @USE_BUILTIN_TOMPI_TRUE@libcircle_la_LIBADD = $(top_srcdir)/extern/tompi/libmpi.la
-libcircle_la_LDFLAGS = -version-info $(LIBCIRCLE_SO_VERSION)
+@USE_BUILTIN_TOMPI_FALSE@libcircle_la_LDFLAGS = -version-info $(LIBCIRCLE_SO_VERSION)
+@USE_BUILTIN_TOMPI_TRUE@libcircle_la_LDFLAGS = -version-info $(LIBCIRCLE_SO_VERSION) -lpthread
 libcircle_la_SOURCES = libcircle/lib.c    \
                        libcircle/queue.c  \
                        libcircle/worker.c \
