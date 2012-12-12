@@ -22,17 +22,18 @@ is implemented.
 ## Fault Tolerance
 
 There are several ways that fault tolerance may be implemented. One idea is to
-create a supervisor-worker scheme where each node is always a worker and a
+create a supervisor-worker scheme where each node is always a worker and
 supervisor. In the case where an odd number of nodes is used, a single node
 would act as two supervisors to other nodes. The worker part of each node
 performs the same tasks as required by the existing algorithm. The supervisor
 part of each node holds a copy of the queue items for the node it is
-supervising. If the node it is supervising dies, the supervisor atomically
-broadcasts to all other nodes what has happened (perhaps using the termination
-ring or some other atomic broadcast algorithm) and adds the copy of the work
-that that node held to the worker part of the supervisor node. Things then
+supervising (without performing any work on them). If the node it is
+supervising dies, the supervisor atomically broadcasts to all other nodes what
+the current state of things is (perhaps using the termination ring or some
+other atomic broadcast algorithm) and adds the copy of the work that the node
+held to the queue in the worker part of the supervisor node. Things then
 continue as usual. If the node being supervised finishes all work, the
-supervisor node discards the copy of the queue items. The entire supervisor-
-worker scheme should be designed so configurable k-failures can be tolerated.
-This requires a node to support (n - 1) supervisors where n is the number of
-nodes in the libcircle communicator.
+supervisor node discards the copy of the queue items. The entire
+supervisor-worker scheme should be designed so configurable k-failures can be
+tolerated. This requires a node to support (n - 1) supervisors where n is the 
+number of nodes in the libcircle communicator.
