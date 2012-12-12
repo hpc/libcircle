@@ -36,4 +36,6 @@ continue as usual. If the node being supervised finishes all work, the
 supervisor node discards the copy of the queue items. The entire
 supervisor-worker scheme should be designed so configurable k-failures can be
 tolerated. This requires a node to support (n - 1) supervisors where n is the 
-number of nodes in the libcircle communicator.
+number of nodes in the libcircle communicator. Supervisors should have the
+ability to serialize the backup copy of the worker queue to disk, especially
+in the case where k > 1 (memory will be scarce).
