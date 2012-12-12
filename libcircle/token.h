@@ -11,6 +11,10 @@
 #include "queue.h"
 #include "lib.h"
 
+#ifndef MPI_MAX_PROCESSOR_NAME
+  #define MPI_MAX_PROCESSOR_NAME (256)
+#endif
+
 enum tags {
     WHITE,
     BLACK,
