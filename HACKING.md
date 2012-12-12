@@ -29,13 +29,13 @@ performs the same tasks as required by the existing algorithm. The supervisor
 part of each node holds a copy of the queue items for the node it is
 supervising (without performing any work on them). If the node it is
 supervising dies, the supervisor atomically broadcasts to all other nodes what
-the current state of things is (perhaps using the termination ring or some
-other atomic broadcast algorithm) and adds the copy of the work that the node
-held to the queue in the worker part of the supervisor node. Things then
-continue as usual. If the node being supervised finishes all work, the
-supervisor node discards the copy of the queue items. The entire
-supervisor-worker scheme should be designed so configurable k-failures can be
-tolerated. This requires a node to support (n - 1) supervisors where n is the 
-number of nodes in the libcircle communicator. Supervisors should have the
-ability to serialize the backup copy of the worker queue to disk, especially
-in the case where k > 1 (memory will be scarce).
+the current state of things is (using some atomic broadcast algorithm, perhaps
+using the termination ring?) and adds the copy of the work that the node held
+to the queue in the worker part of the supervisor node. Things then continue
+as usual. If the node being supervised finishes all work, the supervisor node
+discards the copy of the queue items. The entire supervisor-worker scheme
+should be designed so configurable k-failures can be tolerated. This requires
+a node to support (n - 1) supervisors where n is the number of nodes in the
+libcircle communicator. Supervisors should have the ability to serialize the
+backup copy of the worker queue to disk, especially in the case where (k > 1)
+since memory will be scarce.
