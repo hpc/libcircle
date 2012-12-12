@@ -15,6 +15,10 @@
   #define MPI_MAX_PROCESSOR_NAME (256)
 #endif
 
+#ifndef MPI_STATUS_IGNORE
+  #define MPI_STATUS_IGNORE ((MPI_Status *) 0)
+#endif
+
 enum tags {
     WHITE,
     BLACK,
