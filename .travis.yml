@@ -2,9 +2,9 @@ language: c
 
 before_install:
  - sudo apt-get update -qq
- - sudo apt-get install -qq check
+ - sudo apt-get install -qq check libopenmpi-dev openmpi-bin
 
-script: ./configure --enable-threads --enable-tests && make && make check
+script: ./configure --enable-tests && make && make check && make distclean && ./configure --enable-threads --enable-tests && make && make check
 
 compiler:
   - clang
