@@ -1,4 +1,5 @@
 language: c
+script: ./configure --enable-threads --enable-tests && make && make test
 notifications:
   email:
     - jonb@lanl.gov
