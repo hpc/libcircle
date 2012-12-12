@@ -1,0 +1,143 @@
+#!/bin/sh
+# Runs the C preprocessor and the (global -> thread-specific data) preprocessor
+# on .c files.  Then runs the C compiler.
+# Does nothing special for files that have a first line of #define THREAD_AWARE
+#
+# Recognized options (can have double-dash):
+#   -profile: link in the profililing version of TOMPI, libpmpi.a
+#   -keep.i: keeps the preprocessed C in the corresponding .i file
+#   -echo: echo the commands that get executed
+#   -quiet: prevents all non-compiler output from mpicc, unless there was
+#           an error from the preprocessor.
+
+# Set the following to the base TOMPI directory.
+BASE="@PWD@/.."
+
+############################# Don't change below stuff.
+
+# The following are grabbed from Makefile.inc through mkmpicc (type `make').
+CC="@CC@"
+CFLAGS="@CFLAGS@"
+CPP="@CPP@"
+LIBTHREADS="@LIBTHREADS@"
+
+G2TSD="$BASE/mpicc/g2tsd"
+
+# Set this if you want to set an include directory (e.g., -I...).
+# It is also added to the preprocessor's $(CPP) arguments.
+BEGIN_ARGS="$CFLAGS"
+
+# Set this if you want to link in special libraries (e.g., -L... -lmpi).
+# Not included if the -c option is present (i.e., not linking).
+# If you change this, you probably want to change the -profile version below.
+END_ARGS="-L$BASE/src -lmpi $LIBTHREADS"
+
+# The rm command (change to "true" if you want to keep the preprocessor
+# output for debugging purposes).  This is done if you specify the
+# -keep.i or --keep.i options.
+RM="rm"
+
+# Check for existance of needed programs.
+if [ ! -x $G2TSD ]
+then
+    echo \`g2tsd\' hasn\'t been compiled \(make in \`mpicc\'\) or \`$G2TSD\' is the wrong path.
+    exit 1
+fi
+
+newargs=""
+files=""
+opts=""
+
+# Collect options to given to the preprocessor (all -'s before --, except
+# -o, -keep.i, and --keep.i).
+opts_section=1
+linking=1
+echo=true
+skip_next=0
+report=echo
+for opt in "$@"
+do
+  if [ $skip_next -eq 0 ]
+  then
+    if [ $opts_section -ne 0 ]
+    then
+      case $opt in
+        --)
+          opts_section=0
+          ;;
+        -o)
+          skip_next=1
+          ;;
+        -l*)
+          ;;
+        -c)
+          linking=0
+          ;;
+        -profile|--profile)
+          END_ARGS="-L$BASE/src -lpmpi $LIBTHREADS"
+          ;;
+        -keep.i|--keep.i)
+          RM=true
+          ;;
+        -echo|--echo)
+          echo=echo
+          ;;
+        -quiet|--quiet)
+          report=true
+          ;;
+        -*)
+          opts="$opts \"$opt\""
+          ;;
+      esac
+    fi
+  else
+    skip_next=0
+  fi
+done
+
+# Preprocess and form new set of arguments to compiler.
+for src in "$@"
+do
+  newarg="$src"
+  ppsrc="`echo "$src" | sed 's/\.c$/\.i/'`"
+  if [ $src != $ppsrc ]
+  then
+    if [ "`head -1 \"$src\" | grep '^#define THREAD_AWARE'`" = "" ]
+    then
+      $report Preprocessing $src into $ppsrc...
+      eval \$echo \$CPP \$BEGIN_ARGS $opts \"$src\" \\\| $G2TSD \\\> $ppsrc
+      eval \$CPP \$BEGIN_ARGS $opts \"$src\" | $G2TSD > $ppsrc
+      files="$files \"$ppsrc\""
+      newarg="$ppsrc"
+    fi
+  fi
+  if [ $src != "-keep.i" -a $src != "--keep.i" -a $src != "-echo" -a \
+       $src != "--echo" -a $src != "-profile" -a $src != "--profile" -a \
+       $src != "-quiet" -a $src != "--quiet" ]
+  then
+    newargs="$newargs \"$newarg\""
+  fi
+done
+
+exit_code=0
+
+$report Compiling...
+if [ $linking -ne 0 ]
+then
+  eval \$echo \$CC \$BEGIN_ARGS $newargs \$END_ARGS
+  eval \$CC \$BEGIN_ARGS $newargs \$END_ARGS
+  exit_code="$?"
+else
+  eval \$echo \$CC \$BEGIN_ARGS $newargs
+  eval \$CC \$BEGIN_ARGS $newargs
+  exit_code="$?"
+fi
+
+# Remove preprocessed files.
+if [ "$files" != "" ]
+then
+  eval \$echo \$RM $files
+  eval \$RM $files
+fi
+
+exit $exit_code

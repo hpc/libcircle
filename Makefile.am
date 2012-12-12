@@ -1,23 +1,26 @@
 include $(top_srcdir)/common.mk
 
-SUBDIRS = tests doc
+SUBDIRS = extern tests doc
 
 AUTOMAKE_OPTIONS = subdir-objects foreign
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
 
 lib_LTLIBRARIES = libcircle.la
 
-libcircle_la_LIBADD = $(MPI_CLDFLAGS)
+if USE_BUILTIN_TOMPI
+    libcircle_la_LIBADD = $(top_srcdir)/extern/tompi/libmpi.la
+else
+    libcircle_la_LIBADD = $(MPI_CLDFLAGS)
+    AM_CFLAGS += $(MPI_CFLAGS)
+endif
 libcircle_la_LDFLAGS = -version-info $(LIBCIRCLE_SO_VERSION)
 libcircle_la_SOURCES = libcircle/lib.c    \
-                                                libcircle/queue.c  \
-                                                libcircle/worker.c \
-                                                libcircle/token.c  
+                       libcircle/queue.c  \
+                       libcircle/worker.c \
+                       libcircle/token.c  
 
 libcircle_includedir = $(includedir)/
 nobase_libcircle_include_HEADERS = libcircle.h
-
-AM_CFLAGS += $(MPI_CFLAGS)
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libcircle.pc

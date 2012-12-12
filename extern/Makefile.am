@@ -1,0 +1,4 @@
+if USE_BUILTIN_TOMPI
+    MAYBE_OPT = tompi
+endif
+SUBDIRS = $(MAYBE_OPT)

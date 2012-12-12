@@ -1,0 +1,46 @@
+#!/bin/sh
+# This is not recommended to be used because it will likely be incomplete.
+# Instead, use cc -E or gcc -E to run the preprocessor with the right flags.
+
+# The following list is based on the following compilers:
+#    - DEC OSF/1 C compiler cc [
+POSSIBLEFLAGS="LANGUAGE_C __LANGUAGE_C__ unix __unix__ __osf__ __alpha SYSTYPE_BSD _SYSTYPE_BSD LANGUAGE_ASSEMBLY __LANGUAGE_ASSEMBLY__ _XOPEN_SOURCE _POSIX_SOURCE _ANSI_C_SOURCE"
+
+TMPFILE=cpp_test.c
+TMPOUTFILE=cpp_test
+
+if [ $# -ne 1 ]
+then
+   echo Usage: cppflags cc
+   echo Where: cc is the name of your compiler \(e.g., cc or gcc\).
+   echo Outputs most flags passed to the C preprocessor.
+   echo User must have write access to the current directory.
+   exit 1
+fi
+
+CC=$1
+
+echo 'int main (void) {' > $TMPFILE
+
+for flag in $POSSIBLEFLAGS
+do
+   echo '#ifdef' $flag >> $TMPFILE
+   echo '   printf ("'$flag '");' >> $TMPFILE
+   echo '#endif' >> $TMPFILE
+done
+
+echo '   return 0;' >> $TMPFILE
+echo '}' >> $TMPFILE
+
+$1 $TMPFILE -o $TMPOUTFILE
+
+./$TMPOUTFILE > cppflags.out
+
+echo C flags passed to cpp \(stored in cppflags.out\):
+for flag in `cat cppflags.out`
+do
+   echo '   *' $flag
+done
+
+read FOO
+rm $TMPFILE $TMPOUTFILE

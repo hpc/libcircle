@@ -1,0 +1,145 @@
+Welcome to TOMPI, a Threads-Only MPI Implementation, version 0.1.1.
+
+TOMPI is designed to run MPI programs on a single computer, either a single
+processor or an SMP.  It is designed to be efficient in this environment,
+allowing effective testing, debugging, and tuning of parallel programs on a
+workstation.
+
+TOMPI is written by Erik Demaine (http://daisy.uwaterloo.ca/~eddemain).
+For more information (including a paper on TOMPI), see
+
+        http://daisy.uwaterloo.ca/~eddemain/TOMPI
+
+The following is based on the documentation subpage of this web page.
+
+SYSTEM REQUIREMENTS
+-------------------
+
+You need a threads system to run TOMPI, as its name suggests. MPI processes are
+implemented using threads. Currently, four threads systems are supported.
+
+   * POSIX threads (final draft, that is, IEEE Std. 1003.1c-1995)
+   * Solaris threads
+   * Cthreads
+        o User-level threads package supporting SunOS 4/5, IRIX 4/5/6, KSR1,
+          KSROS, AIX 3, and Linux
+   * Real-time threads
+        o User-level threads package supporting AIX, SunOS 4/5, FreeBSD, and
+          WindowsNT
+        o Unfortunately, it seems to have some (rather strange) problems
+          with threads' stacks on AIX.
+
+Comments about various operating systems that have successfully run TOMPI:
+
+Solaris:
+     Solaris 2.5+ (SunOS 5.5+) supports both POSIX and Solaris threads,
+     whereas previous versions of Solaris only support Solaris threads. I
+     recommend using Solaris threads in either case, because they allows you
+     to specify the number of physical processors to use.
+
+AIX:
+     AIX 4.1.x and 4.2.x support the final draft of POSIX threads at the
+     system level. Prior versions of AIX currently do not work; let me know
+     if you want this functionality.
+
+Let me know about any other machines on which you use TOMPI, and any
+comments you have on them.
+
+INSTALLATION
+------------
+
+1. Edit Makefile.inc to represent your system.
+2. Edit include/gthread.h to represent your system.
+3. If you are using a very non-standard system (that does not used signed
+   values by default), edit include/mpi.h.
+4. Compile the TOMPI library:
+    (a) cd src
+    (b) make
+    (c) make profile   if you want to use profiling libraries with TOMPI
+    (d) cd ..
+5. Try examples (if desired); see the next section.
+6. Most likely you will want to use the mpicc script (see below), so compile
+   the preprocessor:
+    (a) cd mpicc
+    (b) make
+    (c) Edit mpicc to reflect your system.
+    (d) cd ..
+
+TESTING EXAMPLES
+----------------
+
+TOMPI comes with a few examples for testing and evaluation purposes.  To
+compile them, cd examples and make.
+
+  1. hello -nthread n   where n is an integer should print many hellos.
+
+     Useful for testing how many threads you can use, ignoring the
+     application's memory requirements (neglidgible for hello).
+
+  2. fanin -nthread n   where n is an integer does Cholesky factorization.
+
+     By default, solves a 100x100 system. This is very small, so it should
+     run under a second or so for 4 processes.
+
+  3. mergesort -nthread 4   (to use another value, change NPROC in mergesort.c)
+
+     A simple parallel merge sort using a local bubble sort (unless you
+     define QSORT to 1). By default only sorts an integer array of size
+     5,000, so it should run in a few seconds for 4 processes. Also checks
+     for correctness.
+
+  4. syseval -nthread 2   (or more, but this is useless)
+
+     Evaluates the speed of point-to-point communication. Uses a
+     sophisticated measurement algorithm to evaluate speeds for messages of
+     size 0, 1 byte, 10 bytes, 100 bytes, 1K, 10K, 100K, and 1Meg. Stores
+     the results in the file "syseval.stats".
+
+USING TOMPI
+-----------
+
+There are two ways to compile your programs with TOMPI.  *If* your code (and
+any code you use) is thread-safe and uses no global variables that aren't
+the same for each process, I recommend compiling with the include switch
+
+        -I/path/to/TOMPI/include
+
+and using the following link switch:
+
+        -L/path/to/TOMPI/src -lmpi
+
+Otherwise, you have to compile all your code using the mpicc script in the
+mpicc directory, in place of your C compiler (cc).  Fortran isn't supported
+yet.   For a list of mpicc options, read mpicc/README.
+
+To run your programs, add an -nthread argument followed by the number of
+threads (MPI processes) you wish to use.  Currently there is no mpirun or
+mpiexec script.  You can also set the number of threads in an environment
+variable TOMPI_NTHREAD.  There is another option, -threadinfo (or by setting
+the environment variable TOMPI_THREADINFO) which prints information on the
+underlying thread system that your program is using.
+
+For a list of supported MPI concepts, type "mpicmds" in the TOMPI directory.
+The collective communication hasn't been optimized anywhere near to the level
+the point-to-point communication has.  (Collective communication uses
+several point-to-point's.)
+
+In addition, there are two global variables you can play with. You can set
+the stack size of a process in a portable manner as follows:
+
+#ifdef MPII_STACK_SIZE
+    MPII_Stack_size = number_of_bytes;
+#endif
+
+You can also set the number of physical processors to use.
+
+#ifdef MPII_NUM_PROC
+    MPII_Num_proc = number_of_processors;
+#endif
+
+Note that these parameters may not supported by your thread system.
+Currently, stack size is supported by all except possibly POSIX threads (it
+depends on whether your implementation supports the stacksize attribute),
+and number of processors is supported by Solaris threads and Cthreads.
+
+-eof-

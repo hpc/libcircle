@@ -1,0 +1,29 @@
+To do
+ - wait for bug reports to appear
+
+Incompatibilities
+ - no statics are allowed in for loops
+ - don't support variable with same name as type, and similarly don't support
+   struct foo foo (which is supported in C but not C++ or is it?)
+ - up to 511 characters for identifiers (with some lex's, that's really 199,
+   but you should use flex anyway)
+ - up to 65,535 characters for types, including some modifiers and the
+   struct/union code in braces
+ - up to 1023 characters for parens and brackets part of type (but not
+   initializers) [per variable]
+ - up to 50 levels of brace nesting
+ - up to 100 variables declarared in each statement
+
+Notes
+ - volatile and const variables (not pointers to constants or volatiles) are
+   not converted
+ - .i files mean preprocessed C, just compile and assemble
+
+C grammar from:
+ http://bit.csc.lsu.edu/tutorial/ten-commandments/ANSI-C-grammar-y.html  (yacc)
+ http://bit.csc.lsu.edu/tutorial/ten-commandments/ANSI-C-grammar-l.html  (lex)
+
+Better description at:
+ http://www.lysator.liu.se/c/ANSI-C-grammar-y.html      (yacc)
+ http://www.lysator.liu.se/c/ANSI-C-grammar-l.html      (lex)
+

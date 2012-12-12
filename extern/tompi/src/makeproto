@@ -1,0 +1,61 @@
+#!/bin/sh
+# OLD documentation:
+# Automatically generates prototypes for functions declared PUBLIC or PRIVATE
+# in *.c and */*.c, creating corresponding header files with the .proto
+# extension.  Results are combined into all.proto.  For PUBLIC routines,
+# public.proto is also added to.
+
+(
+    echo "/* Prototypes for all public functions. */"
+    echo
+    echo "/* Definition of PUBLIC */"
+    echo "#ifndef PUBLIC"
+    echo "#define PUBLIC"
+    echo "#endif"
+    echo
+) > ../include/protos.h
+(
+    echo "/* Prototypes for all functions. */"
+    echo
+    echo "/* Definition of PUBLIC and PRIVATE */"
+    echo "#ifndef PUBLIC"
+    echo "#define PUBLIC"
+    echo "#endif"
+    echo "#ifndef PRIVATE"
+    echo "#define PRIVATE"
+    echo "#endif"
+    echo
+) > ../include/iprotos.h
+echo "/* Include this for redefinition to use profiling library */" > ../include/profile.h
+
+# Apparently, sed doesn't support ?, so I have to use \{0,1\} below.
+
+find . -name '*.c' -print \
+| xargs egrep 'PUBLIC|PRIVATE' $FILES \
+| sed -e 's/^[_./a-zA-Z0-9]*://' -e 's/ *=[^,;]*\([,;]\)/\1/g' -e 's/$/;/' \
+    -e 's/;;$/;/' -e 's/^[ \t]*\([^()]*\)$/extern \1/' \
+| tee -a ../include/iprotos.h \
+| grep PUBLIC \
+| tee -a ../include/protos.h \
+| sed -e 's/^.*\(MPI_[_a-zA-Z]*\) *(.*/#define \1 P\1/' -e '/^[^#].*$/d' \
+>> ../include/profile.h
+
+#for cfile in *.c */*.c
+#do
+#   num=`egrep 'PUBLIC|PRIVATE' $cfile | wc -l`
+#   if [ $num -gt 0 ]
+#   then
+      #pfile=`echo $cfile | awk '{ print substr($1,1,length($1)-2) ".proto" }'`
+      #echo "/* Prototypes for the$num public/private functions in $cfile. */" > $pfile
+      #echo >> $pfile
+      #echo "/* Definition of PUBLIC and PRIVATE */" >> $pfile
+      #echo "#ifndef PUBLIC" >> $pfile
+      #echo "#define PUBLIC" >> $pfile
+      #echo "#endif" >> $pfile
+      #echo "#ifndef PRIVATE" >> $pfile
+      #echo "#define PRIVATE" >> $pfile
+      #echo "#endif" >> $pfile
+      #echo >> $pfile
+      #egrep 'PUBLIC|PRIVATE' $cfile | sed -e 's/$/;/' -e 's/;;$/;/' >> $pfile
+#   fi
+#done

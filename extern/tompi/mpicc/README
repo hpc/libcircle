@@ -1,0 +1,36 @@
+Here's a quick overview of this directory.  To compile/prepare the mentioned
+programs (mpicc and g2tsd), type make.
+
+MPICC
+-----
+
+mpicc is a shell script, like those in many MPI implementations, for compiling
+C programs.  It automatically sets the include path (with -I) for the MPI
+include files, and links in the MPI library when linking.  The major option is
+accepts (other than those the C compiler accepts) is
+
+        -profile: use the profiling version of the MPI library
+
+If the extra output that mpicc generates causes problems, use the -quiet
+option.  There are also some debugging options.
+
+        -echo: display the commands that get executed
+        -keep.i: keeps preprocessed C (.i) files (see below)
+
+mpicc is especially important for TOMPI, because it runs the preprocessor
+g2tsd.  g2tsd converts global declarations in your C programs to use
+thread-specific data, which is necessary to provide the required semantics
+(i.e., to "unshare" global variables between threads, which for TOMPI are MPI
+processes).  The preprocessed output (which is rather large because it includes
+all the included files) is stored temporarily in file.i for file.c, which you
+can look at if you use the -keep.i option.
+
+IMPORTANT NOTES
+---------------
+
+You shouldn't use global variables before calling MPI_Init(), but since that's
+pretty much unavoidable, I'm supporting it best I can.  It should work on all
+the currently supported systems.  Let me know if it breaks.
+
+Some more (detailed, usually unimportant) notes are available in the NOTES file
+in this directory.

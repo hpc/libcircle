@@ -1,0 +1,36 @@
+#!/bin/sh
+# Creates mpicc by substituting variables defined in ../Makefile.inc.
+
+cat ../Makefile.inc | awk '
+    BEGIN { varmap["BASE"] = "${BASE}" }
+    /^ *[A-Z_]+ += +.*/ {
+        line = $0
+        if (m = index (line, "#"))
+            line = substr (line, 1, m-1)
+        while (substr(line,length(line)) == " " || substr(line,length(line)) == "\t")
+            line = substr (line, 1, length(line)-1)
+        n = split (line, a)
+        lhs = a[1]
+        rhs = a[3]
+        for (i = 4; i <= n; i++)
+            rhs = rhs " " a[i]
+        while (substr(lhs,length(lhs)) == " " || substr(lhs,length(lhs)) == "\t")
+            lhs = substr (lhs, 1, length(lhs)-1)
+        for (var in varmap)
+            while (m = index (rhs, "$(" var ")"))
+                rhs = substr (rhs, 1, m-1) varmap[var] substr (rhs, m+length(var)+3)
+        # Discard any undefined variable expansions like $(PROFILE)
+        while (m = index (rhs, "$("))
+        {
+            the_end = index (substr (rhs, m), ")") + m-1
+            rhs = substr (rhs, 1, m-1) substr (rhs, the_end+1)
+        }
+        varmap[lhs] = rhs
+        print "s#@" lhs "@#" rhs "#g"
+    }
+    {}
+' > subs.sed
+echo "s#@PWD@#`pwd`#" >> subs.sed
+sed -f subs.sed mpicc.in > mpicc
+rm -f subs.sed
+chmod +x mpicc

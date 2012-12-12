@@ -1,0 +1,20 @@
+#!/bin/sh
+# Lists available MPI_ things.
+
+cat include/*.h | grep MPI_ | grep -v __MPI_H__ | sed -e 's/^.*MPI_/MPI_/' -e 's/[ ,);].*$//' | sort | uniq | awk '
+    { if (notfirst) {
+          printf ","
+          len += 2
+      }
+      if (len + length($1) > 77) {
+          print ""
+          len = 0
+      } else {
+          if (notfirst) printf " "
+      }
+      printf $1
+      len += length($1)
+      notfirst = 1
+    }
+    END { print "" }
+'

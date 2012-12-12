@@ -1,0 +1,54 @@
+Support:
+
+- 4.3, 4.4, 4.9.1, 4.9.5
+- 5.3.1, 5.4.1
+- 7.2-7.3
+
+Future:
+
+- environment variable/option for setting stack size and/or number of real
+  processors would be nice (and easy!)
+
+- support more collective communication
+- efficient collective communication
+- support attributes (including built-in ones), more on groups, more on
+  communicators, user-defined datatypes, MPI_COMM_SELF
+- mpirun script (follow MPI-2 standard)
+- does mpicc follow MPI-2 standard?
+- Fortran support
+
+Possibilities:
+
+- should store two different queues (although one mutex/cond perhaps), one
+  for messages and one for replies?  necessary if I stop using request
+  structures and put things right in the message, in which case the size
+  of a reply is different.  and perhaps more efficient (and will need multiple
+  queues for collective communication)
+
+- should the strings in argv be copied for each thread?
+- should check for more errors on thread calls (though it's getting better)
+
+Bugs:
+
+- RT threads seems really broken (at least with my instrumentation...): stack
+  variables get mangled.  (proof: try fanpp with logger... times get messed up
+  severely)
+- mergesort doesn't work with RT threads... claims MPI_Init isn't called, i.e.
+  MPII_Comm_world was called and the tsd stuff says it's null.  This may be
+  related to the above problem.
+
+Ideas:
+
+- TOMPI console: command line option (-TOMPI?) or mpirun option (-console?)
+    - can set default error handler to go to console (instead of exiting--
+      useful for debugger), or could define ^C (SIGINT) to activate it
+    - says what version of TOMPI you're running, in particular what thread
+      system
+    - say what TSD is used or if there's a Wtime extension (and what time it
+      currently reports)
+    - perhaps see what threads are still alive, and which are blocking
+    - in some cases can interrupt a particular thread, or console takes over
+      all threads... depends on system
+    - basically generally useful commands for looking at your program (this is
+      a development system after all)
+    - I already have all the worlds...
