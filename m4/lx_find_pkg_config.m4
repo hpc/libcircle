@@ -4,4 +4,7 @@ AC_DEFUN([X_AC_LIBCIRCLE_PKG_CONFIG], [
   then
     AC_MSG_ERROR([*** Libcircle requires the pkg-config command to be available!])
   fi
+  m4_ifdef([PKG_CHECK_MODULES], [], [
+    AC_MSG_ERROR([*** Libcircle requires the pkg-config macros to be available!])
+  ])
 ])
