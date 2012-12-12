@@ -9,10 +9,12 @@ lib_LTLIBRARIES = libcircle.la
 
 if USE_BUILTIN_TOMPI
     libcircle_la_LIBADD = $(top_srcdir)/extern/tompi/libmpi.la
+    AM_CFLAGS = -I$(top_srcdir)/extern/tompi/include
 else
     libcircle_la_LIBADD = $(MPI_CLDFLAGS)
     AM_CFLAGS += $(MPI_CFLAGS)
 endif
+
 libcircle_la_LDFLAGS = -version-info $(LIBCIRCLE_SO_VERSION)
 libcircle_la_SOURCES = libcircle/lib.c    \
                        libcircle/queue.c  \
