@@ -6,6 +6,7 @@ before_install:
 
 script: |
         (make distclean; exit 0;) &&
+        ./autogen.sh &&
         ./configure --enable-tests &&
         make &&
         make check
