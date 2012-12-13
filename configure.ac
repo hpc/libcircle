@@ -40,6 +40,10 @@ AC_SUBST([LIBCIRCLE_API_VERSION], [0.1])
 X_AC_LIBCIRCLE_TOMPI
 AM_CONDITIONAL(USE_BUILTIN_TOMPI, [test "x$x_ac_libcircle_tompi" = xyes])
 
+# Tell the source if we'll be using regular or threads-only MPI
+test "x$x_ac_libcircle_tompi" = xno || \
+    AC_DEFINE(USING_BUILTIN_TOMPI, 1, [Defined if using builtin TOMPI instead of regular MPI])
+
 # Check for regular MPI if we're not using TOMPI
 test "x$x_ac_libcircle_tompi" = xno || have_C_mpi='no'
 test "x$x_ac_libcircle_tompi" = xyes || LX_FIND_MPI

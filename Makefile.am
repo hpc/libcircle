@@ -9,7 +9,7 @@ lib_LTLIBRARIES = libcircle.la
 
 if USE_BUILTIN_TOMPI
     libcircle_la_LIBADD = $(top_srcdir)/extern/tompi/libmpi.la
-    AM_CFLAGS = -I$(top_srcdir)/extern/tompi/include
+    AM_CFLAGS += -I$(top_srcdir)/extern/tompi/include
     libcircle_la_LDFLAGS = -version-info $(LIBCIRCLE_SO_VERSION) -lpthread
 else
     libcircle_la_LIBADD = $(MPI_CLDFLAGS)
