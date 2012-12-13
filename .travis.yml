@@ -9,6 +9,10 @@ script: |
         ./autogen.sh &&
         ./configure --enable-tests &&
         make &&
+        make check &&
+        make distclean &&
+        ./configure --enable-tests --enable-threads &&
+        make &&
         make check
 
 compiler:
