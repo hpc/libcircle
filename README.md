@@ -115,3 +115,7 @@ After installation, the following man pages (will eventually) be available:
 * CIRCLE_begin(3)
 * CIRCLE_finalize(3)
 
+Contributing to libcircle
+-------------------------
+Patches for bugs and new features are very welcome. See the HACKING.md file
+for more information.
