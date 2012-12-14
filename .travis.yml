@@ -1,7 +1,10 @@
 language: c
 
-script: ./autogen.sh && ./configure --enable-tests --enable-threads && make && make check && make distclean && sudo apt-get update -qq && sudo apt-get install -qq check libopenmpi-dev openmpi-bin && ./configure --enable-tests && make && make check
- 
+before_install:
+ - sudo apt-get update -qq
+ - sudo apt-get install -qq check libopenmpi-dev openmpi-bin
+
+script: ./autogen.sh && ./configure --enable-tests && make && make check
 
 compiler:
   - clang
