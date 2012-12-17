@@ -20,6 +20,7 @@ enum CIRCLE_loglevel CIRCLE_debug_level;
 /** The rank value of the current node. */
 int32_t  CIRCLE_global_rank;
 
+
 /** Communicator names **/
 char CIRCLE_WORK_COMM_NAME[32] = "Libcircle Work Comm";
 char CIRCLE_TOKEN_COMM_NAME[32] = "Libcircle Token Comm";
@@ -60,10 +61,8 @@ __inline__ int32_t CIRCLE_init(int argc, char* argv[], int user_options)
 
     MPI_Comm_dup(MPI_COMM_WORLD, CIRCLE_INPUT_ST.work_comm);
     MPI_Comm_dup(MPI_COMM_WORLD, CIRCLE_INPUT_ST.token_comm);
-
     MPI_Comm_set_name(*CIRCLE_INPUT_ST.work_comm, CIRCLE_WORK_COMM_NAME);
     MPI_Comm_set_name(*CIRCLE_INPUT_ST.token_comm, CIRCLE_TOKEN_COMM_NAME);
-
     MPI_Comm_rank(*CIRCLE_INPUT_ST.token_comm, &CIRCLE_global_rank);
 
     CIRCLE_INPUT_ST.queue = CIRCLE_internal_queue_init();

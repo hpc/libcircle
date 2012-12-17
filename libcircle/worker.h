@@ -4,14 +4,6 @@
 #include "libcircle.h"
 #include "token.h"
 
-#ifndef MPI_MAX_OBJECT_NAME
-  #define MPI_MAX_OBJECT_NAME (64)
-#endif
-
-#ifndef MPI_MAX_ERROR_STRING
-  #define MPI_MAX_ERROR_STRING (256)
-#endif
-
 #define LIBCIRCLE_MPI_ERROR 32
 
 int8_t CIRCLE_worker();

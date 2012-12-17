@@ -36,19 +36,10 @@ AC_FUNC_MALLOC
 AC_SUBST([LIBCIRCLE_SO_VERSION], [0:0:0])
 AC_SUBST([LIBCIRCLE_API_VERSION], [0.1])
 
-# Check if we want to use threads-only MPI
-X_AC_LIBCIRCLE_TOMPI
-AM_CONDITIONAL(USE_BUILTIN_TOMPI, [test "x$x_ac_libcircle_tompi" = xyes])
-
-# Tell the source if we'll be using regular or threads-only MPI
-test "x$x_ac_libcircle_tompi" = xno || \
-    AC_DEFINE(USING_BUILTIN_TOMPI, 1, [Defined if using builtin TOMPI instead of regular MPI])
-
-# Check for regular MPI if we're not using TOMPI
-test "x$x_ac_libcircle_tompi" = xno || have_C_mpi='no'
-test "x$x_ac_libcircle_tompi" = xyes || LX_FIND_MPI
-test "x$have_C_mpi" = xyes || test "x$x_ac_libcircle_tompi" = xyes || \
-    AC_MSG_ERROR([You should check to see if regular MPI is setup properly.])
+# Check for MPI
+LX_FIND_MPI
+test "x$have_C_mpi" = xyes || \
+    AC_MSG_ERROR([You should check to see if MPI is setup properly.])
 AM_CONDITIONAL(HAVE_MPI, [test "x$have_C_mpi" = xyes])
 
 echo
@@ -56,8 +47,7 @@ echo "========================================================"
 echo "==        libcircle: final build configuration        =="
 echo "========================================================"
 echo "External Library Support:"
-echo "  Regular MPI .................................... $have_C_mpi"
-echo "  EXPERIMENTAL Threads-Only MPI .................. $x_ac_libcircle_tompi"
+echo "  MPI ............................................ $have_C_mpi"
 echo
 echo "Build Options:"
 echo "  Unit tests ..................................... $x_ac_libcircle_check"
@@ -65,9 +55,7 @@ echo "  Doxygen ........................................ $x_ac_libcircle_doxygen
 echo "========================================================"
 echo
 
-AC_OUTPUT([Makefile             \
-          tests/Makefile        \
-          doc/Makefile          \
-          extern/Makefile       \
-          extern/tompi/Makefile \
+AC_OUTPUT([Makefile      \
+          tests/Makefile \
+          doc/Makefile   \
           libcircle.pc:libcircle.pc.in])
