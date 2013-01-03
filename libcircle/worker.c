@@ -330,7 +330,7 @@ int8_t CIRCLE_worker()
 
     if(rank == 0) {
         for(i = 0; i < size; i++) {
-            LOG(CIRCLE_LOG_INFO, "Rank %d\tObjects Processed %d\t%lf%%", i, \
+            LOG(CIRCLE_LOG_INFO, "Rank %d\tObjects Processed %d\t%0.3lf%%", i, \
                 total_objects_processed_array[i], \
                 (double)total_objects_processed_array[i] / \
                 (double)total_objects_processed * 100.0);
