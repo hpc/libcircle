@@ -1,4 +1,4 @@
-AC_INIT([LibCircle],[0.1],[github-hpc@lanl.gov],[libcircle],[http://github.com/hpc/libcircle])
+AC_INIT([LibCircle],[0.0.1],[github-hpc@lanl.gov],[libcircle],[http://github.com/hpc/libcircle])
 
 # Keep artifacts in directories as much as possible.
 AC_CONFIG_AUX_DIR(auxdir)
