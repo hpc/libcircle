@@ -27,7 +27,7 @@ RPM Build and Install
 ---------------------
 To build an RPM, use the following instructions:
 
-1. ```rpmbuild -ta libcircle-<version>-<release>.tgz```
+1. ```rpmbuild -ta libcircle-<version>-<release>.tar.gz```
 2. ```rpm --install <the appropriate RPM files>```
 
 Developer API Information
@@ -104,14 +104,3 @@ CIRCLE_begin();
  */
 CIRCLE_finalize();
 ```
-
-Additional documentation
-------------------------
-After installation, the following man pages (will eventually) be available:
-
-* CIRCLE_init(3)
-* CIRCLE_cb_create(3)
-* CIRCLE_cb_process(3),
-* CIRCLE_begin(3)
-* CIRCLE_finalize(3)
-
