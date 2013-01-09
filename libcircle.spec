@@ -1,5 +1,5 @@
 Name:    libcircle
-Version: 0.0.2
+Version: 0.0.3
 Release: 0
 
 Source: %{name}-%{version}.tar.gz
