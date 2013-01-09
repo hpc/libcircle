@@ -27,7 +27,7 @@ RPM Build and Install
 ---------------------
 To build an RPM, use the following instructions:
 
-1. ```rpmbuild -ta libcircle-<version>-<release>.tar.gz```
+1. ```rpmbuild -ta libcircle-<version>.tar.gz```
 2. ```rpm --install <the appropriate RPM files>```
 
 Developer API Information
