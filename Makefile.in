@@ -299,8 +299,14 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-AM_CFLAGS = -W -pedantic -ansi -Wall -Wextra -Wshadow -Wwrite-strings \
-	-std=c99 $(MPI_CFLAGS)
+AM_CFLAGS = -std=gnu99 -D_FILE_OFFSET_BITS=64 -ggdb -W -pedantic -Wall \
+	-Wextra -Wconversion -Wformat=2 -Winit-self \
+	-Wmissing-include-dirs -Wswitch-default -Wswitch-enum \
+	-Wuninitialized -Wunknown-pragmas -Wstrict-aliasing \
+	-Wfloat-equal -Wundef -Wbad-function-cast -Wcast-qual \
+	-Wcast-align -Wstrict-prototypes -Wmissing-prototypes \
+	-Wredundant-decls -Winline -Wdisabled-optimization -Wshadow \
+	-Wwrite-strings $(MPI_CFLAGS)
 SUBDIRS = tests doc
 AUTOMAKE_OPTIONS = subdir-objects foreign
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
