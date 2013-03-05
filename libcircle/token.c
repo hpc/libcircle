@@ -74,6 +74,13 @@ int32_t CIRCLE_check_for_term(CIRCLE_state_st* st)
 {
     /* If I have the token (I am already idle) */
     if(st->have_token) {
+        /* no need to go through the messaging
+         * if we're the only rank in the job */
+        if(st->size == 1) {
+            /* TODO: need to set any other fields? */
+            st->token = TERMINATE;
+            return TERMINATE;
+        }
 
         /* The master rank generates the original WHITE token */
         if(st->rank == 0) {
@@ -183,6 +190,7 @@ int32_t CIRCLE_check_for_term(CIRCLE_state_st* st)
 
             MPI_Send(&st->token, 1, MPI_INT, 1, \
                      TOKEN, *st->mpi_state_st->token_comm);
+            /* ATM: does this need to be here? */
             MPI_Send(&st->token, 1, MPI_INT, 1, \
                      WORK, *st->mpi_state_st->token_comm);
 
