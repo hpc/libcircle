@@ -20,6 +20,8 @@ enum CIRCLE_loglevel CIRCLE_debug_level;
 /** The rank value of the current node. */
 int32_t  CIRCLE_global_rank;
 
+/** if we initialized MPI, remember that we need to finalize it */
+static int CIRCLE_must_finalize_mpi;
 
 /** Communicator names **/
 char CIRCLE_WORK_COMM_NAME[32] = "Libcircle Work Comm";
@@ -54,9 +56,22 @@ __inline__ int32_t CIRCLE_init(int argc, char* argv[], int user_options)
     CIRCLE_INPUT_ST.token_comm = (MPI_Comm*) malloc(sizeof(MPI_Comm));
     CIRCLE_set_options(user_options);
 
-    if(MPI_Init(&argc, &argv) != MPI_SUCCESS) {
+    /* determine whether we need to initialize MPI,
+     * and remember if we did so we finalize later */
+    CIRCLE_must_finalize_mpi = 0;
+    int mpi_initialized;
+    if (MPI_Initialized(&mpi_initialized) != MPI_SUCCESS) {
         LOG(CIRCLE_LOG_FATAL, "Unable to initialize MPI.");
         return -1;
+    }
+    if (! mpi_initialized) {
+        /* not already initialized, so intialize MPI now */
+        if(MPI_Init(&argc, &argv) != MPI_SUCCESS) {
+            LOG(CIRCLE_LOG_FATAL, "Unable to initialize MPI.");
+            return -1;
+        }
+        /* remember that we must finalize later */
+        CIRCLE_must_finalize_mpi = 1;
     }
 
     MPI_Comm_dup(MPI_COMM_WORLD, CIRCLE_INPUT_ST.work_comm);
@@ -153,7 +168,10 @@ __inline__ void CIRCLE_abort(void)
 __inline__ void CIRCLE_finalize(void)
 {
     CIRCLE_internal_queue_free(CIRCLE_INPUT_ST.queue);
-    MPI_Finalize();
+    if (CIRCLE_must_finalize_mpi) {
+        /* finalize MPI if we initialized it */
+        MPI_Finalize();
+    }
     CIRCLE_debug_stream = NULL;
 }
 
