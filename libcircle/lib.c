@@ -168,10 +168,17 @@ __inline__ void CIRCLE_abort(void)
 __inline__ void CIRCLE_finalize(void)
 {
     CIRCLE_internal_queue_free(CIRCLE_INPUT_ST.queue);
+
+    /* free off MPI resources and shut it down */
+    MPI_Comm_free(CIRCLE_INPUT_ST.token_comm);
+    MPI_Comm_free(CIRCLE_INPUT_ST.work_comm);
     if (CIRCLE_must_finalize_mpi) {
         /* finalize MPI if we initialized it */
         MPI_Finalize();
     }
+    free(CIRCLE_INPUT_ST.token_comm);
+    free(CIRCLE_INPUT_ST.work_comm);
+
     CIRCLE_debug_stream = NULL;
 }
 
