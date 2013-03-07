@@ -283,7 +283,9 @@ int8_t CIRCLE_worker()
     local_state.rank = rank;
     local_state.token_partner_recv = (rank - 1 + size) % size;
     local_state.token_partner_send = (rank + 1 + size) % size;
-    local_state.next_processor = 0;
+
+    /* randomize the first task we will request work from */
+    CIRCLE_get_next_proc(&local_state);
 
     /* Initial local state */
     local_objects_processed = 0;
