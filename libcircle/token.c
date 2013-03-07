@@ -226,11 +226,13 @@ void CIRCLE_wait_on_probe(CIRCLE_state_st* st, int32_t source, int32_t tag, int*
 
     /* loop until we get a message on work communicator or a terminate signal */
     int done = 0;
+
     while(! done) {
         int flag;
         MPI_Iprobe(source, tag, *st->mpi_state_st->work_comm, &flag, status);
 
         uint32_t i = 0;
+
         for(i = 0; i < st->size; i++) {
             st->request_flag[i] = 0;
 
@@ -250,6 +252,7 @@ void CIRCLE_wait_on_probe(CIRCLE_state_st* st, int32_t source, int32_t tag, int*
             *terminate = 1;
             done = 1;
         }
+
         if(flag) {
             *msg = 1;
             done = 1;
@@ -363,6 +366,7 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 
     int32_t items = st->work_offsets[0];
     int32_t chars = st->work_offsets[1];
+
     if(items == -1) {
         return -1;
     }
@@ -443,14 +447,17 @@ static void spread_counts(int* sizes, int ranks, int count)
     int32_t i = 0;
     int32_t base  = count / ranks;
     int32_t extra = count - base * ranks;
-    while (i < extra) {
+
+    while(i < extra) {
         sizes[i] = base + 1;
         i++;
     }
-    while (i < ranks) {
+
+    while(i < ranks) {
         sizes[i] = base;
         i++;
     }
+
     return;
 }
 
@@ -474,7 +481,8 @@ void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
      * keep as the first entry */
     int num_ranks = rcount + 1;
     int* sizes = (int*) malloc(num_ranks * sizeof(int));
-    if (sizes == NULL) {
+
+    if(sizes == NULL) {
         LOG(CIRCLE_LOG_FATAL,
             "Failed to allocate memory for sizes.");
         MPI_Abort(0, MPI_COMM_WORLD);
@@ -488,7 +496,8 @@ void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
         /* randomly pick a total amount to send to requestors,
          * but keep at least one item */
         int send_count = (rand_r(&st->seed) % qp->count) + 1;
-        if (send_count == qp->count) {
+
+        if(send_count == qp->count) {
             send_count--;
         }
 
@@ -500,7 +509,7 @@ void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
     /* send elements to requestors, note the requestor array
      * starts at 0 and sizes start at 1 */
     for(i = 0; i < rcount; i ++) {
-        CIRCLE_send_work(qp, st, requestors[i], sizes[i+1]);
+        CIRCLE_send_work(qp, st, requestors[i], sizes[i + 1]);
     }
 
     free(sizes);

@@ -60,16 +60,19 @@ __inline__ int32_t CIRCLE_init(int argc, char* argv[], int user_options)
      * and remember if we did so we finalize later */
     CIRCLE_must_finalize_mpi = 0;
     int mpi_initialized;
-    if (MPI_Initialized(&mpi_initialized) != MPI_SUCCESS) {
+
+    if(MPI_Initialized(&mpi_initialized) != MPI_SUCCESS) {
         LOG(CIRCLE_LOG_FATAL, "Unable to initialize MPI.");
         return -1;
     }
-    if (! mpi_initialized) {
+
+    if(! mpi_initialized) {
         /* not already initialized, so intialize MPI now */
         if(MPI_Init(&argc, &argv) != MPI_SUCCESS) {
             LOG(CIRCLE_LOG_FATAL, "Unable to initialize MPI.");
             return -1;
         }
+
         /* remember that we must finalize later */
         CIRCLE_must_finalize_mpi = 1;
     }
@@ -172,10 +175,12 @@ __inline__ void CIRCLE_finalize(void)
     /* free off MPI resources and shut it down */
     MPI_Comm_free(CIRCLE_INPUT_ST.token_comm);
     MPI_Comm_free(CIRCLE_INPUT_ST.work_comm);
-    if (CIRCLE_must_finalize_mpi) {
+
+    if(CIRCLE_must_finalize_mpi) {
         /* finalize MPI if we initialized it */
         MPI_Finalize();
     }
+
     free(CIRCLE_INPUT_ST.token_comm);
     free(CIRCLE_INPUT_ST.work_comm);
 
