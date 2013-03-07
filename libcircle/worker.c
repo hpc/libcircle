@@ -234,10 +234,17 @@ void CIRCLE_cleanup_mpi_messages(CIRCLE_state_st* sptr)
                 }
 
                 if(sptr->request_flag[i]) {
-                    CIRCLE_send_no_work(i);
                     MPI_Start(&sptr->mpi_state_st->request_request[i]);
+                    CIRCLE_send_no_work(i);
                 }
             }
+        }
+    }
+
+    /* free off persistent requests */
+    for(i = 0; i < sptr->size; i++) {
+        if(i != sptr->rank) {
+            MPI_Request_free(&sptr->mpi_state_st->request_request[i]);
         }
     }
 

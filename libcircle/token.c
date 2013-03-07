@@ -240,8 +240,8 @@ void CIRCLE_wait_on_probe(CIRCLE_state_st* st, int32_t source, int32_t tag, int*
                          &st->mpi_state_st->request_status[i]);
 
                 if(st->request_flag[i]) {
-                    CIRCLE_send_no_work(i);
                     MPI_Start(&st->mpi_state_st->request_request[i]);
+                    CIRCLE_send_no_work(i);
                 }
             }
         }
@@ -336,7 +336,7 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
     if(size == 0) {
         LOG(CIRCLE_LOG_FATAL,
             "size == 0.");
-        MPI_Abort(0, MPI_COMM_WORLD);
+        MPI_Abort(*st->mpi_state_st->work_comm, LIBCIRCLE_MPI_ERROR);
         return 0;
     }
 
@@ -477,7 +477,7 @@ void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
     if (sizes == NULL) {
         LOG(CIRCLE_LOG_FATAL,
             "Failed to allocate memory for sizes.");
-        MPI_Abort(0, MPI_COMM_WORLD);
+        MPI_Abort(*st->mpi_state_st->work_comm, LIBCIRCLE_MPI_ERROR);
     }
 
     if(CIRCLE_INPUT_ST.options & CIRCLE_SPLIT_EQUAL) {
@@ -627,6 +627,12 @@ int32_t CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* 
         return 0;
     }
 
+    /* reset our receives before we send work to requestors */
+    for(i = 0; i < rcount; i++) {
+        MPI_Start(&st->mpi_state_st->request_request[requestors[i]]);
+    }
+
+    /* send work to requestors */
     if(qp->count == 0 || CIRCLE_ABORT_FLAG) {
         for(i = 0; i < rcount; i++) {
             CIRCLE_send_no_work(requestors[i]);
@@ -638,10 +644,6 @@ int32_t CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* 
      */
     else {
         CIRCLE_send_work_to_many(qp, st, requestors, rcount);
-    }
-
-    for(i = 0; i < rcount; i++) {
-        MPI_Start(&st->mpi_state_st->request_request[requestors[i]]);
     }
 
     free(requestors);
