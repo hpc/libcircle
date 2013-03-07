@@ -205,7 +205,7 @@ inline void
 CIRCLE_get_next_proc(CIRCLE_state_st* st)
 {
     do {
-        st->next_processor = rand() % st->size;
+        st->next_processor = rand_r(&st->seed) % st->size;
     }
     while(st->next_processor == st->rank);
 }
@@ -487,7 +487,7 @@ void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
     else { /* CIRCLE_SPLIT_RANDOM */
         /* randomly pick a total amount to send to requestors,
          * but keep at least one item */
-        int send_count = (rand() % qp->count) + 1;
+        int send_count = (rand_r(&st->seed) % qp->count) + 1;
         if (send_count == qp->count) {
             send_count--;
         }

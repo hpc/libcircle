@@ -279,12 +279,12 @@ int8_t CIRCLE_worker()
     MPI_Comm_create_errhandler(CIRCLE_MPI_error_handler, &circle_err);
     MPI_Comm_set_errhandler(*mpi_s.work_comm, circle_err);
     rank = CIRCLE_global_rank;
-    srand(rank);
     local_state.rank = rank;
     local_state.token_partner_recv = (rank - 1 + size) % size;
     local_state.token_partner_send = (rank + 1 + size) % size;
 
     /* randomize the first task we will request work from */
+    local_state.seed = (unsigned) rank;
     CIRCLE_get_next_proc(&local_state);
 
     /* Initial local state */
