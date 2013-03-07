@@ -89,7 +89,7 @@ int32_t CIRCLE_check_for_term(CIRCLE_state_st* st)
             st->incoming_token = WHITE;
 
             MPI_Send(&st->incoming_token, 1, MPI_INT, \
-                     (st->rank + 1) % st->size, \
+                     st->token_partner_send, \
                      TOKEN, *st->mpi_state_st->token_comm);
 
             st->token = WHITE;
@@ -99,7 +99,7 @@ int32_t CIRCLE_check_for_term(CIRCLE_state_st* st)
              * Immediately post a receive to listen for the token when it
              * comes back around
              */
-            MPI_Irecv(&st->incoming_token, 1, MPI_INT, st->token_partner, \
+            MPI_Irecv(&st->incoming_token, 1, MPI_INT, st->token_partner_recv, \
                       TOKEN, *st->mpi_state_st->token_comm, \
                       &st->mpi_state_st->term_request);
 
@@ -119,7 +119,7 @@ int32_t CIRCLE_check_for_term(CIRCLE_state_st* st)
             }
 
             MPI_Send(&st->incoming_token, 1, MPI_INT, \
-                     (st->rank + 1) % st->size, \
+                     st->token_partner_send, \
                      TOKEN, *st->mpi_state_st->token_comm);
 
             st->token = WHITE;
@@ -129,7 +129,7 @@ int32_t CIRCLE_check_for_term(CIRCLE_state_st* st)
              * Immediately post a receive to listen for the token when it
              * comes back around.
              */
-            MPI_Irecv(&st->incoming_token, 1, MPI_INT, st->token_partner, \
+            MPI_Irecv(&st->incoming_token, 1, MPI_INT, st->token_partner_recv, \
                       TOKEN, *st->mpi_state_st->token_comm, \
                       &st->mpi_state_st->term_request);
 
@@ -145,7 +145,7 @@ int32_t CIRCLE_check_for_term(CIRCLE_state_st* st)
         if(!st->term_pending_receive) {
             st->incoming_token = -1;
 
-            MPI_Irecv(&st->incoming_token, 1, MPI_INT, st->token_partner, \
+            MPI_Irecv(&st->incoming_token, 1, MPI_INT, st->token_partner_recv, \
                       TOKEN, *st->mpi_state_st->token_comm, \
                       &st->mpi_state_st->term_request);
 
@@ -171,7 +171,7 @@ int32_t CIRCLE_check_for_term(CIRCLE_state_st* st)
         if(st->incoming_token == TERMINATE) {
             //  LOG(CIRCLE_LOG_DBG, "Received termination token");
             st->token = TERMINATE;
-            MPI_Send(&st->token, 1, MPI_INT, (st->rank + 1) % st->size, \
+            MPI_Send(&st->token, 1, MPI_INT, st->token_partner_send, \
                      TOKEN, *st->mpi_state_st->token_comm);
 
             //LOG(CIRCLE_LOG_DBG, "Forwared termination token");
@@ -190,9 +190,6 @@ int32_t CIRCLE_check_for_term(CIRCLE_state_st* st)
 
             MPI_Send(&st->token, 1, MPI_INT, 1, \
                      TOKEN, *st->mpi_state_st->token_comm);
-            /* ATM: does this need to be here? */
-            MPI_Send(&st->token, 1, MPI_INT, 1, \
-                     WORK, *st->mpi_state_st->token_comm);
 
             return TERMINATE;
         }
@@ -208,7 +205,7 @@ inline void
 CIRCLE_get_next_proc(CIRCLE_state_st* st)
 {
     do {
-        st->next_processor = rand() % st->size;
+        st->next_processor = rand_r(&st->seed) % st->size;
     }
     while(st->next_processor == st->rank);
 }
@@ -221,15 +218,19 @@ CIRCLE_get_next_proc(CIRCLE_state_st* st)
  * If a message is pending, it will return it's size.  Otherwise
  * it returns 0.
  */
-int32_t CIRCLE_wait_on_probe(CIRCLE_state_st* st, int32_t source, int32_t tag)
+void CIRCLE_wait_on_probe(CIRCLE_state_st* st, int32_t source, int32_t tag, int* terminate, int* msg, MPI_Status* status)
 {
-    int32_t flag = 0;
-    uint32_t i = 0;
-    MPI_Status temp;
+    /* mark both flags to zero to start with */
+    *terminate = 0;
+    *msg = 0;
 
-    while(!flag) {
-        MPI_Iprobe(source, tag, *st->mpi_state_st->work_comm, &flag, &temp);
+    /* loop until we get a message on work communicator or a terminate signal */
+    int done = 0;
+    while(! done) {
+        int flag;
+        MPI_Iprobe(source, tag, *st->mpi_state_st->work_comm, &flag, status);
 
+        uint32_t i = 0;
         for(i = 0; i < st->size; i++) {
             st->request_flag[i] = 0;
 
@@ -246,17 +247,16 @@ int32_t CIRCLE_wait_on_probe(CIRCLE_state_st* st, int32_t source, int32_t tag)
         }
 
         if(CIRCLE_check_for_term(st) == TERMINATE) {
-            return TERMINATE;
+            *terminate = 1;
+            done = 1;
+        }
+        if(flag) {
+            *msg = 1;
+            done = 1;
         }
     }
 
-    if(flag) {
-        MPI_Get_count(&temp, MPI_INT, &flag);
-        return flag;
-    }
-    else {
-        return 0;
-    }
+    return;
 }
 
 /**
@@ -322,13 +322,21 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
     st->work_offsets[0] = 0;
 
     /* Wait for an answer... */
-    int32_t size = CIRCLE_wait_on_probe(st, st->next_processor, WORK);
+    int terminate, msg;
+    MPI_Status status;
+    CIRCLE_wait_on_probe(st, st->next_processor, WORK, &terminate, &msg, &status);
 
-    if(size == TERMINATE) {
+    if(terminate) {
         return TERMINATE;
     }
 
+    int size;
+    MPI_Get_count(&status, MPI_INT, &size);
+
     if(size == 0) {
+        LOG(CIRCLE_LOG_FATAL,
+            "size == 0.");
+        MPI_Abort(0, MPI_COMM_WORLD);
         return 0;
     }
 
@@ -353,9 +361,8 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 
     CIRCLE_get_next_proc(st);
 
-    int32_t chars = st->work_offsets[1];
     int32_t items = st->work_offsets[0];
-
+    int32_t chars = st->work_offsets[1];
     if(items == -1) {
         return -1;
     }
@@ -367,18 +374,6 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
     else if(items == ABORT) {
         CIRCLE_ABORT_FLAG = 1;
         return ABORT;
-    }
-
-
-    /* Wait and see if they sent the work over */
-    size = CIRCLE_wait_on_probe(st, source, WORK);
-
-    if(size == TERMINATE) {
-        return TERMINATE;
-    }
-
-    if(size == 0) {
-        return 0;
     }
 
     /* Make sure our queue is large enough */
@@ -411,11 +406,6 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
         qp->strings[i] = st->work_offsets[i + 2];
     }
 
-    if(size == 0) {
-        qp->count = 0;
-        return 0;
-    }
-
     if(qp->strings[0] != 0) {
         LOG(CIRCLE_LOG_FATAL, \
             "The base address of the queue doesn't match what it should be.");
@@ -445,13 +435,32 @@ void CIRCLE_send_no_work(uint32_t dest)
 
 }
 
+/* spread count equally among ranks, handle cases where number
+ * of ranks doesn't evenly divide remaining count by scattering
+ * remainder across initial ranks */
+static void spread_counts(int* sizes, int ranks, int count)
+{
+    int32_t i = 0;
+    int32_t base  = count / ranks;
+    int32_t extra = count - base * ranks;
+    while (i < extra) {
+        sizes[i] = base + 1;
+        i++;
+    }
+    while (i < ranks) {
+        sizes[i] = base;
+        i++;
+    }
+    return;
+}
+
 /**
  * Distributes a random amount of the local work queue to the n requestors.
  */
 void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
                               CIRCLE_state_st* st, int* requestors, int32_t rcount)
 {
-    int32_t i = 0, total_amount = 0, increment = 0;
+    int32_t i = 0;
 
     if(rcount <= 0) {
         LOG(CIRCLE_LOG_FATAL,
@@ -459,28 +468,42 @@ void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
         exit(EXIT_FAILURE);
     }
 
-    if(CIRCLE_INPUT_ST.options & CIRCLE_SPLIT_RANDOM) {
-        total_amount = rand() % qp->count + 1;
-    }
-    else if(CIRCLE_INPUT_ST.options & CIRCLE_SPLIT_EQUAL) {
-        total_amount = (((qp->count) + 1) / (rcount + 1)) * rcount;
-    }
-    else {
-        total_amount = rand() % qp->count + 1;
+    /* TODO: could allocate this once up front during init */
+    /* we have rcount requestors and ourself, allocate array to store
+     * number of elements we'll send to each, storing the amount we
+     * keep as the first entry */
+    int num_ranks = rcount + 1;
+    int* sizes = (int*) malloc(num_ranks * sizeof(int));
+    if (sizes == NULL) {
+        LOG(CIRCLE_LOG_FATAL,
+            "Failed to allocate memory for sizes.");
+        MPI_Abort(0, MPI_COMM_WORLD);
     }
 
-    /* Get size of chunk */
-    increment = total_amount / rcount;
-
-    for(i = 0; i < rcount; i ++) {
-        total_amount -= increment;
-
-        if(total_amount < increment) {
-            increment += total_amount;
+    if(CIRCLE_INPUT_ST.options & CIRCLE_SPLIT_EQUAL) {
+        /* split queue equally among ourself and all requestors */
+        spread_counts(&sizes[0], num_ranks, qp->count);
+    }
+    else { /* CIRCLE_SPLIT_RANDOM */
+        /* randomly pick a total amount to send to requestors,
+         * but keep at least one item */
+        int send_count = (rand_r(&st->seed) % qp->count) + 1;
+        if (send_count == qp->count) {
+            send_count--;
         }
 
-        CIRCLE_send_work(qp, st, requestors[i], increment);
+        /* we keep the first portion, and spread the rest */
+        sizes[0] = qp->count - send_count;
+        spread_counts(&sizes[1], rcount, send_count);
     }
+
+    /* send elements to requestors, note the requestor array
+     * starts at 0 and sizes start at 1 */
+    for(i = 0; i < rcount; i ++) {
+        CIRCLE_send_work(qp, st, requestors[i], sizes[i+1]);
+    }
+
+    free(sizes);
 
     LOG(CIRCLE_LOG_DBG, "Done servicing requests.");
 }
@@ -498,7 +521,7 @@ int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
     }
 
     /* For termination detection */
-    if((int)dest < (int)st->rank || (int)dest == (int)st->token_partner) {
+    if((int)dest < (int)st->rank || (int)dest == (int)st->token_partner_recv) {
         st->token = BLACK;
     }
 
@@ -535,10 +558,8 @@ int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
     /* offsets[qp->count - qp->count/2+2]  is the size of the last string */
     st->request_offsets[count + 2] = strlen(qp->base + qp->strings[qp->count - 1]);
 
-
     MPI_Ssend(st->request_offsets, st->request_offsets[0] + 2, \
               MPI_INT, dest, WORK, *st->mpi_state_st->work_comm);
-
 
     MPI_Ssend(qp->base + b, (diff + 1) * sizeof(char), MPI_BYTE, \
               dest, WORK, *st->mpi_state_st->work_comm);
