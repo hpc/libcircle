@@ -190,9 +190,6 @@ int32_t CIRCLE_check_for_term(CIRCLE_state_st* st)
 
             MPI_Send(&st->token, 1, MPI_INT, 1, \
                      TOKEN, *st->mpi_state_st->token_comm);
-            /* ATM: does this need to be here? */
-            MPI_Send(&st->token, 1, MPI_INT, 1, \
-                     WORK, *st->mpi_state_st->token_comm);
 
             return TERMINATE;
         }
