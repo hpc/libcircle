@@ -281,7 +281,8 @@ int8_t CIRCLE_worker()
     rank = CIRCLE_global_rank;
     srand(rank);
     local_state.rank = rank;
-    local_state.token_partner = (rank - 1) % size;
+    local_state.token_partner_recv = (rank - 1 + size) % size;
+    local_state.token_partner_send = (rank + 1 + size) % size;
     local_state.next_processor = 0;
 
     /* Initial local state */

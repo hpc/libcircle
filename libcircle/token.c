@@ -89,7 +89,7 @@ int32_t CIRCLE_check_for_term(CIRCLE_state_st* st)
             st->incoming_token = WHITE;
 
             MPI_Send(&st->incoming_token, 1, MPI_INT, \
-                     (st->rank + 1) % st->size, \
+                     st->token_partner_send, \
                      TOKEN, *st->mpi_state_st->token_comm);
 
             st->token = WHITE;
@@ -99,7 +99,7 @@ int32_t CIRCLE_check_for_term(CIRCLE_state_st* st)
              * Immediately post a receive to listen for the token when it
              * comes back around
              */
-            MPI_Irecv(&st->incoming_token, 1, MPI_INT, st->token_partner, \
+            MPI_Irecv(&st->incoming_token, 1, MPI_INT, st->token_partner_recv, \
                       TOKEN, *st->mpi_state_st->token_comm, \
                       &st->mpi_state_st->term_request);
 
@@ -119,7 +119,7 @@ int32_t CIRCLE_check_for_term(CIRCLE_state_st* st)
             }
 
             MPI_Send(&st->incoming_token, 1, MPI_INT, \
-                     (st->rank + 1) % st->size, \
+                     st->token_partner_send, \
                      TOKEN, *st->mpi_state_st->token_comm);
 
             st->token = WHITE;
@@ -129,7 +129,7 @@ int32_t CIRCLE_check_for_term(CIRCLE_state_st* st)
              * Immediately post a receive to listen for the token when it
              * comes back around.
              */
-            MPI_Irecv(&st->incoming_token, 1, MPI_INT, st->token_partner, \
+            MPI_Irecv(&st->incoming_token, 1, MPI_INT, st->token_partner_recv, \
                       TOKEN, *st->mpi_state_st->token_comm, \
                       &st->mpi_state_st->term_request);
 
@@ -145,7 +145,7 @@ int32_t CIRCLE_check_for_term(CIRCLE_state_st* st)
         if(!st->term_pending_receive) {
             st->incoming_token = -1;
 
-            MPI_Irecv(&st->incoming_token, 1, MPI_INT, st->token_partner, \
+            MPI_Irecv(&st->incoming_token, 1, MPI_INT, st->token_partner_recv, \
                       TOKEN, *st->mpi_state_st->token_comm, \
                       &st->mpi_state_st->term_request);
 
@@ -171,7 +171,7 @@ int32_t CIRCLE_check_for_term(CIRCLE_state_st* st)
         if(st->incoming_token == TERMINATE) {
             //  LOG(CIRCLE_LOG_DBG, "Received termination token");
             st->token = TERMINATE;
-            MPI_Send(&st->token, 1, MPI_INT, (st->rank + 1) % st->size, \
+            MPI_Send(&st->token, 1, MPI_INT, st->token_partner_send, \
                      TOKEN, *st->mpi_state_st->token_comm);
 
             //LOG(CIRCLE_LOG_DBG, "Forwared termination token");
@@ -498,7 +498,7 @@ int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
     }
 
     /* For termination detection */
-    if((int)dest < (int)st->rank || (int)dest == (int)st->token_partner) {
+    if((int)dest < (int)st->rank || (int)dest == (int)st->token_partner_recv) {
         st->token = BLACK;
     }
 
