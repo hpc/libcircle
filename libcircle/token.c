@@ -442,13 +442,32 @@ void CIRCLE_send_no_work(uint32_t dest)
 
 }
 
+/* spread count equally among ranks, handle cases where number
+ * of ranks doesn't evenly divide remaining count by scattering
+ * remainder across initial ranks */
+static void spread_counts(int* sizes, int ranks, int count)
+{
+    int32_t i = 0;
+    int32_t base  = count / ranks;
+    int32_t extra = count - base * ranks;
+    while (i < extra) {
+        sizes[i] = base + 1;
+        i++;
+    }
+    while (i < ranks) {
+        sizes[i] = base;
+        i++;
+    }
+    return;
+}
+
 /**
  * Distributes a random amount of the local work queue to the n requestors.
  */
 void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
                               CIRCLE_state_st* st, int* requestors, int32_t rcount)
 {
-    int32_t i = 0, total_amount = 0, increment = 0;
+    int32_t i = 0;
 
     if(rcount <= 0) {
         LOG(CIRCLE_LOG_FATAL,
@@ -456,28 +475,42 @@ void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
         exit(EXIT_FAILURE);
     }
 
-    if(CIRCLE_INPUT_ST.options & CIRCLE_SPLIT_RANDOM) {
-        total_amount = rand() % qp->count + 1;
-    }
-    else if(CIRCLE_INPUT_ST.options & CIRCLE_SPLIT_EQUAL) {
-        total_amount = (((qp->count) + 1) / (rcount + 1)) * rcount;
-    }
-    else {
-        total_amount = rand() % qp->count + 1;
+    /* TODO: could allocate this once up front during init */
+    /* we have rcount requestors and ourself, allocate array to store
+     * number of elements we'll send to each, storing the amount we
+     * keep as the first entry */
+    int num_ranks = rcount + 1;
+    int* sizes = (int*) malloc(num_ranks * sizeof(int));
+    if (sizes == NULL) {
+        LOG(CIRCLE_LOG_FATAL,
+            "Failed to allocate memory for sizes.");
+        MPI_Abort(0, MPI_COMM_WORLD);
     }
 
-    /* Get size of chunk */
-    increment = total_amount / rcount;
-
-    for(i = 0; i < rcount; i ++) {
-        total_amount -= increment;
-
-        if(total_amount < increment) {
-            increment += total_amount;
+    if(CIRCLE_INPUT_ST.options & CIRCLE_SPLIT_EQUAL) {
+        /* split queue equally among ourself and all requestors */
+        spread_counts(&sizes[0], num_ranks, qp->count);
+    }
+    else { /* CIRCLE_SPLIT_RANDOM */
+        /* randomly pick a total amount to send to requestors,
+         * but keep at least one item */
+        int send_count = (rand() % qp->count) + 1;
+        if (send_count == qp->count) {
+            send_count--;
         }
 
-        CIRCLE_send_work(qp, st, requestors[i], increment);
+        /* we keep the first portion, and spread the rest */
+        sizes[0] = qp->count - send_count;
+        spread_counts(&sizes[1], rcount, send_count);
     }
+
+    /* send elements to requestors, note the requestor array
+     * starts at 0 and sizes start at 1 */
+    for(i = 0; i < rcount; i ++) {
+        CIRCLE_send_work(qp, st, requestors[i], sizes[i+1]);
+    }
+
+    free(sizes);
 
     LOG(CIRCLE_LOG_DBG, "Done servicing requests.");
 }
