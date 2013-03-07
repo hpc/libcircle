@@ -1,41 +1,39 @@
 Name:    libcircle
-Version: 0.1
-Release: 1
+Version: 0.0.3
+Release: 0
 
-Source: %{name}-%{version}-%{release}.tgz                                       
-BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}                            
+Source: %{name}-%{version}.tar.gz
+BuildRoot: %{_tmppath}/%{name}-%{version}
 URL: http://github.com/hpc/libcircle
 Summary: A library used to distribute workloads.
 Group: Development/Libraries
-License: Copyright (c) 2007-2011 Los Alamos National Security, LLC. All rights reserved.
+License: Copyright (c) 2007-2013 Los Alamos National Security, LLC. All rights reserved.
 
 %description
 A simple interface for processing workloads using an automatically distributed global queue.
 
-BuildRequires: openmpi
-
-# Don't strip binaries                                                             
-%define __os_install_post /usr/lib/rpm/brp-compress                                
-%define debug_package %{nil} 
+# Don't strip binaries
+%define __os_install_post /usr/lib/rpm/brp-compress
+%define debug_package %{nil}
 
 ###############################################################################
 
-%prep                                                                              
-%setup -n %{name}-%{version}-%{release}                                            
-                                                                                   
-%build                                                                             
+%prep
+%setup -n %{name}-%{version}
+
+%build
 %configure --program-prefix=%{?_program_prefix:%{_program_prefix}}
 
-make %{?_smp_mflags}                                                               
+make %{?_smp_mflags}
 
 %install
-rm -rf "$RPM_BUILD_ROOT"                                                        
-mkdir -p "$RPM_BUILD_ROOT"                                                      
-DESTDIR="$RPM_BUILD_ROOT" make install                                          
+rm -rf "$RPM_BUILD_ROOT"
+mkdir -p "$RPM_BUILD_ROOT"
+DESTDIR="$RPM_BUILD_ROOT" make install
 
 ###############################################################################
 
-%clean                                                                          
+%clean
 rm -rf $RPM_BUILD_ROOT
 
 ###############################################################################

@@ -1,4 +1,4 @@
-AC_INIT([LibCircle],[0.1],[github-hpc@lanl.gov],[libcircle],[http://github.com/hpc/libcircle])
+AC_INIT([LibCircle],[0.0.3],[github-hpc@lanl.gov],[libcircle],[http://github.com/hpc/libcircle])
 
 # Keep artifacts in directories as much as possible.
 AC_CONFIG_AUX_DIR(auxdir)
@@ -10,6 +10,9 @@ AC_CONFIG_HEADERS([config.h])
 # Check for compilers.
 AC_PROG_CC
 AM_PROG_CC_C_O
+
+# Check for pkg-config
+X_AC_LIBCIRCLE_PKG_CONFIG
 
 # Needed for tests
 X_AC_LIBCIRCLE_CHECK
@@ -30,8 +33,8 @@ AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
 AC_FUNC_MALLOC
 
 # Define the library version.
-AC_SUBST([LIBCIRCLE_SO_VERSION], [0:0:0])
-AC_SUBST([LIBCIRCLE_API_VERSION], [0.1])
+AC_SUBST([LIBCIRCLE_SO_VERSION], [0:2:0])
+AC_SUBST([LIBCIRCLE_API_VERSION], [0.0.3])
 
 # Check for MPI
 LX_FIND_MPI

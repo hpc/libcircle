@@ -1,7 +1,10 @@
 #ifndef LOG_H
 #define LOG_H
 
+#include "libcircle.h"
+
 #include <stdio.h>
+#include <stdint.h>
 #include <time.h>
 
 #define LOG(level, ...) do {  \
@@ -16,6 +19,6 @@
 
 extern FILE* CIRCLE_debug_stream;
 extern enum CIRCLE_loglevel CIRCLE_debug_level;
-extern int CIRCLE_global_rank;
+extern int32_t CIRCLE_global_rank;
 
 #endif /* LOG_H */

@@ -1,11 +1,24 @@
 #ifndef LIBCIRCLE_H
 #define LIBCIRCLE_H
 
+#include <stdint.h>
+
 /**
  * The maximum length of a string value which is allowed to be placed on the
  * queue structure.
  */
-#define CIRCLE_MAX_STRING_LEN (4096*sizeof(char))
+#ifdef PATH_MAX
+    #define CIRCLE_MAX_STRING_LEN PATH_MAX
+#else
+    #define CIRCLE_MAX_STRING_LEN (4096)
+#endif
+
+/**
+ * Run time flags for the behavior of splitting work.
+ */
+#define CIRCLE_SPLIT_RANDOM     (1 << 0)              /* Split work randomly. */
+#define CIRCLE_SPLIT_EQUAL      ~CIRCLE_SPLIT_RANDOM  /* Split work evenly */
+#define CIRCLE_DEFAULT_FLAGS    CIRCLE_SPLIT_RANDOM   /* Default behavior is random work stealing */
 
 /**
  * The various logging levels that libcircle will output.
@@ -25,9 +38,9 @@ typedef enum CIRCLE_loglevel
  * terminated string.
  */
 typedef struct {
-    int (*enqueue)(char *element);
-    int (*dequeue)(char *element);
-    int (*local_queue_size)();
+    int8_t (*enqueue)(char *element);
+    int8_t (*dequeue)(char *element);
+    uint32_t (*local_queue_size)();
 } CIRCLE_handle;
 
 /**
@@ -39,7 +52,12 @@ typedef void (*CIRCLE_cb)(CIRCLE_handle *handle);
  * Initialize internal state needed by libcircle. This should be called before
  * any other libcircle API call. This returns the MPI rank value.
  */
-int CIRCLE_init(int argc, char *argv[]);
+int CIRCLE_init(int argc, char *argv[], int options);
+
+/**
+ * Change run time flags
+ */
+void CIRCLE_set_options(int options);
 
 /**
  * Processing and creating work is done through callbacks. Here's how we tell
@@ -71,6 +89,12 @@ void CIRCLE_abort(void);
 void CIRCLE_checkpoint();
 
 /**
+  * Function to return a pointer to the handle.  Useful for threaded applications.
+  * You are responsible for maintaining mutual exclusion.
+  */
+CIRCLE_handle* CIRCLE_get_handle();
+
+/**
  * Call this function to initialize libcircle queues from restart files
  * created by CIRCLE_checkpoint.
  */
@@ -86,5 +110,10 @@ void CIRCLE_finalize(void);
  * Define the detail of logging that libcircle should output.
  */
 void CIRCLE_enable_logging(enum CIRCLE_loglevel level);
+
+/**
+ * Returns an elapsed time on the calling processor for benchmarking purposes.
+ */
+double CIRCLE_wtime(void);
 
 #endif /* LIBCIRCLE_H */

@@ -1,6 +1,6 @@
-libcircle 0.0.1
-===============
-libcircle is an API for distributing embarrassingly parallel workloads using self-stabilization. Local actions work towards a global objective in a finite number of operations. The core algorithm used is based on Dijkstra's 1974 token ring proposal and heavily uses MPI under the hood.
+libcircle
+=========
+libcircle is an API for distributing embarrassingly parallel workloads using self-stabilization. Details on the algorithms used may be found at <http://dl.acm.org/citation.cfm?id=2389114>.
 
 Dependencies
 ------------
@@ -27,7 +27,7 @@ RPM Build and Install
 ---------------------
 To build an RPM, use the following instructions:
 
-1. ```rpmbuild -ta libcircle-<version>-<release>.tgz```
+1. ```rpmbuild -ta libcircle-<version>.tar.gz```
 2. ```rpm --install <the appropriate RPM files>```
 
 Developer API Information
@@ -104,14 +104,3 @@ CIRCLE_begin();
  */
 CIRCLE_finalize();
 ```
-
-Additional documentation
-------------------------
-After installation, the following man pages (will eventually) be available:
-
-* CIRCLE_init(3)
-* CIRCLE_cb_create(3)
-* CIRCLE_cb_process(3),
-* CIRCLE_begin(3)
-* CIRCLE_finalize(3)
-
