@@ -218,15 +218,19 @@ CIRCLE_get_next_proc(CIRCLE_state_st* st)
  * If a message is pending, it will return it's size.  Otherwise
  * it returns 0.
  */
-int32_t CIRCLE_wait_on_probe(CIRCLE_state_st* st, int32_t source, int32_t tag)
+void CIRCLE_wait_on_probe(CIRCLE_state_st* st, int32_t source, int32_t tag, int* terminate, int* msg, MPI_Status* status)
 {
-    int32_t flag = 0;
-    uint32_t i = 0;
-    MPI_Status temp;
+    /* mark both flags to zero to start with */
+    *terminate = 0;
+    *msg = 0;
 
-    while(!flag) {
-        MPI_Iprobe(source, tag, *st->mpi_state_st->work_comm, &flag, &temp);
+    /* loop until we get a message on work communicator or a terminate signal */
+    int done = 0;
+    while(! done) {
+        int flag;
+        MPI_Iprobe(source, tag, *st->mpi_state_st->work_comm, &flag, status);
 
+        uint32_t i = 0;
         for(i = 0; i < st->size; i++) {
             st->request_flag[i] = 0;
 
@@ -243,17 +247,16 @@ int32_t CIRCLE_wait_on_probe(CIRCLE_state_st* st, int32_t source, int32_t tag)
         }
 
         if(CIRCLE_check_for_term(st) == TERMINATE) {
-            return TERMINATE;
+            *terminate = 1;
+            done = 1;
+        }
+        if(flag) {
+            *msg = 1;
+            done = 1;
         }
     }
 
-    if(flag) {
-        MPI_Get_count(&temp, MPI_INT, &flag);
-        return flag;
-    }
-    else {
-        return 0;
-    }
+    return;
 }
 
 /**
@@ -319,13 +322,21 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
     st->work_offsets[0] = 0;
 
     /* Wait for an answer... */
-    int32_t size = CIRCLE_wait_on_probe(st, st->next_processor, WORK);
+    int terminate, msg;
+    MPI_Status status;
+    CIRCLE_wait_on_probe(st, st->next_processor, WORK, &terminate, &msg, &status);
 
-    if(size == TERMINATE) {
+    if(terminate) {
         return TERMINATE;
     }
 
+    int size;
+    MPI_Get_count(&status, MPI_INT, &size);
+
     if(size == 0) {
+        LOG(CIRCLE_LOG_FATAL,
+            "size == 0.");
+        MPI_Abort(0, MPI_COMM_WORLD);
         return 0;
     }
 
@@ -350,9 +361,8 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 
     CIRCLE_get_next_proc(st);
 
-    int32_t chars = st->work_offsets[1];
     int32_t items = st->work_offsets[0];
-
+    int32_t chars = st->work_offsets[1];
     if(items == -1) {
         return -1;
     }
@@ -364,18 +374,6 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
     else if(items == ABORT) {
         CIRCLE_ABORT_FLAG = 1;
         return ABORT;
-    }
-
-
-    /* Wait and see if they sent the work over */
-    size = CIRCLE_wait_on_probe(st, source, WORK);
-
-    if(size == TERMINATE) {
-        return TERMINATE;
-    }
-
-    if(size == 0) {
-        return 0;
     }
 
     /* Make sure our queue is large enough */
@@ -406,11 +404,6 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 
     for(i = 0; i < qp->count; i++) {
         qp->strings[i] = st->work_offsets[i + 2];
-    }
-
-    if(size == 0) {
-        qp->count = 0;
-        return 0;
     }
 
     if(qp->strings[0] != 0) {
@@ -565,10 +558,8 @@ int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
     /* offsets[qp->count - qp->count/2+2]  is the size of the last string */
     st->request_offsets[count + 2] = strlen(qp->base + qp->strings[qp->count - 1]);
 
-
     MPI_Ssend(st->request_offsets, st->request_offsets[0] + 2, \
               MPI_INT, dest, WORK, *st->mpi_state_st->work_comm);
-
 
     MPI_Ssend(qp->base + b, (diff + 1) * sizeof(char), MPI_BYTE, \
               dest, WORK, *st->mpi_state_st->work_comm);
