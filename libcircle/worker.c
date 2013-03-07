@@ -142,6 +142,8 @@ void CIRCLE_init_local_state(CIRCLE_state_st* local_state, int32_t size)
             (MPI_Status*) malloc(sizeof(MPI_Status) * size);
     local_state->mpi_state_st->request_request = \
             (MPI_Request*) malloc(sizeof(MPI_Request) * size);
+    local_state->mpi_state_st->requestors = \
+            (int*) malloc(sizeof(int) * size);
 
     local_state->mpi_state_st->work_comm = CIRCLE_INPUT_ST.work_comm;
     local_state->mpi_state_st->token_comm = CIRCLE_INPUT_ST.token_comm;
@@ -152,6 +154,34 @@ void CIRCLE_init_local_state(CIRCLE_state_st* local_state, int32_t size)
 
     local_state->work_request_tries = 0;
     return;
+}
+
+/* provides address of pointer, and if value of pointer is not NULL,
+ * frees memory and sets pointer value to NULL */
+static void CIRCLE_free(void** ptr)
+{
+    if (ptr != NULL) {
+        if (*ptr != NULL) {
+            free(*ptr);
+            *ptr = NULL;
+        }
+    }
+    return;
+}
+
+/**
+ * Free memory associated with state
+ */
+void CIRCLE_finalize_local_state(CIRCLE_state_st* local_state)
+{
+  CIRCLE_free(&local_state->request_offsets);
+  CIRCLE_free(&local_state->work_offsets);
+  CIRCLE_free(&local_state->request_flag);
+  CIRCLE_free(&local_state->request_recv_buf);
+  CIRCLE_free(&local_state->mpi_state_st->request_status);
+  CIRCLE_free(&local_state->mpi_state_st->request_request);
+  CIRCLE_free(&local_state->mpi_state_st->requestors);
+  return;
 }
 
 /**
@@ -355,6 +385,12 @@ int8_t CIRCLE_worker()
         LOG(CIRCLE_LOG_INFO, \
             "Hop-bytes per file: %f", (float)total_hop_bytes / (float)total_objects_processed);
     }
+
+    /* free memory */
+    CIRCLE_free(&total_no_work_received_array);
+    CIRCLE_free(&total_work_requests_array);
+    CIRCLE_free(&total_objects_processed_array);
+    CIRCLE_finalize_local_state(sptr);
 
     return 0;
 }

@@ -576,8 +576,11 @@ int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
  */
 int32_t CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 {
-    int* requestors = (int*)calloc(st->size, sizeof(*requestors));
     uint32_t i = 0;
+
+    /* record list of requesting ranks in requestors
+     * and number in rcount */
+    int* requestors = st->mpi_state_st->requestors;
     uint32_t rcount = 0;
 
     /* This loop is only excuted once.  It is used to initiate receives.
@@ -645,8 +648,6 @@ int32_t CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* 
     else {
         CIRCLE_send_work_to_many(qp, st, requestors, rcount);
     }
-
-    free(requestors);
 
     return 0;
 }
