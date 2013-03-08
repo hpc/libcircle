@@ -158,8 +158,9 @@ void CIRCLE_init_local_state(CIRCLE_state_st* local_state, int32_t size)
 
 /* provides address of pointer, and if value of pointer is not NULL,
  * frees memory and sets pointer value to NULL */
-static void CIRCLE_free(void** ptr)
+static void CIRCLE_free(void* pptr)
 {
+    void** ptr = (void**) pptr;
     if (ptr != NULL) {
         if (*ptr != NULL) {
             free(*ptr);
