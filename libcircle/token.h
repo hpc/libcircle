@@ -68,10 +68,10 @@ typedef struct CIRCLE_state_st {
     int32_t token_partner_send;
     int32_t term_flag;
 
-    uint32_t rank;
-    uint32_t size;
+    int32_t rank;
+    int32_t size;
     unsigned seed;
-    uint32_t next_processor;
+    int32_t next_processor;
     uint32_t offset_count;
     uint32_t* work_offsets;
     uint32_t* request_offsets;
@@ -79,7 +79,7 @@ typedef struct CIRCLE_state_st {
 } CIRCLE_state_st;
 
 void CIRCLE_get_next_proc(CIRCLE_state_st* st);
-void CIRCLE_send_no_work(uint32_t dest);
+void CIRCLE_send_no_work(int32_t dest);
 int32_t  CIRCLE_check_for_term(CIRCLE_state_st* st);
 void  CIRCLE_wait_on_probe(CIRCLE_state_st* st, int32_t source, int32_t tag, \
                            int* terminate, int* msg, MPI_Status* status);

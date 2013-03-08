@@ -236,8 +236,7 @@ void CIRCLE_wait_on_probe(CIRCLE_state_st* st, int32_t source, int32_t tag, int*
         int flag;
         MPI_Iprobe(source, tag, *st->mpi_state_st->work_comm, &flag, status);
 
-        uint32_t i = 0;
-
+        int32_t i = 0;
         for(i = 0; i < st->size; i++) {
             st->request_flag[i] = 0;
 
@@ -354,16 +353,15 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
     int size;
     MPI_Get_count(&status, MPI_INT, &size);
 
-    if(size == 0) {
-        LOG(CIRCLE_LOG_FATAL,
-            "size == 0.");
+    if(size <= 0) {
+        LOG(CIRCLE_LOG_FATAL, "size <= 0.");
         MPI_Abort(*st->mpi_state_st->work_comm, LIBCIRCLE_MPI_ERROR);
         return 0;
     }
 
     /* Check to see if the offset array is large enough */
     if(size >= (signed)st->offset_count) {
-        if(CIRCLE_extend_offsets(st, size) < 0) {
+        if(CIRCLE_extend_offsets(st, (uint32_t)size) < 0) {
             LOG(CIRCLE_LOG_ERR, "Error: Unable to extend offsets.");
             return -1;
         }
@@ -416,7 +414,8 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
      * Good, we have a pending message from source with a WORK tag.
      * It can only be a work queue.
      */
-    MPI_Recv(qp->base, (chars + 1) * sizeof(char), MPI_BYTE, source, WORK, \
+    int numbytes = (int) ((chars + 1) * sizeof(char));
+    MPI_Recv(qp->base, numbytes, MPI_BYTE, source, WORK, \
              *st->mpi_state_st->work_comm, MPI_STATUS_IGNORE);
 
     qp->count = items;
@@ -441,7 +440,7 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 /**
  * Sends a no work reply to someone requesting work.
  */
-void CIRCLE_send_no_work(uint32_t dest)
+void CIRCLE_send_no_work(int32_t dest)
 {
     int32_t no_work[2];
 
@@ -562,7 +561,7 @@ int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
 
     /* Check to see if the offset array is large enough */
     if(count >= (signed)st->offset_count) {
-        if(CIRCLE_extend_offsets(st, count) < 0) {
+        if(CIRCLE_extend_offsets(st, (uint32_t)count) < 0) {
             LOG(CIRCLE_LOG_ERR, "Error: Unable to extend offsets.");
             return -1;
         }
@@ -601,12 +600,12 @@ int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
  */
 int32_t CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 {
-    uint32_t i = 0;
+    int32_t i = 0;
 
     /* record list of requesting ranks in requestors
      * and number in rcount */
     int* requestors = st->mpi_state_st->requestors;
-    uint32_t rcount = 0;
+    int32_t rcount = 0;
 
     /* This loop is only excuted once.  It is used to initiate receives.
      * When a received is completed, we repost it immediately to capture
