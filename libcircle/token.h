@@ -39,6 +39,10 @@ typedef struct CIRCLE_mpi_state_st {
     MPI_Request work_request;
     MPI_Request* request_request;
 
+    /* records list of ranks requesting work from us,
+     * must have one slot for each neighbor */
+    int* requestors;
+
     MPI_Comm* token_comm;
     MPI_Comm* work_comm;
     int hostname_length;
