@@ -69,6 +69,11 @@ int8_t CIRCLE_internal_queue_free(CIRCLE_internal_queue_t* qp)
             free(qp->strings);
         }
 
+        if(qp->base) {
+            LOG(CIRCLE_LOG_DBG, "Freeing the queue base.");
+            free(qp->base);
+        }
+
         LOG(CIRCLE_LOG_DBG, "Freeing a queue pointer.");
         free(qp);
     }

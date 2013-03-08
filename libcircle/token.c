@@ -204,10 +204,15 @@ int32_t CIRCLE_check_for_term(CIRCLE_state_st* st)
 inline void
 CIRCLE_get_next_proc(CIRCLE_state_st* st)
 {
-    do {
-        st->next_processor = rand_r(&st->seed) % st->size;
+    if (st->size > 1) {
+        do {
+            st->next_processor = rand_r(&st->seed) % st->size;
+        }
+        while(st->next_processor == st->rank);
+    } else {
+        /* for a job size of one, we have no one to ask */
+        st->next_processor = MPI_PROC_NULL;
     }
-    while(st->next_processor == st->rank);
 }
 
 /**
@@ -242,8 +247,8 @@ void CIRCLE_wait_on_probe(CIRCLE_state_st* st, int32_t source, int32_t tag, int*
                          &st->mpi_state_st->request_status[i]);
 
                 if(st->request_flag[i]) {
-                    CIRCLE_send_no_work(i);
                     MPI_Start(&st->mpi_state_st->request_request[i]);
+                    CIRCLE_send_no_work(i);
                 }
             }
         }
@@ -307,7 +312,20 @@ int8_t CIRCLE_extend_offsets(CIRCLE_state_st* st, uint32_t size)
  */
 int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 {
-    LOG(CIRCLE_LOG_DBG, "Sending work request to %d...", st->next_processor);
+    /* get rank of process to request work from */
+    int32_t source = st->next_processor;
+
+    /* have no one to ask, we're done */
+    if (source == MPI_PROC_NULL) {
+        /* initiate termination */
+        if (CIRCLE_check_for_term(st) != TERMINATE) {
+            LOG(CIRCLE_LOG_FATAL, "Expected to terminate but did not.");
+            MPI_Abort(*st->mpi_state_st->work_comm, LIBCIRCLE_MPI_ERROR);
+        }
+        return TERMINATE;
+    }
+
+    LOG(CIRCLE_LOG_DBG, "Sending work request to %d...", source);
     local_work_requested++;
     int32_t temp_buffer = 3;
 
@@ -316,7 +334,7 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
     }
 
     /* Send work request. */
-    MPI_Send(&temp_buffer, 1, MPI_INT, st->next_processor, \
+    MPI_Send(&temp_buffer, 1, MPI_INT, source, \
              WORK_REQUEST, *st->mpi_state_st->work_comm);
 
     /* Count cost of message
@@ -327,7 +345,7 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
     /* Wait for an answer... */
     int terminate, msg;
     MPI_Status status;
-    CIRCLE_wait_on_probe(st, st->next_processor, WORK, &terminate, &msg, &status);
+    CIRCLE_wait_on_probe(st, source, WORK, &terminate, &msg, &status);
 
     if(terminate) {
         return TERMINATE;
@@ -339,7 +357,7 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
     if(size == 0) {
         LOG(CIRCLE_LOG_FATAL,
             "size == 0.");
-        MPI_Abort(0, MPI_COMM_WORLD);
+        MPI_Abort(*st->mpi_state_st->work_comm, LIBCIRCLE_MPI_ERROR);
         return 0;
     }
 
@@ -355,13 +373,11 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
      * If we get here, there was definitely an answer.
      * Receives the offsets then
      */
-    MPI_Recv(st->work_offsets, size, MPI_INT, st->next_processor, \
+    MPI_Recv(st->work_offsets, size, MPI_INT, source, \
              WORK, *st->mpi_state_st->work_comm, \
              &st->mpi_state_st->work_offsets_status);
 
     /* We'll ask somebody else next time */
-    int32_t source = st->next_processor;
-
     CIRCLE_get_next_proc(st);
 
     int32_t items = st->work_offsets[0];
@@ -485,7 +501,7 @@ void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
     if(sizes == NULL) {
         LOG(CIRCLE_LOG_FATAL,
             "Failed to allocate memory for sizes.");
-        MPI_Abort(0, MPI_COMM_WORLD);
+        MPI_Abort(*st->mpi_state_st->work_comm, LIBCIRCLE_MPI_ERROR);
     }
 
     if(CIRCLE_INPUT_ST.options & CIRCLE_SPLIT_EQUAL) {
@@ -585,8 +601,11 @@ int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
  */
 int32_t CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 {
-    int* requestors = (int*)calloc(st->size, sizeof(*requestors));
     uint32_t i = 0;
+
+    /* record list of requesting ranks in requestors
+     * and number in rcount */
+    int* requestors = st->mpi_state_st->requestors;
     uint32_t rcount = 0;
 
     /* This loop is only excuted once.  It is used to initiate receives.
@@ -636,6 +655,12 @@ int32_t CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* 
         return 0;
     }
 
+    /* reset our receives before we send work to requestors */
+    for(i = 0; i < rcount; i++) {
+        MPI_Start(&st->mpi_state_st->request_request[requestors[i]]);
+    }
+
+    /* send work to requestors */
     if(qp->count == 0 || CIRCLE_ABORT_FLAG) {
         for(i = 0; i < rcount; i++) {
             CIRCLE_send_no_work(requestors[i]);
@@ -648,12 +673,6 @@ int32_t CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* 
     else {
         CIRCLE_send_work_to_many(qp, st, requestors, rcount);
     }
-
-    for(i = 0; i < rcount; i++) {
-        MPI_Start(&st->mpi_state_st->request_request[requestors[i]]);
-    }
-
-    free(requestors);
 
     return 0;
 }
