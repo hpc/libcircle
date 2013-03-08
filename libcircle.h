@@ -40,7 +40,7 @@ typedef enum CIRCLE_loglevel
 typedef struct {
     int8_t (*enqueue)(char *element);
     int8_t (*dequeue)(char *element);
-    uint32_t (*local_queue_size)();
+    uint32_t (*local_queue_size)(void);
 } CIRCLE_handle;
 
 /**
@@ -86,19 +86,19 @@ void CIRCLE_abort(void);
  * Call this function to checkpoint libcircle's distributed queue. Each rank
  * writes a file called circle<rank>.txt
  */
-void CIRCLE_checkpoint();
+void CIRCLE_checkpoint(void);
 
 /**
   * Function to return a pointer to the handle.  Useful for threaded applications.
   * You are responsible for maintaining mutual exclusion.
   */
-CIRCLE_handle* CIRCLE_get_handle();
+CIRCLE_handle* CIRCLE_get_handle(void);
 
 /**
  * Call this function to initialize libcircle queues from restart files
  * created by CIRCLE_checkpoint.
  */
-void CIRCLE_read_restarts();
+void CIRCLE_read_restarts(void);
 
 /**
  * After your program has executed, give libcircle a chance to clean up after
