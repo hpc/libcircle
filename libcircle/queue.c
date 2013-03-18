@@ -125,11 +125,11 @@ void CIRCLE_internal_queue_print(CIRCLE_internal_queue_t* qp)
  *
  */
 int8_t CIRCLE_internal_queue_str_extend(CIRCLE_internal_queue_t* qp, \
-                                        int new_size)
+                                        uint32_t new_size)
 {
-    int rc = qp->str_count;
+    uint32_t old_count = qp->str_count;
 
-    while((signed)qp->str_count < new_size) {
+    while(qp->str_count < new_size) {
         qp->str_count += 4096;
     }
 
@@ -137,7 +137,7 @@ int8_t CIRCLE_internal_queue_str_extend(CIRCLE_internal_queue_t* qp, \
     qp->strings = (uintptr_t*) realloc(qp->strings, size);
 
     LOG(CIRCLE_LOG_DBG, "Reallocing string array from" \
-        " [%d] to [%d] [%p] -> [%p]", rc, qp->str_count, \
+        " [%d] to [%d] [%p] -> [%p]", old_count, qp->str_count, \
         (void*)qp->strings, (void*)(qp->strings + size));
 
     if(!qp->strings) {
@@ -154,8 +154,8 @@ int8_t CIRCLE_internal_queue_str_extend(CIRCLE_internal_queue_t* qp, \
  */
 int8_t CIRCLE_internal_queue_extend(CIRCLE_internal_queue_t* qp)
 {
-    size_t current = qp->end - qp->base;
-    current += sysconf(_SC_PAGESIZE) * 4096;
+    size_t current = (size_t) (qp->end - qp->base);
+    current += ((size_t)sysconf(_SC_PAGESIZE)) * 4096;
 
     LOG(CIRCLE_LOG_DBG, "Reallocing queue from [%zd] to [%zd] [%p] -> [%p].", \
         (qp->end - qp->base), current, qp->base, qp->base + current);
@@ -186,7 +186,9 @@ int8_t CIRCLE_internal_queue_push(CIRCLE_internal_queue_t* qp, char* str)
         return -1;
     }
 
-    uint32_t len = strlen(str);
+    /* TODO: check that real_len fits within uint32_t */
+    size_t real_len = strlen(str);
+    uint32_t len = (uint32_t) real_len;
 
     if(len <= 0) {
         LOG(CIRCLE_LOG_ERR, "Attempted to push an empty string onto a queue.");
@@ -310,7 +312,9 @@ int8_t CIRCLE_internal_queue_read(CIRCLE_internal_queue_t* qp, int rank)
     char str[CIRCLE_MAX_STRING_LEN];
 
     while(fgets(str, CIRCLE_MAX_STRING_LEN, checkpoint_file) != NULL) {
-        len = strlen(str);
+        /* TODO: check that real_len fits within uint32_t */
+        size_t real_len = strlen(str);
+        len = (uint32_t) real_len;
 
         if(len > 0) {
             str[len - 1] = '\0';
@@ -326,7 +330,8 @@ int8_t CIRCLE_internal_queue_read(CIRCLE_internal_queue_t* qp, int rank)
         LOG(CIRCLE_LOG_DBG, "Pushed %s onto queue.", str);
     }
 
-    return fclose(checkpoint_file);
+    int fclose_rc = fclose(checkpoint_file);
+    return (int8_t) fclose_rc;
 }
 
 /**
@@ -369,8 +374,8 @@ int8_t CIRCLE_internal_queue_write(CIRCLE_internal_queue_t* qp, int rank)
         }
     }
 
-    return fclose(checkpoint_file);
-
+    int fclose_rc = fclose(checkpoint_file);
+    return (int8_t) fclose_rc;
 }
 
 /* EOF */
