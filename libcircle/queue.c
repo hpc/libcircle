@@ -32,20 +32,21 @@ CIRCLE_internal_queue_t* CIRCLE_internal_queue_init(void)
     qp = (CIRCLE_internal_queue_t*) malloc(sizeof(CIRCLE_internal_queue_t));
 
     /* Number of string pointers we have allocated */
-    qp->str_count = CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE;
+    size_t str_count = CIRCLE_INITIAL_INTERNAL_QUEUE_SIZE;
+    qp->str_count = (int32_t) str_count;
 
     /* Base address of string pool */
     qp->base = (char*) malloc(sizeof(char) * \
                               CIRCLE_MAX_STRING_LEN * \
-                              qp->str_count);
+                              str_count);
     qp->count = 0;
     qp->head = 0;
     qp->end = qp->base + \
-              (CIRCLE_MAX_STRING_LEN * qp->str_count);
+              (CIRCLE_MAX_STRING_LEN * str_count);
 
     /* String pointer array */
     qp->strings = (uintptr_t*) malloc(sizeof(uintptr_t) * \
-                                      qp->str_count);
+                                      str_count);
 
     if(!qp || !qp->base || !qp->strings) {
         LOG(CIRCLE_LOG_ERR, "Failed to allocate a basic queue structure.");
@@ -113,8 +114,7 @@ void CIRCLE_internal_queue_dump(CIRCLE_internal_queue_t* qp)
  */
 void CIRCLE_internal_queue_print(CIRCLE_internal_queue_t* qp)
 {
-    uint32_t i = 0;
-
+    int32_t i = 0;
     for(i = 0; i < qp->count; i++) {
         LOG(CIRCLE_LOG_DBG, "\t[%p][%d] %s", \
             qp->base + qp->strings[i], i, qp->base + qp->strings[i]);
@@ -125,15 +125,16 @@ void CIRCLE_internal_queue_print(CIRCLE_internal_queue_t* qp)
  *
  */
 int8_t CIRCLE_internal_queue_str_extend(CIRCLE_internal_queue_t* qp, \
-                                        uint32_t new_size)
+                                        int32_t new_size)
 {
-    uint32_t old_count = qp->str_count;
+    int32_t old_count = qp->str_count;
 
+    /* TODO: check for overflow */
     while(qp->str_count < new_size) {
         qp->str_count += 4096;
     }
 
-    size_t size = qp->str_count * sizeof(uintptr_t);
+    size_t size = ((size_t)qp->str_count) * sizeof(uintptr_t);
     qp->strings = (uintptr_t*) realloc(qp->strings, size);
 
     LOG(CIRCLE_LOG_DBG, "Reallocing string array from" \

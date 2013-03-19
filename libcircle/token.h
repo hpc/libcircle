@@ -72,9 +72,9 @@ typedef struct CIRCLE_state_st {
     int32_t size;
     unsigned seed;
     int32_t next_processor;
-    uint32_t offset_count;
-    uint32_t* work_offsets;
-    uint32_t* request_offsets;
+    int32_t offset_count;
+    int* work_offsets;
+    int* request_offsets;
 
 } CIRCLE_state_st;
 

@@ -48,7 +48,7 @@ int8_t CIRCLE_ABORT_FLAG = 0;
  * to checkpoint.
  */
 #pragma GCC diagnostic ignored "-Wunused-parameter"
-void CIRCLE_MPI_error_handler(MPI_Comm* comm, int* err, ...)
+static void CIRCLE_MPI_error_handler(MPI_Comm* comm, int* err, ...)
 {
     char name[MPI_MAX_OBJECT_NAME];
     int namelen;
@@ -74,7 +74,7 @@ void CIRCLE_MPI_error_handler(MPI_Comm* comm, int* err, ...)
  * Wrapper for pushing an element on the queue
  *
  */
-int8_t CIRCLE_enqueue(char* element)
+static int8_t CIRCLE_enqueue(char* element)
 {
     return CIRCLE_internal_queue_push(CIRCLE_INPUT_ST.queue, element);
 }
@@ -82,7 +82,7 @@ int8_t CIRCLE_enqueue(char* element)
 /**
  * Wrapper for popping an element
  */
-int8_t CIRCLE_dequeue(char* element)
+static int8_t CIRCLE_dequeue(char* element)
 {
     return CIRCLE_internal_queue_pop(CIRCLE_INPUT_ST.queue, element);
 }
@@ -90,9 +90,9 @@ int8_t CIRCLE_dequeue(char* element)
 /**
  * Wrapper for getting the local queue size
  */
-uint32_t CIRCLE_local_queue_size(void)
+static uint32_t CIRCLE_local_queue_size(void)
 {
-    return CIRCLE_INPUT_ST.queue->count;
+    return (uint32_t)CIRCLE_INPUT_ST.queue->count;
 }
 
 /**
@@ -116,7 +116,7 @@ int8_t _CIRCLE_checkpoint(void)
 /**
  * Initializes all variables local to a rank
  */
-void CIRCLE_init_local_state(CIRCLE_state_st* local_state, int32_t size)
+static void CIRCLE_init_local_state(CIRCLE_state_st* local_state, int32_t size)
 {
     int i = 0;
     local_state->token = WHITE;
@@ -128,23 +128,23 @@ void CIRCLE_init_local_state(CIRCLE_state_st* local_state, int32_t size)
     local_state->term_pending_receive = 0;
     local_state->incoming_token = BLACK;
 
-    size_t ranks = (size_t) size;
-    local_state->request_offsets = (uint32_t*) calloc(\
-                                   CIRCLE_INPUT_ST.queue->str_count, \
-                                   sizeof(uint32_t));
-    local_state->work_offsets = (uint32_t*) calloc(\
-                                CIRCLE_INPUT_ST.queue->str_count, \
-                                sizeof(unsigned int));
+    size_t array_elems = (size_t) size;
+    local_state->request_offsets = (int*) calloc(\
+                                   (size_t)CIRCLE_INPUT_ST.queue->str_count, \
+                                   sizeof(int));
+    local_state->work_offsets = (int*) calloc(\
+                                (size_t)CIRCLE_INPUT_ST.queue->str_count, \
+                                sizeof(int));
     local_state->offset_count = CIRCLE_INPUT_ST.queue->str_count;
-    local_state->request_flag = (int32_t*) calloc(ranks, sizeof(int32_t));
-    local_state->request_recv_buf = (int32_t*) calloc(ranks, sizeof(int32_t));
+    local_state->request_flag = (int32_t*) calloc(array_elems, sizeof(int32_t));
+    local_state->request_recv_buf = (int32_t*) calloc(array_elems, sizeof(int32_t));
 
     local_state->mpi_state_st->request_status = \
-            (MPI_Status*) malloc(sizeof(MPI_Status) * ranks);
+            (MPI_Status*) malloc(sizeof(MPI_Status) * array_elems);
     local_state->mpi_state_st->request_request = \
-            (MPI_Request*) malloc(sizeof(MPI_Request) * ranks);
+            (MPI_Request*) malloc(sizeof(MPI_Request) * array_elems);
     local_state->mpi_state_st->requestors = \
-            (int*) malloc(sizeof(int) * ranks);
+            (int*) malloc(sizeof(int) * array_elems);
 
     local_state->mpi_state_st->work_comm = CIRCLE_INPUT_ST.work_comm;
     local_state->mpi_state_st->token_comm = CIRCLE_INPUT_ST.token_comm;
@@ -174,7 +174,7 @@ static void CIRCLE_free(void* pptr)
 /**
  * Free memory associated with state
  */
-void CIRCLE_finalize_local_state(CIRCLE_state_st* local_state)
+static void CIRCLE_finalize_local_state(CIRCLE_state_st* local_state)
 {
   CIRCLE_free(&local_state->request_offsets);
   CIRCLE_free(&local_state->work_offsets);
@@ -198,7 +198,7 @@ void CIRCLE_finalize_local_state(CIRCLE_state_st* local_state)
  *     -# If after requesting work, this rank still doesn't have any,
  *        check for termination conditions.
  */
-void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
+static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
 {
     int token = WHITE;
     int work_status = -1;
@@ -245,7 +245,7 @@ void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
  * Answers any pending work requests in case a rank is blocking,
  * waiting for a response.
  */
-void CIRCLE_cleanup_mpi_messages(CIRCLE_state_st* sptr)
+static void CIRCLE_cleanup_mpi_messages(CIRCLE_state_st* sptr)
 {
     int i = 0;
     int j = 0;
