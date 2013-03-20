@@ -96,6 +96,9 @@ int32_t  CIRCLE_send_work(CIRCLE_internal_queue_t* queue, \
                           CIRCLE_state_st* state, \
                           int32_t dest, int32_t count);
 
+int8_t CIRCLE_extend_offsets(CIRCLE_state_st* st, int32_t size);
+void CIRCLE_print_offsets(uint32_t* offsets, int32_t count);
+
 void CIRCLE_bcast_abort(void);
 
 #endif /* TOKEN_H */
