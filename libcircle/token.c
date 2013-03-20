@@ -231,7 +231,6 @@ void CIRCLE_wait_on_probe(CIRCLE_state_st* st, int32_t source, int32_t tag, int*
 
     /* loop until we get a message on work communicator or a terminate signal */
     int done = 0;
-
     while(! done) {
         int flag;
         MPI_Iprobe(source, tag, *st->mpi_state_st->work_comm, &flag, status);
@@ -256,7 +255,6 @@ void CIRCLE_wait_on_probe(CIRCLE_state_st* st, int32_t source, int32_t tag, int*
             *terminate = 1;
             done = 1;
         }
-
         if(flag) {
             *msg = 1;
             done = 1;
@@ -269,10 +267,18 @@ void CIRCLE_wait_on_probe(CIRCLE_state_st* st, int32_t source, int32_t tag, int*
 /**
  * @brief Extend the offset arrays.
  */
-int8_t CIRCLE_extend_offsets(CIRCLE_state_st* st, uint32_t size)
+int8_t CIRCLE_extend_offsets(CIRCLE_state_st* st, int32_t size)
 {
-    uint32_t count = st->offset_count;
+    /* get current size of offset arrays */
+    int32_t count = st->offset_count;
 
+    /* if size we need is less than or equal to current size,
+     * we don't need to do anything */
+    if(size <= count) {
+        return 0;
+    }
+
+    /* otherwise, allocate more in blocks of 4096 at a time */
     while(count < size) {
         count += 4096;
     }
@@ -280,19 +286,20 @@ int8_t CIRCLE_extend_offsets(CIRCLE_state_st* st, uint32_t size)
     LOG(CIRCLE_LOG_DBG, "Extending offset arrays from %d to %d.", \
         st->offset_count, count);
 
-    st->work_offsets = (uint32_t*) realloc(st->work_offsets, \
-                                           count * sizeof(uint32_t));
-    st->request_offsets = (uint32_t*) realloc(st->request_offsets, \
-                          count * sizeof(uint32_t));
+    st->work_offsets = (int*) realloc(st->work_offsets, \
+                                           (size_t)count * sizeof(int));
+    st->request_offsets = (int*) realloc(st->request_offsets, \
+                          (size_t)count * sizeof(int));
 
     LOG(CIRCLE_LOG_DBG, "Work offsets: [%p] -> [%p]", \
         (void*) st->work_offsets, \
-        (void*)(st->work_offsets + (count * sizeof(uint32_t))));
+        (void*)(st->work_offsets + ((size_t)count * sizeof(int))));
 
     LOG(CIRCLE_LOG_DBG, "Request offsets: [%p] -> [%p]", \
         (void*) st->request_offsets, \
-        (void*)(st->request_offsets + (count * sizeof(uint32_t))));
+        (void*)(st->request_offsets + ((size_t)count * sizeof(int))));
 
+    /* record new length of offset arrays */
     st->offset_count = count;
 
     if(!st->work_offsets || !st->request_offsets) {
@@ -360,11 +367,9 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
     }
 
     /* Check to see if the offset array is large enough */
-    if(size >= (signed)st->offset_count) {
-        if(CIRCLE_extend_offsets(st, (uint32_t)size) < 0) {
-            LOG(CIRCLE_LOG_ERR, "Error: Unable to extend offsets.");
-            return -1;
-        }
+    if(CIRCLE_extend_offsets(st, size) < 0) {
+        LOG(CIRCLE_LOG_ERR, "Error: Unable to extend offsets.");
+        return -1;
     }
 
     /*
@@ -378,13 +383,9 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
     /* We'll ask somebody else next time */
     CIRCLE_get_next_proc(st);
 
-    int32_t items = st->work_offsets[0];
-    int32_t chars = st->work_offsets[1];
-
-    if(items == -1) {
-        return -1;
-    }
-    else if(items == 0) {
+    int items = st->work_offsets[0];
+    int chars = st->work_offsets[1];
+    if(items == 0) {
         LOG(CIRCLE_LOG_DBG, "Received no work.");
         local_no_work_received++;
         return 0;
@@ -393,9 +394,12 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
         CIRCLE_ABORT_FLAG = 1;
         return ABORT;
     }
+    else if(items < 0) {
+        return -1;
+    }
 
     /* Make sure our queue is large enough */
-    while((qp->base + chars + 1) > qp->end) {
+    while((qp->base + chars) > qp->end) {
         if(CIRCLE_internal_queue_extend(qp) < 0) {
             LOG(CIRCLE_LOG_ERR, "Error: Unable to realloc string pool.");
             return -1;
@@ -403,8 +407,9 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
     }
 
     /* Make sure the queue string array is large enough */
-    if(items > (signed)qp->str_count) {
-        if(CIRCLE_internal_queue_str_extend(qp, items) < 0) {
+    int32_t count = items;
+    if(count > qp->str_count) {
+        if(CIRCLE_internal_queue_str_extend(qp, count) < 0) {
             LOG(CIRCLE_LOG_ERR, "Error: Unable to realloc string array.");
             return -1;
         }
@@ -414,15 +419,13 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
      * Good, we have a pending message from source with a WORK tag.
      * It can only be a work queue.
      */
-    int numbytes = (int) ((chars + 1) * sizeof(char));
-    MPI_Recv(qp->base, numbytes, MPI_BYTE, source, WORK, \
+    MPI_Recv(qp->base, chars, MPI_BYTE, source, WORK, \
              *st->mpi_state_st->work_comm, MPI_STATUS_IGNORE);
 
-    qp->count = items;
-    uint32_t i = 0;
-
-    for(i = 0; i < qp->count; i++) {
-        qp->strings[i] = st->work_offsets[i + 2];
+    int32_t i = 0;
+    qp->count = count;
+    for(i = 0; i < count; i++) {
+        qp->strings[i] = (uintptr_t) st->work_offsets[i + 2];
     }
 
     if(qp->strings[0] != 0) {
@@ -462,17 +465,14 @@ static void spread_counts(int* sizes, int ranks, int count)
     int32_t i = 0;
     int32_t base  = count / ranks;
     int32_t extra = count - base * ranks;
-
-    while(i < extra) {
+    while (i < extra) {
         sizes[i] = base + 1;
         i++;
     }
-
-    while(i < ranks) {
+    while (i < ranks) {
         sizes[i] = base;
         i++;
     }
-
     return;
 }
 
@@ -480,9 +480,9 @@ static void spread_counts(int* sizes, int ranks, int count)
  * Distributes a random amount of the local work queue to the n requestors.
  */
 void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
-                              CIRCLE_state_st* st, int* requestors, int32_t rcount)
+                              CIRCLE_state_st* st, int* requestors, int rcount)
 {
-    int32_t i = 0;
+    int i = 0;
 
     if(rcount <= 0) {
         LOG(CIRCLE_LOG_FATAL,
@@ -495,9 +495,8 @@ void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
      * number of elements we'll send to each, storing the amount we
      * keep as the first entry */
     int num_ranks = rcount + 1;
-    int* sizes = (int*) malloc(num_ranks * sizeof(int));
-
-    if(sizes == NULL) {
+    int* sizes = (int*) malloc((size_t)num_ranks * sizeof(int));
+    if (sizes == NULL) {
         LOG(CIRCLE_LOG_FATAL,
             "Failed to allocate memory for sizes.");
         MPI_Abort(*st->mpi_state_st->work_comm, LIBCIRCLE_MPI_ERROR);
@@ -511,8 +510,7 @@ void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
         /* randomly pick a total amount to send to requestors,
          * but keep at least one item */
         int send_count = (rand_r(&st->seed) % qp->count) + 1;
-
-        if(send_count == qp->count) {
+        if (send_count == qp->count) {
             send_count--;
         }
 
@@ -524,7 +522,7 @@ void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
     /* send elements to requestors, note the requestor array
      * starts at 0 and sizes start at 1 */
     for(i = 0; i < rcount; i ++) {
-        CIRCLE_send_work(qp, st, requestors[i], sizes[i + 1]);
+        CIRCLE_send_work(qp, st, requestors[i], sizes[i+1]);
     }
 
     free(sizes);
@@ -536,7 +534,7 @@ void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
  * Sends work to a requestor
  */
 int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
-                         int32_t dest, int32_t count)
+                         int dest, int32_t count)
 {
     if(count <= 0) {
         CIRCLE_send_no_work(dest);
@@ -545,51 +543,60 @@ int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
     }
 
     /* For termination detection */
-    if((int)dest < (int)st->rank || (int)dest == (int)st->token_partner_recv) {
+    if(dest < st->rank || dest == st->token_partner_recv) {
         st->token = BLACK;
     }
 
     /* Base address of the buffer to be sent */
-    uintptr_t b = qp->strings[qp->count - count];
+    int32_t start_elem = qp->count - count;
+    uintptr_t start_offset = qp->strings[start_elem];
 
     /* Address of the beginning of the last string to be sent */
-    uintptr_t e = qp->strings[qp->count - 1];
+    int32_t end_elem = qp->count - 1;
+    uintptr_t end_offset = qp->strings[end_elem];
 
     /* Distance between them */
-    size_t diff = e - b;
-    diff += strlen(qp->base + e);
+    size_t len = end_offset - start_offset;
+    len += strlen(qp->base + end_offset) + 1;
+
+    /* TODO: check that len doesn't overflow an int */
+    int bytes = (int) len;
+
+    /* total number of ints we'll send */
+    int numoffsets = 2 + count;
 
     /* Check to see if the offset array is large enough */
-    if(count >= (signed)st->offset_count) {
-        if(CIRCLE_extend_offsets(st, (uint32_t)count) < 0) {
-            LOG(CIRCLE_LOG_ERR, "Error: Unable to extend offsets.");
-            return -1;
-        }
+    if(CIRCLE_extend_offsets(st, numoffsets) < 0) {
+        LOG(CIRCLE_LOG_ERR, "Error: Unable to extend offsets.");
+        return -1;
     }
 
     /* offsets[0] = number of strings */
     /* offsets[1] = number of chars being sent */
-    st->request_offsets[0] = count;
-    st->request_offsets[1] = diff;
+    st->request_offsets[0] = (int) count;
+    st->request_offsets[1] = (int) bytes;
 
-    int32_t j = qp->count - count;
+    /* now compute offset of each string */
     int32_t i = 0;
-
-    for(i = 0; i < (int32_t)st->request_offsets[0]; i++) {
-        st->request_offsets[i + 2] = qp->strings[j++] - b;
+    int32_t current_elem = start_elem;
+    for(i = 0; i < count; i++) {
+        st->request_offsets[2 + i] = (int) (qp->strings[current_elem] - start_offset);
+        current_elem++;
     }
 
-    /* offsets[qp->count - qp->count/2+2]  is the size of the last string */
-    st->request_offsets[count + 2] = strlen(qp->base + qp->strings[qp->count - 1]);
-
-    MPI_Ssend(st->request_offsets, st->request_offsets[0] + 2, \
+    /* send item count, total bytes, and offsets of each item */
+    MPI_Ssend(st->request_offsets, numoffsets, \
               MPI_INT, dest, WORK, *st->mpi_state_st->work_comm);
 
-    MPI_Ssend(qp->base + b, (diff + 1) * sizeof(char), MPI_BYTE, \
+    /* send data */
+    char* buf = qp->base + start_offset;
+    MPI_Ssend(buf, bytes, MPI_BYTE, \
               dest, WORK, *st->mpi_state_st->work_comm);
 
     LOG(CIRCLE_LOG_DBG,
         "Sent %d of %d items to %d.", st->request_offsets[0], qp->count, dest);
+
+    /* subtract elements from our queue */
     qp->count = qp->count - count;
 
     return 0;
@@ -600,12 +607,12 @@ int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
  */
 int32_t CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 {
-    int32_t i = 0;
+    int i = 0;
 
     /* record list of requesting ranks in requestors
      * and number in rcount */
     int* requestors = st->mpi_state_st->requestors;
-    int32_t rcount = 0;
+    int rcount = 0;
 
     /* This loop is only excuted once.  It is used to initiate receives.
      * When a received is completed, we repost it immediately to capture
