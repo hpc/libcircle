@@ -115,6 +115,7 @@ void CIRCLE_internal_queue_dump(CIRCLE_internal_queue_t* qp)
 void CIRCLE_internal_queue_print(CIRCLE_internal_queue_t* qp)
 {
     int32_t i = 0;
+
     for(i = 0; i < qp->count; i++) {
         LOG(CIRCLE_LOG_DBG, "\t[%p][%d] %s", \
             qp->base + qp->strings[i], i, qp->base + qp->strings[i]);
@@ -155,7 +156,7 @@ int8_t CIRCLE_internal_queue_str_extend(CIRCLE_internal_queue_t* qp, \
  */
 int8_t CIRCLE_internal_queue_extend(CIRCLE_internal_queue_t* qp)
 {
-    size_t current = (size_t) (qp->end - qp->base);
+    size_t current = (size_t)(qp->end - qp->base);
     current += ((size_t)sysconf(_SC_PAGESIZE)) * 4096;
 
     LOG(CIRCLE_LOG_DBG, "Reallocing queue from [%zd] to [%zd] [%p] -> [%p].", \

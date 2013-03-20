@@ -204,12 +204,13 @@ int32_t CIRCLE_check_for_term(CIRCLE_state_st* st)
 inline void
 CIRCLE_get_next_proc(CIRCLE_state_st* st)
 {
-    if (st->size > 1) {
+    if(st->size > 1) {
         do {
             st->next_processor = rand_r(&st->seed) % st->size;
         }
         while(st->next_processor == st->rank);
-    } else {
+    }
+    else {
         /* for a job size of one, we have no one to ask */
         st->next_processor = MPI_PROC_NULL;
     }
@@ -231,11 +232,13 @@ void CIRCLE_wait_on_probe(CIRCLE_state_st* st, int32_t source, int32_t tag, int*
 
     /* loop until we get a message on work communicator or a terminate signal */
     int done = 0;
+
     while(! done) {
         int flag;
         MPI_Iprobe(source, tag, *st->mpi_state_st->work_comm, &flag, status);
 
         int32_t i = 0;
+
         for(i = 0; i < st->size; i++) {
             st->request_flag[i] = 0;
 
@@ -255,6 +258,7 @@ void CIRCLE_wait_on_probe(CIRCLE_state_st* st, int32_t source, int32_t tag, int*
             *terminate = 1;
             done = 1;
         }
+
         if(flag) {
             *msg = 1;
             done = 1;
@@ -287,9 +291,9 @@ int8_t CIRCLE_extend_offsets(CIRCLE_state_st* st, int32_t size)
         st->offset_count, count);
 
     st->work_offsets = (int*) realloc(st->work_offsets, \
-                                           (size_t)count * sizeof(int));
+                                      (size_t)count * sizeof(int));
     st->request_offsets = (int*) realloc(st->request_offsets, \
-                          (size_t)count * sizeof(int));
+                                         (size_t)count * sizeof(int));
 
     LOG(CIRCLE_LOG_DBG, "Work offsets: [%p] -> [%p]", \
         (void*) st->work_offsets, \
@@ -322,12 +326,13 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
     int32_t source = st->next_processor;
 
     /* have no one to ask, we're done */
-    if (source == MPI_PROC_NULL) {
+    if(source == MPI_PROC_NULL) {
         /* initiate termination */
-        if (CIRCLE_check_for_term(st) != TERMINATE) {
+        if(CIRCLE_check_for_term(st) != TERMINATE) {
             LOG(CIRCLE_LOG_FATAL, "Expected to terminate but did not.");
             MPI_Abort(*st->mpi_state_st->work_comm, LIBCIRCLE_MPI_ERROR);
         }
+
         return TERMINATE;
     }
 
@@ -385,6 +390,7 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 
     int items = st->work_offsets[0];
     int chars = st->work_offsets[1];
+
     if(items == 0) {
         LOG(CIRCLE_LOG_DBG, "Received no work.");
         local_no_work_received++;
@@ -408,6 +414,7 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 
     /* Make sure the queue string array is large enough */
     int32_t count = items;
+
     if(count > qp->str_count) {
         if(CIRCLE_internal_queue_str_extend(qp, count) < 0) {
             LOG(CIRCLE_LOG_ERR, "Error: Unable to realloc string array.");
@@ -424,6 +431,7 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 
     int32_t i = 0;
     qp->count = count;
+
     for(i = 0; i < count; i++) {
         qp->strings[i] = (uintptr_t) st->work_offsets[i + 2];
     }
@@ -465,14 +473,17 @@ static void spread_counts(int* sizes, int ranks, int count)
     int32_t i = 0;
     int32_t base  = count / ranks;
     int32_t extra = count - base * ranks;
-    while (i < extra) {
+
+    while(i < extra) {
         sizes[i] = base + 1;
         i++;
     }
-    while (i < ranks) {
+
+    while(i < ranks) {
         sizes[i] = base;
         i++;
     }
+
     return;
 }
 
@@ -496,7 +507,8 @@ void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
      * keep as the first entry */
     int num_ranks = rcount + 1;
     int* sizes = (int*) malloc((size_t)num_ranks * sizeof(int));
-    if (sizes == NULL) {
+
+    if(sizes == NULL) {
         LOG(CIRCLE_LOG_FATAL,
             "Failed to allocate memory for sizes.");
         MPI_Abort(*st->mpi_state_st->work_comm, LIBCIRCLE_MPI_ERROR);
@@ -510,7 +522,8 @@ void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
         /* randomly pick a total amount to send to requestors,
          * but keep at least one item */
         int send_count = (rand_r(&st->seed) % qp->count) + 1;
-        if (send_count == qp->count) {
+
+        if(send_count == qp->count) {
             send_count--;
         }
 
@@ -522,7 +535,7 @@ void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
     /* send elements to requestors, note the requestor array
      * starts at 0 and sizes start at 1 */
     for(i = 0; i < rcount; i ++) {
-        CIRCLE_send_work(qp, st, requestors[i], sizes[i+1]);
+        CIRCLE_send_work(qp, st, requestors[i], sizes[i + 1]);
     }
 
     free(sizes);
@@ -579,8 +592,9 @@ int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
     /* now compute offset of each string */
     int32_t i = 0;
     int32_t current_elem = start_elem;
+
     for(i = 0; i < count; i++) {
-        st->request_offsets[2 + i] = (int) (qp->strings[current_elem] - start_offset);
+        st->request_offsets[2 + i] = (int)(qp->strings[current_elem] - start_offset);
         current_elem++;
     }
 

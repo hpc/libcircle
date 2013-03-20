@@ -144,7 +144,7 @@ static void CIRCLE_init_local_state(CIRCLE_state_st* local_state, int32_t size)
     local_state->mpi_state_st->request_request = \
             (MPI_Request*) malloc(sizeof(MPI_Request) * array_elems);
     local_state->mpi_state_st->requestors = \
-            (int*) malloc(sizeof(int) * array_elems);
+                                            (int*) malloc(sizeof(int) * array_elems);
 
     local_state->mpi_state_st->work_comm = CIRCLE_INPUT_ST.work_comm;
     local_state->mpi_state_st->token_comm = CIRCLE_INPUT_ST.token_comm;
@@ -162,12 +162,14 @@ static void CIRCLE_init_local_state(CIRCLE_state_st* local_state, int32_t size)
 static void CIRCLE_free(void* pptr)
 {
     void** ptr = (void**) pptr;
-    if (ptr != NULL) {
-        if (*ptr != NULL) {
+
+    if(ptr != NULL) {
+        if(*ptr != NULL) {
             free(*ptr);
             *ptr = NULL;
         }
     }
+
     return;
 }
 
@@ -176,14 +178,14 @@ static void CIRCLE_free(void* pptr)
  */
 static void CIRCLE_finalize_local_state(CIRCLE_state_st* local_state)
 {
-  CIRCLE_free(&local_state->request_offsets);
-  CIRCLE_free(&local_state->work_offsets);
-  CIRCLE_free(&local_state->request_flag);
-  CIRCLE_free(&local_state->request_recv_buf);
-  CIRCLE_free(&local_state->mpi_state_st->request_status);
-  CIRCLE_free(&local_state->mpi_state_st->request_request);
-  CIRCLE_free(&local_state->mpi_state_st->requestors);
-  return;
+    CIRCLE_free(&local_state->request_offsets);
+    CIRCLE_free(&local_state->work_offsets);
+    CIRCLE_free(&local_state->request_flag);
+    CIRCLE_free(&local_state->request_recv_buf);
+    CIRCLE_free(&local_state->mpi_state_st->request_status);
+    CIRCLE_free(&local_state->mpi_state_st->request_request);
+    CIRCLE_free(&local_state->mpi_state_st->requestors);
+    return;
 }
 
 /**
