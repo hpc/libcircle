@@ -50,6 +50,7 @@ CIRCLE_internal_queue_t* CIRCLE_internal_queue_init(void)
 
     if(!qp || !qp->base || !qp->strings) {
         LOG(CIRCLE_LOG_ERR, "Failed to allocate a basic queue structure.");
+        CIRCLE_internal_queue_free(qp);
         return (CIRCLE_internal_queue_t*) NULL;
     }
 
