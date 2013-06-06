@@ -1,6 +1,11 @@
 #ifndef LIBCIRCLE_H
 #define LIBCIRCLE_H
 
+/* define a C interface */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 
 /**
@@ -115,5 +120,9 @@ void CIRCLE_enable_logging(enum CIRCLE_loglevel level);
  * Returns an elapsed time on the calling processor for benchmarking purposes.
  */
 double CIRCLE_wtime(void);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif /* LIBCIRCLE_H */
