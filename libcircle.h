@@ -1,12 +1,12 @@
 #ifndef LIBCIRCLE_H
 #define LIBCIRCLE_H
 
+#include <stdint.h>
+
 /* define a C interface */
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include <stdint.h>
 
 /**
  * The maximum length of a string value which is allowed to be placed on the
@@ -22,8 +22,9 @@ extern "C" {
  * Run time flags for the behavior of splitting work.
  */
 #define CIRCLE_SPLIT_RANDOM     (1 << 0)              /* Split work randomly. */
-#define CIRCLE_SPLIT_EQUAL      ~CIRCLE_SPLIT_RANDOM  /* Split work evenly */
-#define CIRCLE_DEFAULT_FLAGS    CIRCLE_SPLIT_RANDOM   /* Default behavior is random work stealing */
+#define CIRCLE_SPLIT_EQUAL      (1 << 1)              /* Split work evenly */
+#define CIRCLE_CREATE_GLOBAL    (1 << 2)              /* Call create callback on all procs */
+#define CIRCLE_DEFAULT_FLAGS    CIRCLE_SPLIT_EQUAL    /* Default behavior is random work stealing */
 
 /**
  * The various logging levels that libcircle will output.

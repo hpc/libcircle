@@ -347,9 +347,15 @@ int8_t CIRCLE_worker()
         LOG(CIRCLE_LOG_DBG, "Using randomized load splitting.");
     }
 
+    /* start the termination token on rank 0 */
     if(rank == 0) {
-        (*(CIRCLE_INPUT_ST.create_cb))(&queue_handle);
         local_state.have_token = 1;
+    }
+
+    /* start by adding work to queue by calling create_cb,
+     * only invoke on master unless CREATE_GLOBAL is set */
+    if(rank == 0 || CIRCLE_INPUT_ST.options & CIRCLE_CREATE_GLOBAL) {
+        (*(CIRCLE_INPUT_ST.create_cb))(&queue_handle);
     }
 
     CIRCLE_work_loop(sptr, &queue_handle);
