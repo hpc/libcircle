@@ -9,9 +9,8 @@
 #endif
 
 typedef struct CIRCLE_internal_queue_t {
-    char* base;     /* Base of the memory pool */
-    char* end;      /* End of the memory pool */
-    uintptr_t next;     /* The location of the next string */
+    char* base;         /* Base of the memory pool */
+    size_t bytes;       /* current capacity of queue in bytes */
     uintptr_t head;     /* The location of the next free byte */
     uintptr_t* strings; /* The string data */
     int32_t str_count;  /* The maximum number of strings the queue can hold */
@@ -29,7 +28,7 @@ void CIRCLE_internal_queue_print(CIRCLE_internal_queue_t* qp);
 
 int8_t CIRCLE_internal_queue_write(CIRCLE_internal_queue_t* qp, int rank);
 int8_t CIRCLE_internal_queue_read(CIRCLE_internal_queue_t* qp, int rank);
-int8_t CIRCLE_internal_queue_extend(CIRCLE_internal_queue_t* qp);
-int8_t CIRCLE_internal_queue_str_extend(CIRCLE_internal_queue_t* qp, int32_t new_size);
+int8_t CIRCLE_internal_queue_extend(CIRCLE_internal_queue_t* qp, size_t size);
+int8_t CIRCLE_internal_queue_str_extend(CIRCLE_internal_queue_t* qp, int32_t count);
 
 #endif /* QUEUE_H */

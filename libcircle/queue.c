@@ -36,13 +36,10 @@ CIRCLE_internal_queue_t* CIRCLE_internal_queue_init(void)
     qp->str_count = (int32_t) str_count;
 
     /* Base address of string pool */
-    qp->base = (char*) malloc(sizeof(char) * \
-                              CIRCLE_MAX_STRING_LEN * \
-                              str_count);
+    qp->bytes = sizeof(char) * CIRCLE_MAX_STRING_LEN * str_count;
+    qp->base  = (char*) malloc(qp->bytes);
     qp->count = 0;
-    qp->head = 0;
-    qp->end = qp->base + \
-              (CIRCLE_MAX_STRING_LEN * str_count);
+    qp->head  = 0;
 
     /* String pointer array */
     qp->strings = (uintptr_t*) malloc(sizeof(uintptr_t) * \
@@ -97,8 +94,7 @@ void CIRCLE_internal_queue_dump(CIRCLE_internal_queue_t* qp)
     uint32_t i = 0;
     char* p = qp->base;
 
-    while(p++ != (qp->base + qp->strings[qp->count - 1] + \
-                  strlen(qp->base + qp->strings[qp->count - 1 ]))) {
+    while(p++ < (qp->base + qp->bytes)) {
         if(i++ % 120 == 0) {
             LOG(CIRCLE_LOG_DBG, "%c", *p);
         }
@@ -155,13 +151,17 @@ int8_t CIRCLE_internal_queue_str_extend(CIRCLE_internal_queue_t* qp, \
  * Extend the circle queue size
  *
  */
-int8_t CIRCLE_internal_queue_extend(CIRCLE_internal_queue_t* qp)
+int8_t CIRCLE_internal_queue_extend(CIRCLE_internal_queue_t* qp, size_t new_size)
 {
-    size_t current = (size_t)(qp->end - qp->base);
-    current += ((size_t)sysconf(_SC_PAGESIZE)) * 4096;
+    size_t current = qp->bytes;
+
+    /* TODO: check for overflow */
+    while (current < new_size) {
+        current += ((size_t)sysconf(_SC_PAGESIZE)) * 4096;
+    }
 
     LOG(CIRCLE_LOG_DBG, "Reallocing queue from [%zd] to [%zd] [%p] -> [%p].", \
-        (qp->end - qp->base), current, qp->base, qp->base + current);
+        qp->bytes, current, qp->base, qp->base + current);
 
     qp->base = (char*) realloc(qp->base, current);
 
@@ -170,7 +170,7 @@ int8_t CIRCLE_internal_queue_extend(CIRCLE_internal_queue_t* qp)
         return -1;
     }
 
-    qp->end = qp->base + current;
+    qp->bytes = current;
     return 0;
 }
 
@@ -190,7 +190,7 @@ int8_t CIRCLE_internal_queue_push(CIRCLE_internal_queue_t* qp, char* str)
     }
 
     /* TODO: check that real_len fits within uint32_t */
-    size_t real_len = strlen(str);
+    size_t real_len = strlen(str) + 1;
     uint32_t len = (uint32_t) real_len;
 
     if(len <= 0) {
@@ -198,30 +198,28 @@ int8_t CIRCLE_internal_queue_push(CIRCLE_internal_queue_t* qp, char* str)
         return -1;
     }
 
-    if(qp->count > qp->str_count) {
-        LOG(CIRCLE_LOG_DBG, "Extending string array by 4096.");
-
-        if(CIRCLE_internal_queue_str_extend(qp, qp->count + 4096) < 0) {
-            return -1;
-        }
-    }
-
-    if(qp->count > 0) {
-        if(qp->base + qp->strings[qp->count - 1] + \
-                CIRCLE_MAX_STRING_LEN >= qp->end) {
-            LOG(CIRCLE_LOG_DBG, \
-                "The queue is not large enough to add another value.");
-
-            if(CIRCLE_internal_queue_extend(qp) < 0) {
-                return -1;
-            }
-        }
-    }
-
     if(len > CIRCLE_MAX_STRING_LEN) {
         LOG(CIRCLE_LOG_ERR, \
             "Attempted to push a value that was larger than expected.");
         return -1;
+    }
+
+    if(qp->count + 1 > qp->str_count) {
+        LOG(CIRCLE_LOG_DBG, "Extending string array by 4096.");
+
+        if(CIRCLE_internal_queue_str_extend(qp, qp->count + 1) < 0) {
+            return -1;
+        }
+    }
+
+    size_t new_bytes = (size_t)(qp->head + len) * sizeof(char);
+    if(new_bytes > qp->bytes) {
+        LOG(CIRCLE_LOG_DBG, \
+            "The queue is not large enough to add another value.");
+
+        if(CIRCLE_internal_queue_extend(qp, new_bytes) < 0) {
+            return -1;
+        }
     }
 
     /* Set our write location to the end of the current strings array. */
@@ -234,7 +232,7 @@ int8_t CIRCLE_internal_queue_push(CIRCLE_internal_queue_t* qp, char* str)
      * Make head point to the character after the string (strlen doesn't
      * include a trailing null).
      */
-    qp->head = qp->head + strlen(qp->base + qp->head) + 1;
+    qp->head += len;
 
     /* Make the head point to the next available memory */
     qp->count++;
@@ -269,8 +267,10 @@ int8_t CIRCLE_internal_queue_pop(CIRCLE_internal_queue_t* qp, char* str)
     }
 
     /* Copy last element into str */
-    strcpy(str, qp->base + qp->strings[qp->count - 1]);
-    qp->count = qp->count - 1;
+    uintptr_t current = qp->strings[qp->count - 1];
+    strcpy(str, qp->base + current);
+    qp->head = current;
+    qp->count--;
 
     return 0;
 }

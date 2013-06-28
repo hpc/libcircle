@@ -405,8 +405,9 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
     }
 
     /* Make sure our queue is large enough */
-    while((qp->base + chars) > qp->end) {
-        if(CIRCLE_internal_queue_extend(qp) < 0) {
+    size_t new_bytes = (size_t)(qp->head + chars) * sizeof(char);
+    if(new_bytes > qp->bytes) {
+        if(CIRCLE_internal_queue_extend(qp, new_bytes) < 0) {
             LOG(CIRCLE_LOG_ERR, "Error: Unable to realloc string pool.");
             return -1;
         }
@@ -442,7 +443,7 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
         exit(EXIT_FAILURE);
     }
 
-    qp->head = qp->strings[qp->count - 1] + strlen(qp->base + qp->strings[qp->count - 1]);
+    qp->head = qp->strings[qp->count - 1] + strlen(qp->base + qp->strings[qp->count - 1]) + 1;
     LOG(CIRCLE_LOG_DBG, "Received %d items from %d", qp->count, source);
 
     return 0;
