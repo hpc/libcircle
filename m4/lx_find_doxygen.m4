@@ -3,9 +3,14 @@ AC_DEFUN([X_AC_LIBCIRCLE_DOXYGEN], [
   AC_ARG_ENABLE(
     [doxygen],
     AS_HELP_STRING(--enable-doxygen, enable doxygen),
-    [ AC_CHECK_PROGS([DOXYGEN], [doxygen])
-      x_ac_libcircle_doxygen=yes
-    ],
+    [AS_IF([test "x$enable_doxygen" != "xno"],
+        [ AC_CHECK_PROGS([DOXYGEN], [doxygen])
+          x_ac_libcircle_doxygen=yes
+        ],
+        [
+          x_ac_libcircle_doxygen=no
+        ]
+    )],
     [
       x_ac_libcircle_doxygen=no
     ]
