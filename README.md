@@ -8,6 +8,8 @@ Dependencies
 
 Compile and install
 -------------------
+The current build status is: [![Build Status](https://travis-ci.org/hpc/libcircle.png?branch=master)](https://travis-ci.org/hpc/libcircle)
+
 ```
 ./configure
 make all check
