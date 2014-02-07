@@ -63,17 +63,23 @@ void CIRCLE_tree_init(int32_t rank, int32_t ranks, int32_t k, MPI_Comm comm, CIR
         t->parent_rank = (rank - 1) / k;
     }
 
-    /* identify leftmost and rightmost child */
+    /* identify ranks of what would be leftmost and rightmost children */
     int32_t left  = rank * k + 1;
     int32_t right = rank * k + k;
-    if (right >= ranks) {
-        right = ranks - 1;
-    }
 
-    /* compute number and list of child ranks */
-    t->children = (int) (right - left + 1);
-    for(i = 0; i < t->children; i++) {
-        t->child_ranks[i] = (int) (left + i);
+    /* if we have at least one child,
+     * compute number of children and list of child ranks */
+    if (left < ranks) {
+        /* adjust right child in case we don't have a full set of k */
+        if (right >= ranks) {
+            right = ranks - 1;
+        }
+
+        /* compute number of children and list of child ranks */
+        t->children = (int) (right - left + 1);
+        for(i = 0; i < t->children; i++) {
+            t->child_ranks[i] = (int) (left + i);
+        }
     }
 
     return;
