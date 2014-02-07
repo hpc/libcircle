@@ -121,7 +121,7 @@ void CIRCLE_reduce_progress(CIRCLE_state_st* st, int count)
             if(flag) {
                 /* receive message form child */
                 int recvbuf;
-                MPI_Recv(&recvbuf, 1, MPI_INT, CIRCLE_TAG_REDUCE, child, comm, &status);
+                MPI_Recv(&recvbuf, 1, MPI_INT, child, CIRCLE_TAG_REDUCE, comm, &status);
 
                 /* combine child's data with our buffer */
                 st->reduce_buf += recvbuf;
@@ -138,7 +138,7 @@ void CIRCLE_reduce_progress(CIRCLE_state_st* st, int count)
 
             /* send message to parent if all children have replied */
             if(parent_rank != MPI_PROC_NULL) {
-                MPI_Send(&st->reduce_buf, 1, MPI_INT, CIRCLE_TAG_REDUCE, parent_rank, comm);
+                MPI_Send(&st->reduce_buf, 1, MPI_INT, parent_rank, CIRCLE_TAG_REDUCE, comm);
             } else {
                 /* we're the root, print the results now */
                 fprintf(CIRCLE_debug_stream, "Objects processed: %d\n", st->reduce_buf);
@@ -166,7 +166,7 @@ void CIRCLE_reduce_progress(CIRCLE_state_st* st, int count)
                 /* kick off reduce if message came in */
                 if(flag) {
                     /* receive message from parent and set flag to start reduce */
-                    MPI_Recv(NULL, 0, MPI_BYTE, CIRCLE_TAG_REDUCE, parent_rank, comm, &status);
+                    MPI_Recv(NULL, 0, MPI_BYTE, parent_rank, CIRCLE_TAG_REDUCE, comm, &status);
                     start_reduce = 1;
                 }
             }
@@ -186,7 +186,7 @@ void CIRCLE_reduce_progress(CIRCLE_state_st* st, int count)
             for (i = 0; i < children; i++) {
                 /* send message to each child */
                 int child = child_ranks[i];
-                MPI_Send(NULL, 0, MPI_BYTE, CIRCLE_TAG_REDUCE, child, comm);
+                MPI_Send(NULL, 0, MPI_BYTE, child, CIRCLE_TAG_REDUCE, comm);
             }
         }
     }
