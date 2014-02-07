@@ -125,22 +125,20 @@ static void CIRCLE_init_local_state(MPI_Comm comm, CIRCLE_state_st* local_state)
 
     /* initialize token state */
     local_state->token = WHITE;
-    local_state->have_token = 0;
-    local_state->incoming_token = BLACK;
+    local_state->token_recv_pending = 0;
+    local_state->token_recv_buf     = BLACK;
 
     /* start the termination token on rank 0 */
+    local_state->token_flag = 0;
     if(rank == 0) {
-        local_state->have_token = 1;
+        local_state->token_flag = 1;
     }
 
     /* randomize the first task we request work from */
     local_state->seed = (unsigned) rank;
     CIRCLE_get_next_proc(local_state);
 
-    local_state->term_flag = 0;
-    local_state->work_pending_request = 0;
     local_state->request_pending_receive = 0;
-    local_state->term_pending_receive = 0;
 
     size_t array_elems = (size_t) size;
     local_state->request_offsets = (int*) calloc(\
@@ -153,9 +151,10 @@ static void CIRCLE_init_local_state(MPI_Comm comm, CIRCLE_state_st* local_state)
     local_state->request_flag = (int32_t*) calloc(array_elems, sizeof(int32_t));
     local_state->request_recv_buf = (int32_t*) calloc(array_elems, sizeof(int32_t));
 
+    local_state->token_comm = *CIRCLE_INPUT_ST.token_comm;
+
     CIRCLE_mpi_state_st* mpi_state = local_state->mpi_state_st;
     mpi_state->work_comm  = CIRCLE_INPUT_ST.work_comm;
-    mpi_state->token_comm = CIRCLE_INPUT_ST.token_comm;
 
     mpi_state->request_status  = (MPI_Status*) malloc(sizeof(MPI_Status) * array_elems);
     mpi_state->request_request = (MPI_Request*) malloc(sizeof(MPI_Request) * array_elems);

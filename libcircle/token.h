@@ -18,7 +18,7 @@ enum tags {
     TERMINATE = -1,
     WORK_REQUEST,
     WORK,
-    TOKEN,
+    CIRCLE_TAG_TOKEN,
     SUCCESS,
     CIRCLE_TAG_REDUCE,
     ABORT = -32
@@ -39,12 +39,10 @@ typedef struct CIRCLE_tree_state_st {
 } CIRCLE_tree_state_st;
 
 typedef struct CIRCLE_mpi_state_st {
-    MPI_Status term_status;
     MPI_Status work_offsets_status;
     MPI_Status work_status;
     MPI_Status* request_status;
 
-    MPI_Request term_request;
     MPI_Request work_offsets_request;
     MPI_Request work_request;
     MPI_Request* request_request;
@@ -53,37 +51,39 @@ typedef struct CIRCLE_mpi_state_st {
      * must have one slot for each neighbor */
     int* requestors;
 
-    MPI_Comm* token_comm;
     MPI_Comm* work_comm;
+
     int hostname_length;
     char hostname[MPI_MAX_PROCESSOR_NAME];
 } CIRCLE_mpi_state_st;
 
 typedef struct CIRCLE_state_st {
     CIRCLE_mpi_state_st* mpi_state_st;
-    int* request_flag;
-    int* request_recv_buf;
 
     int8_t verbose;
-    int8_t work_pending_request;
-    int8_t request_pending_receive;
-    int8_t term_pending_receive;
 
     int32_t rank;
     int32_t size;
 
-    /* tracks state of token */
-    int32_t token_partner_recv;
-    int32_t token_partner_send;
-    int8_t token;
-    int8_t have_token;
-    int8_t incoming_token;
+    /* these are used for persistent receives of work request messages
+     * from other tasks */
+    int* request_flag;
+    int* request_recv_buf;
+    int8_t request_pending_receive; /* indicates whether we have created our peristent requests */
 
-    int32_t term_flag;
+    /* tracks state of token */
+    int8_t token_flag;          /* flag indicating whether we have the token */
+    int8_t token;               /* current color of process: WHITE, BLACK, TERMINATE */
+    MPI_Comm token_comm;        /* communicator for all token traffic */
+    int32_t token_partner_recv; /* rank of process who will send token to us */
+    int32_t token_partner_send; /* rank of process to which we send token */
+    int8_t token_recv_pending;  /* flag indicating whether we have a receive posted for token */
+    int8_t token_recv_buf;      /* buffer to receive incoming token */
+    MPI_Request token_recv_req; /* request associated with pending receive */
 
     /* used to randomly pick next process to requeset work from */
-    unsigned seed;
-    int32_t next_processor;
+    unsigned seed;          /* seed for random number generator */
+    int32_t next_processor; /* rank of next process to request work from */
 
     int32_t offset_count;
     int* work_offsets;
