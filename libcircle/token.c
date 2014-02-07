@@ -454,7 +454,7 @@ static int32_t CIRCLE_work_receive(
     if(size <= 0) {
         LOG(CIRCLE_LOG_FATAL, "size <= 0.");
         MPI_Abort(comm, LIBCIRCLE_MPI_ERROR);
-        return 0;
+        return -1;
     }
 
     /* Check to see if the offset array is large enough */
@@ -563,13 +563,7 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 
         /* have no one to ask, we're done */
         if(source == MPI_PROC_NULL) {
-            /* initiate termination */
-            if(CIRCLE_check_for_term(st) != TERMINATE) {
-                LOG(CIRCLE_LOG_FATAL, "Expected to terminate but did not.");
-                MPI_Abort(comm, LIBCIRCLE_MPI_ERROR);
-            }
-
-            return TERMINATE;
+            return rc;
         }
 
         LOG(CIRCLE_LOG_DBG, "Sending work request to %d...", source);
