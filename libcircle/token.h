@@ -85,7 +85,9 @@ typedef struct CIRCLE_state_st {
     int* work_offsets;
     int* request_offsets;
 
-    int32_t local_objects_processed; /* track number of completed work items */
+    int32_t local_objects_processed; /* number of locally completed work items */
+    uint32_t local_work_requested;   /* number of times a process asked us for work */
+    uint32_t local_no_work_received; /* number of times a process asked us for work */
 
     int work_requested;             /* flag indicating we have requested work */
     int work_requested_rank;        /* rank of process we requested work from */

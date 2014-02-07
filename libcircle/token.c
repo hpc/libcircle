@@ -18,8 +18,6 @@
 #include "queue.h"
 
 extern int8_t CIRCLE_ABORT_FLAG;
-extern uint32_t local_work_requested;
-extern uint32_t local_no_work_received;
 
 extern CIRCLE_input_st CIRCLE_INPUT_ST;
 
@@ -472,7 +470,7 @@ static int32_t CIRCLE_work_receive(
     if(items == 0) {
         /* we received 0 elements, there is no follow on message */
         LOG(CIRCLE_LOG_DBG, "Received no work.");
-        local_no_work_received++;
+        st->local_no_work_received++;
         return 0;
     }
     else if(items == ABORT) {
@@ -568,7 +566,7 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
         LOG(CIRCLE_LOG_DBG, "Sending work request to %d...", source);
 
         /* increment number of work requests */
-        local_work_requested++;
+        st->local_work_requested++;
 
         /* TODO: why 3? */
         /* if abort flag is set, pack abort code into send buffer */

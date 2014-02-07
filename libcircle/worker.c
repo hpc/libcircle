@@ -23,10 +23,6 @@
 CIRCLE_handle queue_handle;
 
 extern CIRCLE_input_st CIRCLE_INPUT_ST;
-uint32_t local_work_requested = 0;
-uint32_t total_work_requested = 0;
-uint32_t local_no_work_received = 0;
-uint32_t total_no_work_received = 0;
 uint64_t local_hop_bytes = 0;
 uint64_t total_hop_bytes = 0;
 int8_t CIRCLE_ABORT_FLAG = 0;
@@ -153,6 +149,8 @@ static void CIRCLE_init_local_state(CIRCLE_state_st* local_state, int32_t rank, 
 
     /* initalize counters */
     local_state->local_objects_processed = 0;
+    local_state->local_work_requested    = 0;
+    local_state->local_no_work_received  = 0;
 
     /* initialize work request state */
     local_state->work_requested = 0;
@@ -370,17 +368,18 @@ int8_t CIRCLE_worker()
     }
 
     /* gather and print summary info */
-    int total_objects_processed = 0;
 
     MPI_Gather(&sptr->local_objects_processed, 1, MPI_INT, \
                &total_objects_processed_array[0], 1, MPI_INT, 0, \
                *mpi_s.work_comm);
-    MPI_Gather(&local_work_requested, 1, MPI_INT, \
+    MPI_Gather(&sptr->local_work_requested, 1, MPI_INT, \
                &total_work_requests_array[0], 1, MPI_INT, 0, \
                *mpi_s.work_comm);
-    MPI_Gather(&local_no_work_received, 1, MPI_INT, \
+    MPI_Gather(&sptr->local_no_work_received, 1, MPI_INT, \
                &total_no_work_received_array[0], 1, MPI_INT, 0, \
                *mpi_s.work_comm);
+
+    int total_objects_processed = 0;
     MPI_Reduce(&sptr->local_objects_processed, &total_objects_processed, 1, \
                MPI_INT, MPI_SUM, 0, *mpi_s.work_comm);
     MPI_Reduce(&local_hop_bytes, &total_hop_bytes, 1, \
