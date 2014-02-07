@@ -108,17 +108,39 @@ int8_t _CIRCLE_checkpoint(void)
 /**
  * Initializes all variables local to a rank
  */
-static void CIRCLE_init_local_state(CIRCLE_state_st* local_state, int32_t rank, int32_t size)
+static void CIRCLE_init_local_state(MPI_Comm comm, CIRCLE_state_st* local_state)
 {
-    int i = 0;
+    /* get our rank and number of ranks in communicator */
+    int rank, size;
+    MPI_Comm_rank(comm, &rank);
+    MPI_Comm_size(comm, &size);
+
+    /* set rank and size in state */
+    local_state->rank = rank;
+    local_state->size = size;
+
+    /* identify ranks for the token passing ring */
+    local_state->token_partner_recv = (rank - 1 + size) % size;
+    local_state->token_partner_send = (rank + 1 + size) % size;
+
+    /* initialize token state */
     local_state->token = WHITE;
     local_state->have_token = 0;
+    local_state->incoming_token = BLACK;
+
+    /* start the termination token on rank 0 */
+    if(rank == 0) {
+        local_state->have_token = 1;
+    }
+
+    /* randomize the first task we request work from */
+    local_state->seed = (unsigned) rank;
+    CIRCLE_get_next_proc(local_state);
+
     local_state->term_flag = 0;
-    local_state->work_flag = 0;
     local_state->work_pending_request = 0;
     local_state->request_pending_receive = 0;
     local_state->term_pending_receive = 0;
-    local_state->incoming_token = BLACK;
 
     size_t array_elems = (size_t) size;
     local_state->request_offsets = (int*) calloc(\
@@ -131,24 +153,26 @@ static void CIRCLE_init_local_state(CIRCLE_state_st* local_state, int32_t rank, 
     local_state->request_flag = (int32_t*) calloc(array_elems, sizeof(int32_t));
     local_state->request_recv_buf = (int32_t*) calloc(array_elems, sizeof(int32_t));
 
-    local_state->mpi_state_st->request_status = \
-            (MPI_Status*) malloc(sizeof(MPI_Status) * array_elems);
-    local_state->mpi_state_st->request_request = \
-            (MPI_Request*) malloc(sizeof(MPI_Request) * array_elems);
-    local_state->mpi_state_st->requestors = \
-                                            (int*) malloc(sizeof(int) * array_elems);
+    CIRCLE_mpi_state_st* mpi_state = local_state->mpi_state_st;
+    mpi_state->work_comm  = CIRCLE_INPUT_ST.work_comm;
+    mpi_state->token_comm = CIRCLE_INPUT_ST.token_comm;
 
-    local_state->mpi_state_st->work_comm = CIRCLE_INPUT_ST.work_comm;
-    local_state->mpi_state_st->token_comm = CIRCLE_INPUT_ST.token_comm;
+    mpi_state->request_status  = (MPI_Status*) malloc(sizeof(MPI_Status) * array_elems);
+    mpi_state->request_request = (MPI_Request*) malloc(sizeof(MPI_Request) * array_elems);
+    mpi_state->requestors      = (int*) malloc(sizeof(int) * array_elems);
 
+    int i;
     for(i = 0; i < size; i++) {
-        local_state->mpi_state_st->request_request[i] = MPI_REQUEST_NULL;
+        mpi_state->request_request[i] = MPI_REQUEST_NULL;
     }
 
     /* initalize counters */
     local_state->local_objects_processed = 0;
     local_state->local_work_requested    = 0;
     local_state->local_no_work_received  = 0;
+
+    /* set abort flag */
+    local_state->abort = 0;
 
     /* initialize work request state */
     local_state->work_requested = 0;
@@ -191,6 +215,51 @@ static void CIRCLE_finalize_local_state(CIRCLE_state_st* local_state)
     CIRCLE_free(&local_state->mpi_state_st->request_status);
     CIRCLE_free(&local_state->mpi_state_st->request_request);
     CIRCLE_free(&local_state->mpi_state_st->requestors);
+    return;
+}
+
+/**
+ * @brief Responds with no_work to pending work requests.
+ *
+ * Answers any pending work requests in case a rank is blocking,
+ * waiting for a response.
+ */
+static void CIRCLE_cleanup_mpi_messages(CIRCLE_state_st* sptr)
+{
+    int i = 0;
+    int j = 0;
+
+    /* TODO: this is O(N^2)... need a better way at large scale */
+    /* Make sure that all pending work requests are answered. */
+    for(j = 0; j < sptr->size; j++) {
+        for(i = 0; i < sptr->size; i++) {
+            if(i != sptr->rank) {
+                sptr->request_flag[i] = 0;
+
+                if(MPI_Test(&sptr->mpi_state_st->request_request[i], \
+                            &sptr->request_flag[i], \
+                            &sptr->mpi_state_st->request_status[i]) \
+                        != MPI_SUCCESS) {
+
+                    MPI_Abort(*sptr->mpi_state_st->work_comm, \
+                              LIBCIRCLE_MPI_ERROR);
+                }
+
+                if(sptr->request_flag[i]) {
+                    MPI_Start(&sptr->mpi_state_st->request_request[i]);
+                    CIRCLE_send_no_work(i);
+                }
+            }
+        }
+    }
+
+    /* free off persistent requests */
+    for(i = 0; i < sptr->size; i++) {
+        if(i != sptr->rank) {
+            MPI_Request_free(&sptr->mpi_state_st->request_request[i]);
+        }
+    }
+
     return;
 }
 
@@ -242,50 +311,8 @@ static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
         }
     }
 
-    return;
-}
-
-/**
- * @brief Responds with no_work to pending work requests.
- *
- * Answers any pending work requests in case a rank is blocking,
- * waiting for a response.
- */
-static void CIRCLE_cleanup_mpi_messages(CIRCLE_state_st* sptr)
-{
-    int i = 0;
-    int j = 0;
-
-    /* TODO: this is O(N^2)... need a better way at large scale */
-    /* Make sure that all pending work requests are answered. */
-    for(j = 0; j < sptr->size; j++) {
-        for(i = 0; i < sptr->size; i++) {
-            if(i != sptr->rank) {
-                sptr->request_flag[i] = 0;
-
-                if(MPI_Test(&sptr->mpi_state_st->request_request[i], \
-                            &sptr->request_flag[i], \
-                            &sptr->mpi_state_st->request_status[i]) \
-                        != MPI_SUCCESS) {
-
-                    MPI_Abort(*sptr->mpi_state_st->work_comm, \
-                              LIBCIRCLE_MPI_ERROR);
-                }
-
-                if(sptr->request_flag[i]) {
-                    MPI_Start(&sptr->mpi_state_st->request_request[i]);
-                    CIRCLE_send_no_work(i);
-                }
-            }
-        }
-    }
-
-    /* free off persistent requests */
-    for(i = 0; i < sptr->size; i++) {
-        if(i != sptr->rank) {
-            MPI_Request_free(&sptr->mpi_state_st->request_request[i]);
-        }
-    }
+    /* clear up any MPI messages that may still be outstanding */
+    CIRCLE_cleanup_mpi_messages(sptr);
 
     return;
 }
@@ -301,8 +328,6 @@ static void CIRCLE_cleanup_mpi_messages(CIRCLE_state_st* sptr)
  */
 int8_t CIRCLE_worker()
 {
-    int rank = -1;
-    int size = -1;
     int i = -1;
 
     /* Holds all worker state */
@@ -318,27 +343,29 @@ int8_t CIRCLE_worker()
     queue_handle.dequeue = &CIRCLE_dequeue;
     queue_handle.local_queue_size = &CIRCLE_local_queue_size;
 
-    MPI_Comm_size(*CIRCLE_INPUT_ST.work_comm, &size);
-    sptr->size = size;
-    CIRCLE_init_local_state(sptr, CIRCLE_global_rank, size);
+    /* get MPI communicator */
+    MPI_Comm comm = *CIRCLE_INPUT_ST.work_comm;
+
+    /* get our rank and the size of the communicator */
+    int rank, size;
+    MPI_Comm_size(comm, &rank);
+    MPI_Comm_size(comm, &size);
+
+    /* initialize all local state variables */
+    CIRCLE_init_local_state(comm, sptr);
+
+    /* setup an MPI error handler */
     MPI_Errhandler circle_err;
     MPI_Comm_create_errhandler(CIRCLE_MPI_error_handler, &circle_err);
-    MPI_Comm_set_errhandler(*mpi_s.work_comm, circle_err);
-    rank = CIRCLE_global_rank;
-    local_state.rank = rank;
-    local_state.token_partner_recv = (rank - 1 + size) % size;
-    local_state.token_partner_send = (rank + 1 + size) % size;
+    MPI_Comm_set_errhandler(comm, circle_err);
 
-    /* randomize the first task we will request work from */
-    local_state.seed = (unsigned) rank;
-    CIRCLE_get_next_proc(&local_state);
-
-    /* Master rank starts out with the initial data creation */
+    /* allocate memory for summary data later */
     size_t array_elems = (size_t) size;
     uint32_t* total_objects_processed_array = (uint32_t*) calloc(array_elems, sizeof(uint32_t));
     uint32_t* total_work_requests_array = (uint32_t*) calloc(array_elems, sizeof(uint32_t));
     uint32_t* total_no_work_received_array = (uint32_t*) calloc(array_elems, sizeof(uint32_t));
 
+    /* print settings of some runtime tunables */
     if(CIRCLE_INPUT_ST.options & CIRCLE_SPLIT_EQUAL) {
         LOG(CIRCLE_LOG_DBG, "Using equalized load splitting.");
     }
@@ -347,51 +374,56 @@ int8_t CIRCLE_worker()
         LOG(CIRCLE_LOG_DBG, "Using randomized load splitting.");
     }
 
-    /* start the termination token on rank 0 */
-    if(rank == 0) {
-        local_state.have_token = 1;
-    }
+    /**********************************
+     * this is where the heavy lifting is done
+     **********************************/
 
-    /* start by adding work to queue by calling create_cb,
+    /* add initial work to queues by calling create_cb,
      * only invoke on master unless CREATE_GLOBAL is set */
     if(rank == 0 || CIRCLE_INPUT_ST.options & CIRCLE_CREATE_GLOBAL) {
         (*(CIRCLE_INPUT_ST.create_cb))(&queue_handle);
     }
 
+    /* work until we get a terminate message */
     CIRCLE_work_loop(sptr, &queue_handle);
-    CIRCLE_cleanup_mpi_messages(sptr);
 
+    /* we may have dropped out early from an abort signal,
+     * in which case we should checkpoint here */
     if(CIRCLE_ABORT_FLAG) {
         CIRCLE_checkpoint();
     }
 
-    /* gather and print summary info */
+    /**********************************
+     * end work
+     **********************************/
 
-    MPI_Gather(&sptr->local_objects_processed, 1, MPI_INT, \
-               &total_objects_processed_array[0], 1, MPI_INT, 0, \
-               *mpi_s.work_comm);
-    MPI_Gather(&sptr->local_work_requested, 1, MPI_INT, \
-               &total_work_requests_array[0], 1, MPI_INT, 0, \
-               *mpi_s.work_comm);
-    MPI_Gather(&sptr->local_no_work_received, 1, MPI_INT, \
-               &total_no_work_received_array[0], 1, MPI_INT, 0, \
-               *mpi_s.work_comm);
+    /* gather and reduce summary info */
+    MPI_Gather(&sptr->local_objects_processed,    1, MPI_INT,
+               &total_objects_processed_array[0], 1, MPI_INT,
+               0, comm);
+    MPI_Gather(&sptr->local_work_requested,   1, MPI_INT,
+               &total_work_requests_array[0], 1, MPI_INT,
+               0, comm);
+    MPI_Gather(&sptr->local_no_work_received,    1, MPI_INT,
+               &total_no_work_received_array[0], 1, MPI_INT,
+               0, comm);
 
     int total_objects_processed = 0;
-    MPI_Reduce(&sptr->local_objects_processed, &total_objects_processed, 1, \
-               MPI_INT, MPI_SUM, 0, *mpi_s.work_comm);
+    MPI_Reduce(&sptr->local_objects_processed, &total_objects_processed, 1,
+               MPI_INT, MPI_SUM, 0, comm);
 
+    /* print summary from rank 0 */
     if(rank == 0) {
         for(i = 0; i < size; i++) {
-            LOG(CIRCLE_LOG_INFO, "Rank %d\tObjects Processed %d\t%0.3lf%%", i, \
-                total_objects_processed_array[i], \
-                (double)total_objects_processed_array[i] / \
+            LOG(CIRCLE_LOG_INFO, "Rank %d\tObjects Processed %d\t%0.3lf%%", i,
+                total_objects_processed_array[i],
+                (double)total_objects_processed_array[i] /
                 (double)total_objects_processed * 100.0);
             LOG(CIRCLE_LOG_INFO, "Rank %d\tWork requests: %d", i, total_work_requests_array[i]);
             LOG(CIRCLE_LOG_INFO, "Rank %d\tNo work replies: %d", i, total_no_work_received_array[i]);
         }
 
-        LOG(CIRCLE_LOG_INFO, \
+        LOG(CIRCLE_LOG_INFO,
             "Total Objects Processed: %d", total_objects_processed);
     }
 

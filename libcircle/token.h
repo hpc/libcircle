@@ -65,34 +65,44 @@ typedef struct CIRCLE_state_st {
     int* request_recv_buf;
 
     int8_t verbose;
-    int8_t have_token;
-    int8_t token;
-    int8_t work_flag;
     int8_t work_pending_request;
     int8_t request_pending_receive;
     int8_t term_pending_receive;
-    int8_t incoming_token;
-
-    int32_t token_partner_recv;
-    int32_t token_partner_send;
-    int32_t term_flag;
 
     int32_t rank;
     int32_t size;
+
+    /* tracks state of token */
+    int32_t token_partner_recv;
+    int32_t token_partner_send;
+    int8_t token;
+    int8_t have_token;
+    int8_t incoming_token;
+
+    int32_t term_flag;
+
+    /* used to randomly pick next process to requeset work from */
     unsigned seed;
     int32_t next_processor;
+
     int32_t offset_count;
     int* work_offsets;
     int* request_offsets;
 
+    /* profiling counters */
     int32_t local_objects_processed; /* number of locally completed work items */
     uint32_t local_work_requested;   /* number of times a process asked us for work */
     uint32_t local_no_work_received; /* number of times a process asked us for work */
 
+    /* manage state for abort */
+    int abort; /* flag indicating whether we are in an abort state */
+
+    /* manage state for requesting work from other procs */
     int work_requested;             /* flag indicating we have requested work */
     int work_requested_rank;        /* rank of process we requested work from */
     MPI_Request work_requested_req; /* MPI req associated with isend */
 
+    /* manage state for reduction operations */
     CIRCLE_tree_state_st tree;   /* parent and children of reduction tree */
     int reduce_enabled;          /* flag indicating whether reductions are enabled */
     double reduce_time_last;     /* time at which last reduce ran */
