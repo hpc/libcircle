@@ -153,10 +153,12 @@ static void CIRCLE_init_local_state(CIRCLE_state_st* local_state, int32_t rank, 
         local_state->mpi_state_st->request_request[i] = MPI_REQUEST_NULL;
     }
 
-    local_state->work_request_tries = 0;
+    /* initialize work request state */
+    local_state->work_requested = 0;
 
     /* create our reduction tree and initialize flag */
     CIRCLE_tree_init(rank, size, 2, *local_state->mpi_state_st->work_comm, &local_state->tree);
+    local_state->reduce_enabled       = 1;    /* hard code to always for now */
     local_state->reduce_outstanding   = 0;
     local_state->reduce_time_last     = MPI_Wtime();
     local_state->reduce_time_interval = 10.0; /* hard code to 10 seconds for now */
@@ -219,7 +221,9 @@ static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
         CIRCLE_check_for_requests(CIRCLE_INPUT_ST.queue, sptr);
 
         /* Make progress on any outstanding reduction */
-        CIRCLE_reduce_progress(sptr, local_objects_processed);
+        if(sptr->reduce_enabled) {
+            CIRCLE_reduce_progress(sptr, local_objects_processed);
+        }
 
         /* If I have no work, request work from another rank */
         if(CIRCLE_INPUT_ST.queue->count == 0) {

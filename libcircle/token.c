@@ -395,60 +395,6 @@ CIRCLE_get_next_proc(CIRCLE_state_st* st)
 }
 
 /**
- * @brief Waits on an incoming message.
- *
- * This function will spin lock waiting on a message to arrive from the
- * given source, with the given tag.  It does *not* receive the message.
- * If a message is pending, it will return it's size.  Otherwise
- * it returns 0.
- */
-void CIRCLE_wait_on_probe(CIRCLE_state_st* st, int32_t source, int32_t tag, int* terminate, int* msg, MPI_Status* status)
-{
-    /* mark both flags to zero to start with */
-    *terminate = 0;
-    *msg = 0;
-
-    /* loop until we get a message on work communicator or a terminate signal */
-    int done = 0;
-
-    while(! done) {
-        int flag;
-        MPI_Iprobe(source, tag, *st->mpi_state_st->work_comm, &flag, status);
-
-        int32_t i = 0;
-
-        for(i = 0; i < st->size; i++) {
-            st->request_flag[i] = 0;
-
-            if(i != st->rank) {
-                MPI_Test(&st->mpi_state_st->request_request[i], \
-                         &st->request_flag[i], \
-                         &st->mpi_state_st->request_status[i]);
-
-                if(st->request_flag[i]) {
-                    MPI_Start(&st->mpi_state_st->request_request[i]);
-                    CIRCLE_send_no_work(i);
-                }
-            }
-        }
-
-        CIRCLE_reduce_progress(st, local_objects_processed);
-
-        if(CIRCLE_check_for_term(st) == TERMINATE) {
-            *terminate = 1;
-            done = 1;
-        }
-
-        if(flag) {
-            *msg = 1;
-            done = 1;
-        }
-    }
-
-    return;
-}
-
-/**
  * @brief Extend the offset arrays.
  */
 int8_t CIRCLE_extend_offsets(CIRCLE_state_st* st, int32_t size)
@@ -493,6 +439,109 @@ int8_t CIRCLE_extend_offsets(CIRCLE_state_st* st, int32_t size)
     return 0;
 }
 
+/* we execute this function when we have detected incoming work messages */
+static int32_t CIRCLE_work_receive(
+    CIRCLE_internal_queue_t* qp,
+    CIRCLE_state_st* st,
+    int source,
+    int size)
+{
+    /* get communicator */
+    MPI_Comm comm = *st->mpi_state_st->work_comm;
+
+    /* this shouldn't happen, but let's check so we don't blow out
+     * memory allocation below */
+    if(size <= 0) {
+        LOG(CIRCLE_LOG_FATAL, "size <= 0.");
+        MPI_Abort(comm, LIBCIRCLE_MPI_ERROR);
+        return 0;
+    }
+
+    /* Check to see if the offset array is large enough */
+    if(CIRCLE_extend_offsets(st, size) < 0) {
+        LOG(CIRCLE_LOG_ERR, "Error: Unable to extend offsets.");
+        MPI_Abort(comm, LIBCIRCLE_MPI_ERROR);
+        return -1;
+    }
+
+    /* Receive item count, character count, and offsets */
+    MPI_Recv(st->work_offsets, size, MPI_INT, source,
+             WORK, comm, &st->mpi_state_st->work_offsets_status);
+
+    /* the first int has number of items or an ABORT code */
+    int items = st->work_offsets[0];
+    if(items == 0) {
+        /* we received 0 elements, there is no follow on message */
+        LOG(CIRCLE_LOG_DBG, "Received no work.");
+        local_no_work_received++;
+        return 0;
+    }
+    else if(items == ABORT) {
+        /* we've received a signal to kill the job,
+         * there is no follow on message in this case */
+        CIRCLE_ABORT_FLAG = 1;
+        return ABORT;
+    }
+    else if(items < 0) {
+        /* TODO: when does this happen? */
+        return -1;
+    }
+
+    /* the second int is the number of characters we'll receive,
+     * make sure our queue has enough storage */
+    int chars = st->work_offsets[1];
+    size_t new_bytes = (size_t)(qp->head + chars) * sizeof(char);
+    if(new_bytes > qp->bytes) {
+        if(CIRCLE_internal_queue_extend(qp, new_bytes) < 0) {
+            LOG(CIRCLE_LOG_ERR, "Error: Unable to realloc string pool.");
+            MPI_Abort(comm, LIBCIRCLE_MPI_ERROR);
+            return -1;
+        }
+    }
+
+    /* receive second message containing work elements */
+    MPI_Recv(qp->base, chars, MPI_CHAR, source, WORK,
+             comm, MPI_STATUS_IGNORE);
+
+    /* make sure we have a pointer allocated for each element */
+    int32_t count = items;
+    if(count > qp->str_count) {
+        if(CIRCLE_internal_queue_str_extend(qp, count) < 0) {
+            LOG(CIRCLE_LOG_ERR, "Error: Unable to realloc string array.");
+            MPI_Abort(comm, LIBCIRCLE_MPI_ERROR);
+            return -1;
+        }
+    }
+
+    /* set offset to each element in our queue */
+    int32_t i;
+    for(i = 0; i < count; i++) {
+        qp->strings[i] = (uintptr_t) st->work_offsets[i + 2];
+    }
+
+    /* double check that the base offset is valid */
+    if(qp->strings[0] != 0) {
+        LOG(CIRCLE_LOG_FATAL, \
+            "The base address of the queue doesn't match what it should be.");
+        MPI_Abort(comm, LIBCIRCLE_MPI_ERROR);
+        return -1;
+    }
+
+    /* we now have count items in our queue */
+    qp->count = count;
+
+    /* set head of queue to point just past end of last element string */
+    uintptr_t elem_offset = qp->strings[count - 1];
+    const char* elem_str = qp->base + elem_offset;
+    size_t elem_len = strlen(elem_str) + 1;
+    qp->head = elem_offset + elem_len;
+
+    /* log number of items we received */
+    LOG(CIRCLE_LOG_DBG, "Received %d items from %d", count, source);
+
+    return 0;
+}
+
 /**
  * @brief Requests work from other ranks.
  *
@@ -502,148 +551,79 @@ int8_t CIRCLE_extend_offsets(CIRCLE_state_st* st, int32_t size)
  */
 int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 {
-    /* get rank of process to request work from */
-    int32_t source = st->next_processor;
+    int rc = 0;
 
-    /* have no one to ask, we're done */
-    if(source == MPI_PROC_NULL) {
-        /* initiate termination */
-        if(CIRCLE_check_for_term(st) != TERMINATE) {
-            LOG(CIRCLE_LOG_FATAL, "Expected to terminate but did not.");
-            MPI_Abort(*st->mpi_state_st->work_comm, LIBCIRCLE_MPI_ERROR);
+    /* get communicator */
+    MPI_Comm comm = *st->mpi_state_st->work_comm;
+
+    /* check whether we've already sent a request or not */
+    if(! st->work_requested) {
+        /* need to send request, get rank of process to request work from */
+        int32_t source = st->next_processor;
+
+        /* have no one to ask, we're done */
+        if(source == MPI_PROC_NULL) {
+            /* initiate termination */
+            if(CIRCLE_check_for_term(st) != TERMINATE) {
+                LOG(CIRCLE_LOG_FATAL, "Expected to terminate but did not.");
+                MPI_Abort(comm, LIBCIRCLE_MPI_ERROR);
+            }
+
+            return TERMINATE;
         }
 
-        return TERMINATE;
-    }
+        LOG(CIRCLE_LOG_DBG, "Sending work request to %d...", source);
 
-    LOG(CIRCLE_LOG_DBG, "Sending work request to %d...", source);
-    local_work_requested++;
-    int32_t temp_buffer = 3;
+        /* increment number of work requests */
+        local_work_requested++;
 
-    if(CIRCLE_ABORT_FLAG) {
-        temp_buffer = ABORT;
-    }
+        /* TODO: why 3? */
+        /* if abort flag is set, pack abort code into send buffer */
+        int32_t buf = 3;
+        if(CIRCLE_ABORT_FLAG) {
+            buf = ABORT;
+        }
 
-    /* Send work request. */
-    MPI_Send(&temp_buffer, 1, MPI_INT, source, \
-             WORK_REQUEST, *st->mpi_state_st->work_comm);
+        /* send work request (we use isend to avoid deadlock) */
+        MPI_Isend(&buf, 1, MPI_INT, source, WORK_REQUEST,
+            comm, &st->work_requested_req);
 
-    /* Count cost of message
-     * one integer * hops
-     */
-    st->work_offsets[0] = 0;
+        /* set flag and source to indicate we requested work */
+        st->work_requested = 1;
+        st->work_requested_rank = source;
 
-    /* Wait for an answer... */
-    int terminate, msg;
-    MPI_Status status;
-    CIRCLE_wait_on_probe(st, source, WORK, &terminate, &msg, &status);
+        /* randomly pick another source to ask next time */
+        CIRCLE_get_next_proc(st);
+    } else {
+        /* get source rank */
+        int source = st->work_requested_rank;
 
-    if(terminate) {
-        return TERMINATE;
-    }
+        /* we've already requested work from someone, check whether
+         * we got a reply */
+        int flag;
+        MPI_Status status;
+        MPI_Iprobe(source, WORK, comm, &flag, &status);
 
-    int size;
-    MPI_Get_count(&status, MPI_INT, &size);
+        /* if we got a reply, process it */
+        if(flag) {
+            /* get number of integers in reply message */
+            int size;
+            MPI_Get_count(&status, MPI_INT, &size);
 
-    if(size <= 0) {
-        LOG(CIRCLE_LOG_FATAL, "size <= 0.");
-        MPI_Abort(*st->mpi_state_st->work_comm, LIBCIRCLE_MPI_ERROR);
-        return 0;
-    }
+            /* receive message(s) and set return code */
+            rc = CIRCLE_work_receive(qp, st, source, size);
 
-    /* Check to see if the offset array is large enough */
-    if(CIRCLE_extend_offsets(st, size) < 0) {
-        LOG(CIRCLE_LOG_ERR, "Error: Unable to extend offsets.");
-        return -1;
-    }
+            /* send request asking for work can be completed now,
+             * since we reuse status here, be careful we don't trash
+             * it between iprobe and get_count calls */
+            MPI_Wait(&st->work_requested_req, &status);
 
-    /*
-     * If we get here, there was definitely an answer.
-     * Receives the offsets then
-     */
-    MPI_Recv(st->work_offsets, size, MPI_INT, source, \
-             WORK, *st->mpi_state_st->work_comm, \
-             &st->mpi_state_st->work_offsets_status);
-
-    /* We'll ask somebody else next time */
-    CIRCLE_get_next_proc(st);
-
-    int items = st->work_offsets[0];
-    int chars = st->work_offsets[1];
-
-    if(items == 0) {
-        LOG(CIRCLE_LOG_DBG, "Received no work.");
-        local_no_work_received++;
-        return 0;
-    }
-    else if(items == ABORT) {
-        CIRCLE_ABORT_FLAG = 1;
-        return ABORT;
-    }
-    else if(items < 0) {
-        return -1;
-    }
-
-    /* Make sure our queue is large enough */
-    size_t new_bytes = (size_t)(qp->head + chars) * sizeof(char);
-    if(new_bytes > qp->bytes) {
-        if(CIRCLE_internal_queue_extend(qp, new_bytes) < 0) {
-            LOG(CIRCLE_LOG_ERR, "Error: Unable to realloc string pool.");
-            return -1;
+            /* flip flag to indicate we're no longer waiting for a reply */
+            st->work_requested = 0;
         }
     }
 
-    /* Make sure the queue string array is large enough */
-    int32_t count = items;
-
-    if(count > qp->str_count) {
-        if(CIRCLE_internal_queue_str_extend(qp, count) < 0) {
-            LOG(CIRCLE_LOG_ERR, "Error: Unable to realloc string array.");
-            return -1;
-        }
-    }
-
-    /*
-     * Good, we have a pending message from source with a WORK tag.
-     * It can only be a work queue.
-     */
-    MPI_Recv(qp->base, chars, MPI_BYTE, source, WORK, \
-             *st->mpi_state_st->work_comm, MPI_STATUS_IGNORE);
-
-    int32_t i = 0;
-    qp->count = count;
-
-    for(i = 0; i < count; i++) {
-        qp->strings[i] = (uintptr_t) st->work_offsets[i + 2];
-    }
-
-    if(qp->strings[0] != 0) {
-        LOG(CIRCLE_LOG_FATAL, \
-            "The base address of the queue doesn't match what it should be.");
-        exit(EXIT_FAILURE);
-    }
-
-    qp->head = qp->strings[qp->count - 1] + strlen(qp->base + qp->strings[qp->count - 1]) + 1;
-    LOG(CIRCLE_LOG_DBG, "Received %d items from %d", qp->count, source);
-
-    return 0;
-}
-
-/**
- * Sends a no work reply to someone requesting work.
- */
-void CIRCLE_send_no_work(int32_t dest)
-{
-    int32_t no_work[2];
-
-    no_work[0] = (CIRCLE_ABORT_FLAG) ? ABORT : 0;
-    no_work[1] = 0;
-
-    MPI_Request r;
-    MPI_Isend(&no_work, 1, MPI_INT, \
-              dest, WORK, *CIRCLE_INPUT_ST.work_comm, &r);
-    MPI_Wait(&r, MPI_STATUS_IGNORE);
-
+    return rc;
 }
 
 /* spread count equally among ranks, handle cases where number
@@ -725,6 +705,22 @@ void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
 }
 
 /**
+ * Sends a no work reply to someone requesting work.
+ */
+void CIRCLE_send_no_work(int32_t dest)
+{
+    int32_t no_work[2];
+    no_work[0] = (CIRCLE_ABORT_FLAG) ? ABORT : 0;
+    no_work[1] = 0;
+
+    MPI_Request r;
+    MPI_Isend(&no_work, 1, MPI_INT, \
+              dest, WORK, *CIRCLE_INPUT_ST.work_comm, &r);
+    MPI_Wait(&r, MPI_STATUS_IGNORE);
+
+}
+
+/**
  * Sends work to a requestor
  */
 int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
@@ -773,11 +769,13 @@ int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
     /* now compute offset of each string */
     int32_t i = 0;
     int32_t current_elem = start_elem;
-
     for(i = 0; i < count; i++) {
         st->request_offsets[2 + i] = (int)(qp->strings[current_elem] - start_offset);
         current_elem++;
     }
+
+    /* TODO; use isend to avoid deadlock, but in that case, be careful
+     * to not overwrite space in queue before sends complete */
 
     /* send item count, total bytes, and offsets of each item */
     MPI_Ssend(st->request_offsets, numoffsets, \
@@ -785,14 +783,14 @@ int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
 
     /* send data */
     char* buf = qp->base + start_offset;
-    MPI_Ssend(buf, bytes, MPI_BYTE, \
+    MPI_Ssend(buf, bytes, MPI_CHAR, \
               dest, WORK, *st->mpi_state_st->work_comm);
 
     LOG(CIRCLE_LOG_DBG,
         "Sent %d of %d items to %d.", st->request_offsets[0], qp->count, dest);
 
     /* subtract elements from our queue */
-    qp->count = qp->count - count;
+    qp->count -= count;
 
     return 0;
 }
@@ -802,40 +800,44 @@ int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
  */
 int32_t CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 {
-    int i = 0;
+    int i;
 
-    /* record list of requesting ranks in requestors
-     * and number in rcount */
-    int* requestors = st->mpi_state_st->requestors;
-    int rcount = 0;
+    /* get MPI communicator */
+    MPI_Comm comm = *st->mpi_state_st->work_comm;
+
+    /* get pointer to array of requests */
+    MPI_Request* requests = st->mpi_state_st->request_request;
 
     /* This loop is only excuted once.  It is used to initiate receives.
      * When a received is completed, we repost it immediately to capture
      * the next request */
-    if(!st->request_pending_receive) {
+    if(! st->request_pending_receive) {
         for(i = 0; i < st->size; i++) {
             if(i != st->rank) {
                 st->request_recv_buf[i] = 0;
-                MPI_Recv_init(&st->request_recv_buf[i], 1, MPI_INT, i, \
-                              WORK_REQUEST, *st->mpi_state_st->work_comm, \
-                              &st->mpi_state_st->request_request[i]);
+                MPI_Recv_init(&st->request_recv_buf[i], 1, MPI_INT, i,
+                              WORK_REQUEST, comm, &requests[i]);
 
-                MPI_Start(&st->mpi_state_st->request_request[i]);
+                MPI_Start(&requests[i]);
             }
         }
 
         st->request_pending_receive = 1;
     }
 
+    /* record list of requesting ranks in requestors
+     * and number in rcount */
+    int* requestors = st->mpi_state_st->requestors;
+    int rcount = 0;
+
     /* Test to see if any posted receive has completed */
     for(i = 0; i < st->size; i++) {
         if(i != st->rank) {
             st->request_flag[i] = 0;
 
-            if(MPI_Test(&st->mpi_state_st->request_request[i], \
-                        &st->request_flag[i], \
+            if(MPI_Test(&requests[i], &st->request_flag[i],
                         &st->mpi_state_st->request_status[i]) != MPI_SUCCESS) {
-                exit(EXIT_FAILURE);
+                MPI_Abort(comm, LIBCIRCLE_MPI_ERROR);
             }
 
             if(st->request_flag[i]) {
@@ -858,7 +860,8 @@ int32_t CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* 
 
     /* reset our receives before we send work to requestors */
     for(i = 0; i < rcount; i++) {
-        MPI_Start(&st->mpi_state_st->request_request[requestors[i]]);
+        int id = requestors[i];
+        MPI_Start(&requests[id]);
     }
 
     /* send work to requestors */

@@ -73,7 +73,6 @@ typedef struct CIRCLE_state_st {
     int8_t term_pending_receive;
     int8_t incoming_token;
 
-    int32_t work_request_tries;
     int32_t token_partner_recv;
     int32_t token_partner_send;
     int32_t term_flag;
@@ -86,7 +85,12 @@ typedef struct CIRCLE_state_st {
     int* work_offsets;
     int* request_offsets;
 
+    int work_requested;             /* flag indicating we have requested work */
+    int work_requested_rank;        /* rank of process we requested work from */
+    MPI_Request work_requested_req; /* MPI req associated with isend */
+
     CIRCLE_tree_state_st tree;   /* parent and children of reduction tree */
+    int reduce_enabled;          /* flag indicating whether reductions are enabled */
     double reduce_time_last;     /* time at which last reduce ran */
     double reduce_time_interval; /* seconds between reductions */
     int reduce_outstanding;      /* flag indicating whether a reduce is outstanding */
