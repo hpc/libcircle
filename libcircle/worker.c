@@ -116,7 +116,7 @@ int8_t _CIRCLE_checkpoint(void)
 /**
  * Initializes all variables local to a rank
  */
-static void CIRCLE_init_local_state(CIRCLE_state_st* local_state, int32_t size)
+static void CIRCLE_init_local_state(CIRCLE_state_st* local_state, int32_t rank, int32_t size)
 {
     int i = 0;
     local_state->token = WHITE;
@@ -154,6 +154,12 @@ static void CIRCLE_init_local_state(CIRCLE_state_st* local_state, int32_t size)
     }
 
     local_state->work_request_tries = 0;
+
+    /* create our reduction tree and initialize flag */
+    CIRCLE_tree_init(rank, size, 2, *local_state->mpi_state_st->work_comm, &local_state->tree);
+    local_state->reduce_outstanding   = 0;
+    local_state->reduce_time_last     = MPI_Wtime();
+    local_state->reduce_time_interval = 10.0; /* hard code to 10 seconds for now */
     return;
 }
 
@@ -178,6 +184,7 @@ static void CIRCLE_free(void* pptr)
  */
 static void CIRCLE_finalize_local_state(CIRCLE_state_st* local_state)
 {
+    CIRCLE_tree_free(&local_state->tree);
     CIRCLE_free(&local_state->request_offsets);
     CIRCLE_free(&local_state->work_offsets);
     CIRCLE_free(&local_state->request_flag);
@@ -209,8 +216,10 @@ static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
     /* Loop until done */
     while(token != DONE) {
         /* Check for and service work requests */
-
         CIRCLE_check_for_requests(CIRCLE_INPUT_ST.queue, sptr);
+
+        /* Make progress on any outstanding reduction */
+        CIRCLE_reduce_progress(sptr, local_objects_processed);
 
         /* If I have no work, request work from another rank */
         if(CIRCLE_INPUT_ST.queue->count == 0) {
@@ -316,7 +325,7 @@ int8_t CIRCLE_worker()
 
     MPI_Comm_size(*CIRCLE_INPUT_ST.work_comm, &size);
     sptr->size = size;
-    CIRCLE_init_local_state(sptr, size);
+    CIRCLE_init_local_state(sptr, CIRCLE_global_rank, size);
     MPI_Errhandler circle_err;
     MPI_Comm_create_errhandler(CIRCLE_MPI_error_handler, &circle_err);
     MPI_Comm_set_errhandler(*mpi_s.work_comm, circle_err);

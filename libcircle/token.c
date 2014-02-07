@@ -18,10 +18,182 @@
 #include "queue.h"
 
 extern int8_t CIRCLE_ABORT_FLAG;
+extern int32_t local_objects_processed;
 extern uint32_t local_work_requested;
 extern uint32_t local_no_work_received;
 
 extern CIRCLE_input_st CIRCLE_INPUT_ST;
+
+/* given the process's rank and the number of ranks, this computes a k-ary
+ * tree rooted at rank 0, the structure records the number of children
+ * of the local rank and the list of their ranks */
+void CIRCLE_tree_init(int32_t rank, int32_t ranks, int32_t k, MPI_Comm comm, CIRCLE_tree_state_st* t)
+{
+    int32_t i;
+
+    /* initialize fields */
+    t->rank        = (int) rank;
+    t->ranks       = (int) ranks;
+    t->parent_rank = MPI_PROC_NULL;
+    t->children    = 0;
+    t->child_ranks = NULL;
+
+    /* compute the maximum number of children this task may have */
+    int32_t max_children = k;
+
+    /* allocate memory to hold list of children ranks */
+    if(max_children > 0) {
+        size_t bytes = (size_t)max_children * sizeof(int);
+        t->child_ranks = (int*) malloc(bytes);
+
+        if(t->child_ranks == NULL) {
+            LOG(CIRCLE_LOG_FATAL,
+                "Failed to allocate memory for list of children.");
+            MPI_Abort(comm, LIBCIRCLE_MPI_ERROR);
+        }
+    }
+
+    /* initialize all ranks to NULL */
+    for(i = 0; i < max_children; i++) {
+        t->child_ranks[i] = MPI_PROC_NULL;
+    }
+
+    /* compute rank of our parent if we have one */
+    if (rank > 0) {
+        t->parent_rank = (rank - 1) / k;
+    }
+
+    /* identify leftmost and rightmost child */
+    int32_t left  = rank * k + 1;
+    int32_t right = rank * k + k;
+    if (right >= ranks) {
+        right = ranks - 1;
+    }
+
+    /* compute number and list of child ranks */
+    t->children = (int) (right - left + 1);
+    for(i = 0; i < t->children; i++) {
+        t->child_ranks[i] = (int) (left + i);
+    }
+
+    return;
+}
+
+void CIRCLE_tree_free(CIRCLE_tree_state_st* t)
+{
+    /* free child rank list */
+    if (t->child_ranks != NULL) {
+        free(t->child_ranks);
+        t->child_ranks = NULL;
+    }
+
+    return;
+}
+
+/* intiates and progresses a reduce operation at specified interval,
+ * ensures progress of reduction in background */
+void CIRCLE_reduce_progress(CIRCLE_state_st* st, int count)
+{
+    int i;
+    int flag;
+    MPI_Status status;
+
+    /* get our communicator */
+    MPI_Comm comm = *(st->mpi_state_st->work_comm);
+
+    /* get info about tree */
+    int  parent_rank = st->tree.parent_rank;
+    int  children    = st->tree.children;
+    int* child_ranks = st->tree.child_ranks;
+
+    /* if we have an outstanding reduce, check messages from children,
+     * otherwise, check whether we should start a new reduce */
+    if(st->reduce_outstanding) {
+        /* got a reduce outstanding, check messages from our children */
+        for(i = 0; i < children; i++) {
+            /* pick a child */
+            int child = child_ranks[i];
+
+            /* check whether this child has sent us a reduce message */
+            MPI_Iprobe(child, CIRCLE_TAG_REDUCE, comm, &flag, &status);
+
+            /* if we got a message, receive and reduce it */
+            if(flag) {
+                /* receive message form child */
+                int recvbuf;
+                MPI_Recv(&recvbuf, 1, MPI_INT, CIRCLE_TAG_REDUCE, child, comm, &status);
+
+                /* combine child's data with our buffer */
+                st->reduce_buf += recvbuf;
+
+                /* increment the number of replies */
+                st->reduce_replies++;
+            }
+        }
+
+        /* check whether we've gotten replies from all children */
+        if(st->reduce_replies == children) {
+            /* add our own content to reduce buffer */
+            st->reduce_buf += count;
+
+            /* send message to parent if all children have replied */
+            if(parent_rank != MPI_PROC_NULL) {
+                MPI_Send(&st->reduce_buf, 1, MPI_INT, CIRCLE_TAG_REDUCE, parent_rank, comm);
+            } else {
+                /* we're the root, print the results now */
+                fprintf(CIRCLE_debug_stream, "Objects processed: %d\n", st->reduce_buf);
+                fflush(CIRCLE_debug_stream);
+            }
+
+            /* disable flag that indicates we have an outstanding reduce */
+            st->reduce_outstanding = 0;
+        }
+    } else {
+        /* determine whether a new reduce should be started, only bother
+         * checking if we think it's about time */
+        int start_reduce = 0;
+        double time_now = MPI_Wtime();
+        double time_next = st->reduce_time_last + st->reduce_time_interval;
+        if(time_now >= time_next) {
+            /* time has expired, new reduce should be started */
+            if(parent_rank == MPI_PROC_NULL) {
+                /* we're the root, kick it off */
+                start_reduce = 1;
+            } else {
+                /* we're not the root, check whether parent sent us a message */
+                MPI_Iprobe(parent_rank, CIRCLE_TAG_REDUCE, comm, &flag, &status);
+
+                /* kick off reduce if message came in */
+                if(flag) {
+                    /* receive message from parent and set flag to start reduce */
+                    MPI_Recv(NULL, 0, MPI_BYTE, CIRCLE_TAG_REDUCE, parent_rank, comm, &status);
+                    start_reduce = 1;
+                }
+            }
+        }
+
+        /* kick off a reduce if it's time */
+        if (start_reduce) {
+            /* set flag to indicate we have a reduce outstanding
+             * and initialize state for a fresh reduction */
+            st->reduce_time_last   = time_now;
+            st->reduce_outstanding = 1;
+            st->reduce_replies     = 0;
+            st->reduce_buf         = 0;
+
+            /* send message to each child */
+            /* check for messages from our children */
+            for (i = 0; i < children; i++) {
+                /* send message to each child */
+                int child = child_ranks[i];
+                MPI_Send(NULL, 0, MPI_BYTE, CIRCLE_TAG_REDUCE, child, comm);
+            }
+        }
+    }
+
+    return;
+}
+
 /**
  * Sends an abort message to all ranks.
  *
@@ -253,6 +425,8 @@ void CIRCLE_wait_on_probe(CIRCLE_state_st* st, int32_t source, int32_t tag, int*
                 }
             }
         }
+
+        CIRCLE_reduce_progress(st, local_objects_processed);
 
         if(CIRCLE_check_for_term(st) == TERMINATE) {
             *terminate = 1;

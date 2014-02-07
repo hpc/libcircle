@@ -20,6 +20,7 @@ enum tags {
     WORK,
     TOKEN,
     SUCCESS,
+    CIRCLE_TAG_REDUCE,
     ABORT = -32
 };
 
@@ -27,6 +28,15 @@ typedef struct options {
     char* beginning_path;
     int  verbose;
 } options;
+
+/* records info about the tree of spawn processes */
+typedef struct CIRCLE_tree_state_st {
+    int rank;         /* our global rank (0 to ranks-1) */
+    int ranks;        /* number of nodes in tree */
+    int parent_rank;  /* rank of parent */
+    int children;     /* number of children we have */
+    int* child_ranks; /* global ranks of our children */
+} CIRCLE_tree_state_st;
 
 typedef struct CIRCLE_mpi_state_st {
     MPI_Status term_status;
@@ -76,7 +86,24 @@ typedef struct CIRCLE_state_st {
     int* work_offsets;
     int* request_offsets;
 
+    CIRCLE_tree_state_st tree;   /* parent and children of reduction tree */
+    double reduce_time_last;     /* time at which last reduce ran */
+    double reduce_time_interval; /* seconds between reductions */
+    int reduce_outstanding;      /* flag indicating whether a reduce is outstanding */
+    int reduce_replies;          /* keeps count of number of children who have replied */
+    int32_t reduce_buf;          /* local reduction buffer */
 } CIRCLE_state_st;
+
+/* given the rank of the calling process, the number of ranks in the job,
+ * and a degree k, compute parent and children of tree rooted at rank 0
+ * and store in tree structure */
+void CIRCLE_tree_init(int32_t rank, int32_t ranks, int32_t k, MPI_Comm comm, CIRCLE_tree_state_st* t);
+
+/* free resources allocated in CIRCLE_tree_init */
+void CIRCLE_tree_free(CIRCLE_tree_state_st* t);
+
+/* initiate and execute reduction in background */
+void CIRCLE_reduce_progress(CIRCLE_state_st* st, int count);
 
 void CIRCLE_get_next_proc(CIRCLE_state_st* st);
 void CIRCLE_send_no_work(int32_t dest);
