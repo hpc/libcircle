@@ -102,7 +102,7 @@ void CIRCLE_reduce_progress(CIRCLE_state_st* st, int count)
     MPI_Status status;
 
     /* get our communicator */
-    MPI_Comm comm = *(st->mpi_state_st->work_comm);
+    MPI_Comm comm = st->work_comm;
 
     /* get info about tree */
     int  parent_rank = st->tree.parent_rank;
@@ -418,7 +418,7 @@ static int32_t CIRCLE_work_receive(
     int size)
 {
     /* get communicator */
-    MPI_Comm comm = *st->mpi_state_st->work_comm;
+    MPI_Comm comm = st->work_comm;
 
     /* this shouldn't happen, but let's check so we don't blow out
      * memory allocation below */
@@ -526,7 +526,7 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
     int rc = 0;
 
     /* get communicator */
-    MPI_Comm comm = *st->mpi_state_st->work_comm;
+    MPI_Comm comm = st->work_comm;
 
     /* check whether we've already sent a request or not */
     if(! st->work_requested) {
@@ -638,7 +638,7 @@ void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
     if(sizes == NULL) {
         LOG(CIRCLE_LOG_FATAL,
             "Failed to allocate memory for sizes.");
-        MPI_Abort(*st->mpi_state_st->work_comm, LIBCIRCLE_MPI_ERROR);
+        MPI_Abort(st->work_comm, LIBCIRCLE_MPI_ERROR);
     }
 
     if(CIRCLE_INPUT_ST.options & CIRCLE_SPLIT_EQUAL) {
@@ -742,15 +742,14 @@ int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
 
     /* TODO; use isend to avoid deadlock, but in that case, be careful
      * to not overwrite space in queue before sends complete */
+    MPI_Comm comm = st->work_comm;
 
     /* send item count, total bytes, and offsets of each item */
-    MPI_Ssend(st->offsets_send_buf, numoffsets, \
-              MPI_INT, dest, WORK, *st->mpi_state_st->work_comm);
+    MPI_Ssend(st->offsets_send_buf, numoffsets, MPI_INT, dest, WORK, comm);
 
     /* send data */
     char* buf = qp->base + start_offset;
-    MPI_Ssend(buf, bytes, MPI_CHAR, \
-              dest, WORK, *st->mpi_state_st->work_comm);
+    MPI_Ssend(buf, bytes, MPI_CHAR, dest, WORK, comm);
 
     LOG(CIRCLE_LOG_DBG,
         "Sent %d of %d items to %d.", st->offsets_send_buf[0], qp->count, dest);
@@ -769,10 +768,10 @@ int32_t CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* 
     int i;
 
     /* get MPI communicator */
-    MPI_Comm comm = *st->mpi_state_st->work_comm;
+    MPI_Comm comm = st->work_comm;
 
     /* get pointer to array of requests */
-    MPI_Request* requests = st->mpi_state_st->request_request;
+    MPI_Request* requests = st->request_request;
 
     /* This loop is only excuted once.  It is used to initiate receives.
      * When a received is completed, we repost it immediately to capture
@@ -793,7 +792,7 @@ int32_t CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* 
 
     /* record list of requesting ranks in requestors
      * and number in rcount */
-    int* requestors = st->mpi_state_st->requestors;
+    int* requestors = st->requestors;
     int rcount = 0;
 
     /* Test to see if any posted receive has completed */
@@ -802,7 +801,7 @@ int32_t CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* 
             st->request_flag[i] = 0;
 
             if(MPI_Test(&requests[i], &st->request_flag[i],
-                        &st->mpi_state_st->request_status[i]) != MPI_SUCCESS) {
+                        &st->request_status[i]) != MPI_SUCCESS) {
                 MPI_Abort(comm, LIBCIRCLE_MPI_ERROR);
             }
 

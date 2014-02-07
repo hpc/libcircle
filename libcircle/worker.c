@@ -149,20 +149,18 @@ static void CIRCLE_init_local_state(MPI_Comm comm, CIRCLE_state_st* local_state)
     size_t array_elems = (size_t) size;
     local_state->request_flag     = (int32_t*) calloc(array_elems, sizeof(int32_t));
     local_state->request_recv_buf = (int32_t*) calloc(array_elems, sizeof(int32_t));
-
-    local_state->token_comm = *CIRCLE_INPUT_ST.token_comm;
-
-    CIRCLE_mpi_state_st* mpi_state = local_state->mpi_state_st;
-    mpi_state->work_comm  = CIRCLE_INPUT_ST.work_comm;
-
-    mpi_state->request_status  = (MPI_Status*) malloc(sizeof(MPI_Status) * array_elems);
-    mpi_state->request_request = (MPI_Request*) malloc(sizeof(MPI_Request) * array_elems);
-    mpi_state->requestors      = (int*) malloc(sizeof(int) * array_elems);
+    local_state->request_status   = (MPI_Status*) malloc(sizeof(MPI_Status) * array_elems);
+    local_state->request_request  = (MPI_Request*) malloc(sizeof(MPI_Request) * array_elems);
+    local_state->requestors       = (int*) malloc(sizeof(int) * array_elems);
 
     int i;
     for(i = 0; i < size; i++) {
-        mpi_state->request_request[i] = MPI_REQUEST_NULL;
+        local_state->request_request[i] = MPI_REQUEST_NULL;
     }
+
+    /* get communicators */
+    local_state->work_comm  = *CIRCLE_INPUT_ST.work_comm;
+    local_state->token_comm = *CIRCLE_INPUT_ST.token_comm;
 
     /* initalize counters */
     local_state->local_objects_processed = 0;
@@ -176,7 +174,7 @@ static void CIRCLE_init_local_state(MPI_Comm comm, CIRCLE_state_st* local_state)
     local_state->work_requested = 0;
 
     /* create our reduction tree and initialize flag */
-    CIRCLE_tree_init(rank, size, 2, *local_state->mpi_state_st->work_comm, &local_state->tree);
+    CIRCLE_tree_init(rank, size, 2, local_state->work_comm, &local_state->tree);
     local_state->reduce_enabled       = 1;    /* hard code to always for now */
     local_state->reduce_outstanding   = 0;
     local_state->reduce_time_last     = MPI_Wtime();
@@ -210,9 +208,9 @@ static void CIRCLE_finalize_local_state(CIRCLE_state_st* local_state)
     CIRCLE_free(&local_state->offsets_recv_buf);
     CIRCLE_free(&local_state->request_flag);
     CIRCLE_free(&local_state->request_recv_buf);
-    CIRCLE_free(&local_state->mpi_state_st->request_status);
-    CIRCLE_free(&local_state->mpi_state_st->request_request);
-    CIRCLE_free(&local_state->mpi_state_st->requestors);
+    CIRCLE_free(&local_state->request_status);
+    CIRCLE_free(&local_state->request_request);
+    CIRCLE_free(&local_state->requestors);
     return;
 }
 
@@ -234,17 +232,16 @@ static void CIRCLE_cleanup_mpi_messages(CIRCLE_state_st* sptr)
             if(i != sptr->rank) {
                 sptr->request_flag[i] = 0;
 
-                if(MPI_Test(&sptr->mpi_state_st->request_request[i], \
-                            &sptr->request_flag[i], \
-                            &sptr->mpi_state_st->request_status[i]) \
+                if(MPI_Test(&sptr->request_request[i],
+                            &sptr->request_flag[i],
+                            &sptr->request_status[i])
                         != MPI_SUCCESS) {
 
-                    MPI_Abort(*sptr->mpi_state_st->work_comm, \
-                              LIBCIRCLE_MPI_ERROR);
+                    MPI_Abort(sptr->work_comm, LIBCIRCLE_MPI_ERROR);
                 }
 
                 if(sptr->request_flag[i]) {
-                    MPI_Start(&sptr->mpi_state_st->request_request[i]);
+                    MPI_Start(&sptr->request_request[i]);
                     CIRCLE_send_no_work(i);
                 }
             }
@@ -254,7 +251,7 @@ static void CIRCLE_cleanup_mpi_messages(CIRCLE_state_st* sptr)
     /* free off persistent requests */
     for(i = 0; i < sptr->size; i++) {
         if(i != sptr->rank) {
-            MPI_Request_free(&sptr->mpi_state_st->request_request[i]);
+            MPI_Request_free(&sptr->request_request[i]);
         }
     }
 

@@ -39,19 +39,6 @@ typedef struct CIRCLE_tree_state_st {
 } CIRCLE_tree_state_st;
 
 typedef struct CIRCLE_mpi_state_st {
-    MPI_Status work_status;
-    MPI_Status* request_status;
-
-    MPI_Request work_offsets_request;
-    MPI_Request work_request;
-    MPI_Request* request_request;
-
-    /* records list of ranks requesting work from us,
-     * must have one slot for each neighbor */
-    int* requestors;
-
-    MPI_Comm* work_comm;
-
     int hostname_length;
     char hostname[MPI_MAX_PROCESSOR_NAME];
 } CIRCLE_mpi_state_st;
@@ -61,6 +48,8 @@ typedef struct CIRCLE_state_st {
 
     int8_t verbose;
 
+    /* communicator and our rank and its size */
+    MPI_Comm work_comm;
     int32_t rank;
     int32_t size;
 
@@ -69,6 +58,12 @@ typedef struct CIRCLE_state_st {
     int* request_flag;
     int* request_recv_buf;
     int8_t request_pending_receive; /* indicates whether we have created our peristent requests */
+    MPI_Status* request_status;
+    MPI_Request* request_request;
+
+    /* records list of ranks requesting work from us,
+     * must have one slot for each neighbor */
+    int* requestors;
 
     /* tracks state of token */
     int8_t token_flag;          /* flag indicating whether we have the token */
