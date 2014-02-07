@@ -23,8 +23,6 @@
 CIRCLE_handle queue_handle;
 
 extern CIRCLE_input_st CIRCLE_INPUT_ST;
-uint64_t local_hop_bytes = 0;
-uint64_t total_hop_bytes = 0;
 int8_t CIRCLE_ABORT_FLAG = 0;
 
 /*
@@ -382,8 +380,6 @@ int8_t CIRCLE_worker()
     int total_objects_processed = 0;
     MPI_Reduce(&sptr->local_objects_processed, &total_objects_processed, 1, \
                MPI_INT, MPI_SUM, 0, *mpi_s.work_comm);
-    MPI_Reduce(&local_hop_bytes, &total_hop_bytes, 1, \
-               MPI_INT, MPI_SUM, 0, *mpi_s.work_comm);
 
     if(rank == 0) {
         for(i = 0; i < size; i++) {
@@ -397,10 +393,6 @@ int8_t CIRCLE_worker()
 
         LOG(CIRCLE_LOG_INFO, \
             "Total Objects Processed: %d", total_objects_processed);
-        LOG(CIRCLE_LOG_INFO, \
-            "Total hop-bytes: %"PRIu64, total_hop_bytes);
-        LOG(CIRCLE_LOG_INFO, \
-            "Hop-bytes per file: %f", (float)total_hop_bytes / (float)total_objects_processed);
     }
 
     /* free memory */
