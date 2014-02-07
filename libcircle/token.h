@@ -85,6 +85,8 @@ typedef struct CIRCLE_state_st {
     int* work_offsets;
     int* request_offsets;
 
+    int32_t local_objects_processed; /* track number of completed work items */
+
     int work_requested;             /* flag indicating we have requested work */
     int work_requested_rank;        /* rank of process we requested work from */
     MPI_Request work_requested_req; /* MPI req associated with isend */

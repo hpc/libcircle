@@ -18,7 +18,6 @@
 #include "queue.h"
 
 extern int8_t CIRCLE_ABORT_FLAG;
-extern int32_t local_objects_processed;
 extern uint32_t local_work_requested;
 extern uint32_t local_no_work_received;
 

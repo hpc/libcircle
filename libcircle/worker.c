@@ -23,8 +23,6 @@
 CIRCLE_handle queue_handle;
 
 extern CIRCLE_input_st CIRCLE_INPUT_ST;
-int32_t local_objects_processed = 0;
-int32_t total_objects_processed = 0;
 uint32_t local_work_requested = 0;
 uint32_t total_work_requested = 0;
 uint32_t local_no_work_received = 0;
@@ -153,6 +151,9 @@ static void CIRCLE_init_local_state(CIRCLE_state_st* local_state, int32_t rank, 
         local_state->mpi_state_st->request_request[i] = MPI_REQUEST_NULL;
     }
 
+    /* initalize counters */
+    local_state->local_objects_processed = 0;
+
     /* initialize work request state */
     local_state->work_requested = 0;
 
@@ -218,7 +219,7 @@ static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
 
         /* Make progress on any outstanding reduction */
         if(sptr->reduce_enabled) {
-            CIRCLE_reduce_progress(sptr, local_objects_processed);
+            CIRCLE_reduce_progress(sptr, sptr->local_objects_processed);
         }
 
         /* If I have no work, request work from another rank */
@@ -230,7 +231,7 @@ static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
          * abort, process one work item */
         if(CIRCLE_INPUT_ST.queue->count > 0 && !CIRCLE_ABORT_FLAG) {
             (*(CIRCLE_INPUT_ST.process_cb))(q_handle);
-            local_objects_processed++;
+            sptr->local_objects_processed++;
         }
         /* If I don't have work, or if I received signal to abort,
          * check for termination */
@@ -336,10 +337,6 @@ int8_t CIRCLE_worker()
     local_state.seed = (unsigned) rank;
     CIRCLE_get_next_proc(&local_state);
 
-    /* Initial local state */
-    local_objects_processed = 0;
-    total_objects_processed = 0;
-
     /* Master rank starts out with the initial data creation */
     size_t array_elems = (size_t) size;
     uint32_t* total_objects_processed_array = (uint32_t*) calloc(array_elems, sizeof(uint32_t));
@@ -372,8 +369,10 @@ int8_t CIRCLE_worker()
         CIRCLE_checkpoint();
     }
 
+    /* gather and print summary info */
+    int total_objects_processed = 0;
 
-    MPI_Gather(&local_objects_processed, 1, MPI_INT, \
+    MPI_Gather(&sptr->local_objects_processed, 1, MPI_INT, \
                &total_objects_processed_array[0], 1, MPI_INT, 0, \
                *mpi_s.work_comm);
     MPI_Gather(&local_work_requested, 1, MPI_INT, \
@@ -382,7 +381,7 @@ int8_t CIRCLE_worker()
     MPI_Gather(&local_no_work_received, 1, MPI_INT, \
                &total_no_work_received_array[0], 1, MPI_INT, 0, \
                *mpi_s.work_comm);
-    MPI_Reduce(&local_objects_processed, &total_objects_processed, 1, \
+    MPI_Reduce(&sptr->local_objects_processed, &total_objects_processed, 1, \
                MPI_INT, MPI_SUM, 0, *mpi_s.work_comm);
     MPI_Reduce(&local_hop_bytes, &total_hop_bytes, 1, \
                MPI_INT, MPI_SUM, 0, *mpi_s.work_comm);
