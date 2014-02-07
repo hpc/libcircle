@@ -39,7 +39,6 @@ typedef struct CIRCLE_tree_state_st {
 } CIRCLE_tree_state_st;
 
 typedef struct CIRCLE_mpi_state_st {
-    MPI_Status work_offsets_status;
     MPI_Status work_status;
     MPI_Status* request_status;
 
@@ -85,9 +84,10 @@ typedef struct CIRCLE_state_st {
     unsigned seed;          /* seed for random number generator */
     int32_t next_processor; /* rank of next process to request work from */
 
-    int32_t offset_count;
-    int* work_offsets;
-    int* request_offsets;
+    /* offset arrays are used to transfer length of items while sending work */
+    int32_t offsets_count;  /* number of offsets in work and request offset arrays */
+    int* offsets_recv_buf;  /* buffer in which to receive an array of offsets when receiving work */
+    int* offsets_send_buf;  /* buffer to specify offsets while sending work */
 
     /* profiling counters */
     int32_t local_objects_processed; /* number of locally completed work items */

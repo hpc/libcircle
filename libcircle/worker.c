@@ -140,15 +140,14 @@ static void CIRCLE_init_local_state(MPI_Comm comm, CIRCLE_state_st* local_state)
 
     local_state->request_pending_receive = 0;
 
+    /* allocate memory for our offset arrays */
+    int32_t offsets = CIRCLE_INPUT_ST.queue->str_count;
+    local_state->offsets_count = offsets;
+    local_state->offsets_send_buf = (int*) calloc((size_t)offsets, sizeof(int));
+    local_state->offsets_recv_buf = (int*) calloc((size_t)offsets, sizeof(int));
+
     size_t array_elems = (size_t) size;
-    local_state->request_offsets = (int*) calloc(\
-                                   (size_t)CIRCLE_INPUT_ST.queue->str_count, \
-                                   sizeof(int));
-    local_state->work_offsets = (int*) calloc(\
-                                (size_t)CIRCLE_INPUT_ST.queue->str_count, \
-                                sizeof(int));
-    local_state->offset_count = CIRCLE_INPUT_ST.queue->str_count;
-    local_state->request_flag = (int32_t*) calloc(array_elems, sizeof(int32_t));
+    local_state->request_flag     = (int32_t*) calloc(array_elems, sizeof(int32_t));
     local_state->request_recv_buf = (int32_t*) calloc(array_elems, sizeof(int32_t));
 
     local_state->token_comm = *CIRCLE_INPUT_ST.token_comm;
@@ -207,8 +206,8 @@ static void CIRCLE_free(void* pptr)
 static void CIRCLE_finalize_local_state(CIRCLE_state_st* local_state)
 {
     CIRCLE_tree_free(&local_state->tree);
-    CIRCLE_free(&local_state->request_offsets);
-    CIRCLE_free(&local_state->work_offsets);
+    CIRCLE_free(&local_state->offsets_send_buf);
+    CIRCLE_free(&local_state->offsets_recv_buf);
     CIRCLE_free(&local_state->request_flag);
     CIRCLE_free(&local_state->request_recv_buf);
     CIRCLE_free(&local_state->mpi_state_st->request_status);

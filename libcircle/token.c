@@ -370,7 +370,7 @@ CIRCLE_get_next_proc(CIRCLE_state_st* st)
 int8_t CIRCLE_extend_offsets(CIRCLE_state_st* st, int32_t size)
 {
     /* get current size of offset arrays */
-    int32_t count = st->offset_count;
+    int32_t count = st->offsets_count;
 
     /* if size we need is less than or equal to current size,
      * we don't need to do anything */
@@ -383,26 +383,27 @@ int8_t CIRCLE_extend_offsets(CIRCLE_state_st* st, int32_t size)
         count += 4096;
     }
 
-    LOG(CIRCLE_LOG_DBG, "Extending offset arrays from %d to %d.", \
-        st->offset_count, count);
+    LOG(CIRCLE_LOG_DBG, "Extending offset arrays from %d to %d.",
+        st->offsets_count, count);
 
-    st->work_offsets = (int*) realloc(st->work_offsets, \
+    st->offsets_recv_buf = (int*) realloc(st->offsets_recv_buf,
                                       (size_t)count * sizeof(int));
-    st->request_offsets = (int*) realloc(st->request_offsets, \
+
+    st->offsets_send_buf = (int*) realloc(st->offsets_send_buf,
                                          (size_t)count * sizeof(int));
 
-    LOG(CIRCLE_LOG_DBG, "Work offsets: [%p] -> [%p]", \
-        (void*) st->work_offsets, \
-        (void*)(st->work_offsets + ((size_t)count * sizeof(int))));
+    LOG(CIRCLE_LOG_DBG, "Work offsets: [%p] -> [%p]",
+        (void*) st->offsets_recv_buf,
+        (void*)(st->offsets_recv_buf + ((size_t)count * sizeof(int))));
 
-    LOG(CIRCLE_LOG_DBG, "Request offsets: [%p] -> [%p]", \
-        (void*) st->request_offsets, \
-        (void*)(st->request_offsets + ((size_t)count * sizeof(int))));
+    LOG(CIRCLE_LOG_DBG, "Request offsets: [%p] -> [%p]",
+        (void*) st->offsets_send_buf,
+        (void*)(st->offsets_send_buf + ((size_t)count * sizeof(int))));
 
     /* record new length of offset arrays */
-    st->offset_count = count;
+    st->offsets_count = count;
 
-    if(!st->work_offsets || !st->request_offsets) {
+    if(st->offsets_recv_buf == NULL || st->offsets_send_buf == NULL) {
         return -1;
     }
 
@@ -435,11 +436,12 @@ static int32_t CIRCLE_work_receive(
     }
 
     /* Receive item count, character count, and offsets */
-    MPI_Recv(st->work_offsets, size, MPI_INT, source,
-             WORK, comm, &st->mpi_state_st->work_offsets_status);
+    MPI_Status status;
+    MPI_Recv(st->offsets_recv_buf, size, MPI_INT, source,
+             WORK, comm, &status);
 
     /* the first int has number of items or an ABORT code */
-    int items = st->work_offsets[0];
+    int items = st->offsets_recv_buf[0];
     if(items == 0) {
         /* we received 0 elements, there is no follow on message */
         LOG(CIRCLE_LOG_DBG, "Received no work.");
@@ -459,7 +461,7 @@ static int32_t CIRCLE_work_receive(
 
     /* the second int is the number of characters we'll receive,
      * make sure our queue has enough storage */
-    int chars = st->work_offsets[1];
+    int chars = st->offsets_recv_buf[1];
     size_t new_bytes = (size_t)(qp->head + chars) * sizeof(char);
     if(new_bytes > qp->bytes) {
         if(CIRCLE_internal_queue_extend(qp, new_bytes) < 0) {
@@ -486,7 +488,7 @@ static int32_t CIRCLE_work_receive(
     /* set offset to each element in our queue */
     int32_t i;
     for(i = 0; i < count; i++) {
-        qp->strings[i] = (uintptr_t) st->work_offsets[i + 2];
+        qp->strings[i] = (uintptr_t) st->offsets_recv_buf[i + 2];
     }
 
     /* double check that the base offset is valid */
@@ -727,14 +729,14 @@ int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
 
     /* offsets[0] = number of strings */
     /* offsets[1] = number of chars being sent */
-    st->request_offsets[0] = (int) count;
-    st->request_offsets[1] = (int) bytes;
+    st->offsets_send_buf[0] = (int) count;
+    st->offsets_send_buf[1] = (int) bytes;
 
     /* now compute offset of each string */
     int32_t i = 0;
     int32_t current_elem = start_elem;
     for(i = 0; i < count; i++) {
-        st->request_offsets[2 + i] = (int)(qp->strings[current_elem] - start_offset);
+        st->offsets_send_buf[2 + i] = (int)(qp->strings[current_elem] - start_offset);
         current_elem++;
     }
 
@@ -742,7 +744,7 @@ int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
      * to not overwrite space in queue before sends complete */
 
     /* send item count, total bytes, and offsets of each item */
-    MPI_Ssend(st->request_offsets, numoffsets, \
+    MPI_Ssend(st->offsets_send_buf, numoffsets, \
               MPI_INT, dest, WORK, *st->mpi_state_st->work_comm);
 
     /* send data */
@@ -751,7 +753,7 @@ int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
               dest, WORK, *st->mpi_state_st->work_comm);
 
     LOG(CIRCLE_LOG_DBG,
-        "Sent %d of %d items to %d.", st->request_offsets[0], qp->count, dest);
+        "Sent %d of %d items to %d.", st->offsets_send_buf[0], qp->count, dest);
 
     /* subtract elements from our queue */
     qp->count -= count;
