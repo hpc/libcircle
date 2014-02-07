@@ -204,19 +204,15 @@ static void CIRCLE_finalize_local_state(CIRCLE_state_st* local_state)
  *
  * - For every work loop execution, the following happens:
  *     -# Check for work requests from other ranks.
- *     -# If this rank has work, call the user callback function.
  *     -# If this rank doesn't have work, ask a random rank for work.
+ *     -# If this rank has work, call the user callback function.
  *     -# If after requesting work, this rank still doesn't have any,
  *        check for termination conditions.
  */
 static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
 {
-    int token = WHITE;
-    int work_status = -1;
-    int term_status = -1;
-
     /* Loop until done */
-    while(token != DONE) {
+    while(1) {
         /* Check for and service work requests */
         CIRCLE_check_for_requests(CIRCLE_INPUT_ST.queue, sptr);
 
@@ -227,26 +223,24 @@ static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
 
         /* If I have no work, request work from another rank */
         if(CIRCLE_INPUT_ST.queue->count == 0) {
-            work_status = CIRCLE_request_work(CIRCLE_INPUT_ST.queue, sptr);
-
-            if(work_status == TERMINATE) {
-                token = DONE;
-                LOG(CIRCLE_LOG_DBG, "Received termination signal.");
-            }
+            CIRCLE_request_work(CIRCLE_INPUT_ST.queue, sptr);
         }
 
-        /* If I have some work, process one work item */
+        /* If I have some work and have not received a signal to
+         * abort, process one work item */
         if(CIRCLE_INPUT_ST.queue->count > 0 && !CIRCLE_ABORT_FLAG) {
             (*(CIRCLE_INPUT_ST.process_cb))(q_handle);
             local_objects_processed++;
         }
-        /* If I don't have work, check for termination */
-        else if(token != DONE) {
-            term_status = CIRCLE_check_for_term(sptr);
+        /* If I don't have work, or if I received signal to abort,
+         * check for termination */
+        else {
+            int term_status = CIRCLE_check_for_term(sptr);
 
             if(term_status == TERMINATE) {
-                token = DONE;
+                /* got the terminate signal, break the loop */
                 LOG(CIRCLE_LOG_DBG, "Received termination signal.");
+                break;
             }
         }
     }
