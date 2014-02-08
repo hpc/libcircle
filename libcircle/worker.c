@@ -149,8 +149,8 @@ static void CIRCLE_init_local_state(MPI_Comm comm, CIRCLE_state_st* local_state)
 
     /* allocate arrays for persistent requests */
     size_t array_elems = (size_t) size;
-    local_state->request_flag     = (int32_t*) calloc(array_elems, sizeof(int32_t));
-    local_state->request_recv_buf = (int32_t*) calloc(array_elems, sizeof(int32_t));
+    local_state->request_flag     = (int*) calloc(array_elems, sizeof(int));
+    local_state->request_recv_buf = (int*) calloc(array_elems, sizeof(int));
     local_state->request_status   = (MPI_Status*) malloc(sizeof(MPI_Status) * array_elems);
     local_state->request_request  = (MPI_Request*) malloc(sizeof(MPI_Request) * array_elems);
     local_state->requestors       = (int*) malloc(sizeof(int) * array_elems);

@@ -41,36 +41,36 @@ typedef struct CIRCLE_tree_state_st {
 typedef struct CIRCLE_state_st {
     /* communicator and our rank and its size */
     MPI_Comm work_comm;
-    int32_t rank;
-    int32_t size;
+    int rank;
+    int size;
 
     /* tracks state of token */
-    int8_t token_flag;          /* flag indicating whether we have the token */
-    int8_t token;               /* current color of process: WHITE, BLACK, TERMINATE */
+    int token_flag;             /* flag indicating whether we have the token */
+    int token;                  /* current color of process: WHITE, BLACK, TERMINATE */
     MPI_Comm token_comm;        /* communicator for all token traffic */
-    int32_t token_partner_recv; /* rank of process who will send token to us */
-    int32_t token_partner_send; /* rank of process to which we send token */
-    int8_t token_recv_pending;  /* flag indicating whether we have a receive posted for token */
-    int8_t token_recv_buf;      /* buffer to receive incoming token */
+    int token_partner_recv;     /* rank of process who will send token to us */
+    int token_partner_send;     /* rank of process to which we send token */
+    int token_recv_pending;     /* flag indicating whether we have a receive posted for token */
+    int token_recv_buf;         /* buffer to receive incoming token */
     MPI_Request token_recv_req; /* request associated with pending receive */
 
     /* offset arrays are used to transfer length of items while sending work */
-    int32_t offsets_count;  /* number of offsets in work and request offset arrays */
-    int* offsets_recv_buf;  /* buffer in which to receive an array of offsets when receiving work */
-    int* offsets_send_buf;  /* buffer to specify offsets while sending work */
+    int offsets_count;     /* number of offsets in work and request offset arrays */
+    int* offsets_recv_buf; /* buffer in which to receive an array of offsets when receiving work */
+    int* offsets_send_buf; /* buffer to specify offsets while sending work */
 
     /* these are used for persistent receives of work request messages
      * from other tasks */
-    int8_t request_pending_receive; /* indicates whether we have created our peristent requests */
-    int* request_flag;              /* array of flags for testing persistent requests */
-    int* request_recv_buf;          /* array of integer buffers for persistent requests */
-    MPI_Status* request_status;     /* array of status objects for persistent requests */
-    MPI_Request* request_request;   /* array of request objects for persistent requests */
-    int* requestors;                /* list of ranks requesting work from us */
+    int request_pending_receive;  /* indicates whether we have created our peristent requests */
+    int* request_flag;            /* array of flags for testing persistent requests */
+    int* request_recv_buf;        /* array of integer buffers for persistent requests */
+    MPI_Status* request_status;   /* array of status objects for persistent requests */
+    MPI_Request* request_request; /* array of request objects for persistent requests */
+    int* requestors;              /* list of ranks requesting work from us */
 
     /* used to randomly pick next process to requeset work from */
-    unsigned seed;          /* seed for random number generator */
-    int32_t next_processor; /* rank of next process to request work from */
+    unsigned seed;      /* seed for random number generator */
+    int next_processor; /* rank of next process to request work from */
 
     /* manage state for requesting work from other procs */
     int work_requested;             /* flag indicating we have requested work */
@@ -84,7 +84,7 @@ typedef struct CIRCLE_state_st {
     double reduce_time_interval; /* seconds between reductions */
     int reduce_outstanding;      /* flag indicating whether a reduce is outstanding */
     int reduce_replies;          /* keeps count of number of children who have replied */
-    int32_t reduce_buf;          /* local reduction buffer */
+    int reduce_buf;              /* local reduction buffer */
 
     /* profiling counters */
     int32_t local_objects_processed; /* number of locally completed work items */

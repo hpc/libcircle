@@ -24,9 +24,9 @@ extern CIRCLE_input_st CIRCLE_INPUT_ST;
 /* given the process's rank and the number of ranks, this computes a k-ary
  * tree rooted at rank 0, the structure records the number of children
  * of the local rank and the list of their ranks */
-void CIRCLE_tree_init(int32_t rank, int32_t ranks, int32_t k, MPI_Comm comm, CIRCLE_tree_state_st* t)
+void CIRCLE_tree_init(int rank, int ranks, int k, MPI_Comm comm, CIRCLE_tree_state_st* t)
 {
-    int32_t i;
+    int i;
 
     /* initialize fields */
     t->rank        = (int) rank;
@@ -36,7 +36,7 @@ void CIRCLE_tree_init(int32_t rank, int32_t ranks, int32_t k, MPI_Comm comm, CIR
     t->child_ranks = NULL;
 
     /* compute the maximum number of children this task may have */
-    int32_t max_children = k;
+    int max_children = k;
 
     /* allocate memory to hold list of children ranks */
     if(max_children > 0) {
@@ -61,8 +61,8 @@ void CIRCLE_tree_init(int32_t rank, int32_t ranks, int32_t k, MPI_Comm comm, CIR
     }
 
     /* identify ranks of what would be leftmost and rightmost children */
-    int32_t left  = rank * k + 1;
-    int32_t right = rank * k + k;
+    int left  = rank * k + 1;
+    int right = rank * k + k;
 
     /* if we have at least one child,
      * compute number of children and list of child ranks */
@@ -73,9 +73,9 @@ void CIRCLE_tree_init(int32_t rank, int32_t ranks, int32_t k, MPI_Comm comm, CIR
         }
 
         /* compute number of children and list of child ranks */
-        t->children = (int) (right - left + 1);
+        t->children = right - left + 1;
         for(i = 0; i < t->children; i++) {
-            t->child_ranks[i] = (int) (left + i);
+            t->child_ranks[i] = left + i;
         }
     }
 
@@ -208,16 +208,14 @@ void CIRCLE_bcast_abort(void)
     LOG(CIRCLE_LOG_WARN, \
         "Libcircle abort started from %d", CIRCLE_global_rank);
 
-    int buffer = ABORT;
-    int size = 0;
-    int i = 0;
-    int32_t rank = -1;
-
+    int rank, size;
     MPI_Comm_rank(*CIRCLE_INPUT_ST.work_comm, &rank);
     MPI_Comm_size(*CIRCLE_INPUT_ST.work_comm, &size);
 
     CIRCLE_ABORT_FLAG = 1;
 
+    int i;
+    int buffer = ABORT;
     for(i = 0; i < size; i++) {
         if(i != rank) {
             MPI_Send(&buffer, 1, MPI_INT, i, \
@@ -531,7 +529,7 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
     /* check whether we've already sent a request or not */
     if(! st->work_requested) {
         /* need to send request, get rank of process to request work from */
-        int32_t source = st->next_processor;
+        int source = st->next_processor;
 
         /* have no one to ask, we're done */
         if(source == MPI_PROC_NULL) {
@@ -545,7 +543,7 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 
         /* TODO: why 3? */
         /* if abort flag is set, pack abort code into send buffer */
-        int32_t buf = 3;
+        int buf = 3;
         if(CIRCLE_ABORT_FLAG) {
             buf = ABORT;
         }
@@ -597,9 +595,10 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
  * remainder across initial ranks */
 static void spread_counts(int* sizes, int ranks, int count)
 {
-    int32_t i = 0;
-    int32_t base  = count / ranks;
-    int32_t extra = count - base * ranks;
+    int base  = count / ranks;
+    int extra = count - base * ranks;
+
+    int i = 0;
 
     while(i < extra) {
         sizes[i] = base + 1;
@@ -673,9 +672,9 @@ void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
 /**
  * Sends a no work reply to someone requesting work.
  */
-void CIRCLE_send_no_work(int32_t dest)
+void CIRCLE_send_no_work(int dest)
 {
-    int32_t no_work[2];
+    int no_work[2];
     no_work[0] = (CIRCLE_ABORT_FLAG) ? ABORT : 0;
     no_work[1] = 0;
 
