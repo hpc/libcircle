@@ -116,8 +116,18 @@ static void CIRCLE_init_local_state(MPI_Comm comm, CIRCLE_state_st* local_state)
     MPI_Comm_size(comm, &size);
 
     /* set rank and size in state */
+    local_state->work_comm = *CIRCLE_INPUT_ST.work_comm;
     local_state->rank = rank;
     local_state->size = size;
+
+    /* start the termination token on rank 0 */
+    local_state->token_flag = 0;
+    if(rank == 0) {
+        local_state->token_flag = 1;
+    }
+
+    /* get communicators */
+    local_state->token_comm = *CIRCLE_INPUT_ST.token_comm;
 
     /* identify ranks for the token passing ring */
     local_state->token_partner_recv = (rank - 1 + size) % size;
@@ -128,24 +138,16 @@ static void CIRCLE_init_local_state(MPI_Comm comm, CIRCLE_state_st* local_state)
     local_state->token_recv_pending = 0;
     local_state->token_recv_buf     = BLACK;
 
-    /* start the termination token on rank 0 */
-    local_state->token_flag = 0;
-    if(rank == 0) {
-        local_state->token_flag = 1;
-    }
-
-    /* randomize the first task we request work from */
-    local_state->seed = (unsigned) rank;
-    CIRCLE_get_next_proc(local_state);
-
-    local_state->request_pending_receive = 0;
-
     /* allocate memory for our offset arrays */
     int32_t offsets = CIRCLE_INPUT_ST.queue->str_count;
     local_state->offsets_count = offsets;
     local_state->offsets_send_buf = (int*) calloc((size_t)offsets, sizeof(int));
     local_state->offsets_recv_buf = (int*) calloc((size_t)offsets, sizeof(int));
 
+    /* initialize flag to denote we have yet to post persistent requests */
+    local_state->request_pending_receive = 0;
+
+    /* allocate arrays for persistent requests */
     size_t array_elems = (size_t) size;
     local_state->request_flag     = (int32_t*) calloc(array_elems, sizeof(int32_t));
     local_state->request_recv_buf = (int32_t*) calloc(array_elems, sizeof(int32_t));
@@ -153,22 +155,15 @@ static void CIRCLE_init_local_state(MPI_Comm comm, CIRCLE_state_st* local_state)
     local_state->request_request  = (MPI_Request*) malloc(sizeof(MPI_Request) * array_elems);
     local_state->requestors       = (int*) malloc(sizeof(int) * array_elems);
 
+    /* initialize all persistent requests to REQUEST_NULL */
     int i;
     for(i = 0; i < size; i++) {
         local_state->request_request[i] = MPI_REQUEST_NULL;
     }
 
-    /* get communicators */
-    local_state->work_comm  = *CIRCLE_INPUT_ST.work_comm;
-    local_state->token_comm = *CIRCLE_INPUT_ST.token_comm;
-
-    /* initalize counters */
-    local_state->local_objects_processed = 0;
-    local_state->local_work_requested    = 0;
-    local_state->local_no_work_received  = 0;
-
-    /* set abort flag */
-    local_state->abort = 0;
+    /* randomize the first task we request work from */
+    local_state->seed = (unsigned) rank;
+    CIRCLE_get_next_proc(local_state);
 
     /* initialize work request state */
     local_state->work_requested = 0;
@@ -176,9 +171,15 @@ static void CIRCLE_init_local_state(MPI_Comm comm, CIRCLE_state_st* local_state)
     /* create our reduction tree and initialize flag */
     CIRCLE_tree_init(rank, size, 2, local_state->work_comm, &local_state->tree);
     local_state->reduce_enabled       = 1;    /* hard code to always for now */
-    local_state->reduce_outstanding   = 0;
     local_state->reduce_time_last     = MPI_Wtime();
     local_state->reduce_time_interval = 10.0; /* hard code to 10 seconds for now */
+    local_state->reduce_outstanding   = 0;
+
+    /* initalize counters */
+    local_state->local_objects_processed = 0;
+    local_state->local_work_requested    = 0;
+    local_state->local_no_work_received  = 0;
+
     return;
 }
 
@@ -323,15 +324,9 @@ static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
  */
 int8_t CIRCLE_worker()
 {
-    int i = -1;
-
     /* Holds all worker state */
     CIRCLE_state_st local_state;
     CIRCLE_state_st* sptr = &local_state;
-
-    /* Holds all mpi state */
-    CIRCLE_mpi_state_st mpi_s;
-    local_state.mpi_state_st = &mpi_s;
 
     /* Provides an interface to the queue. */
     queue_handle.enqueue = &CIRCLE_enqueue;
@@ -409,6 +404,7 @@ int8_t CIRCLE_worker()
 
     /* print summary from rank 0 */
     if(rank == 0) {
+        int i;
         for(i = 0; i < size; i++) {
             LOG(CIRCLE_LOG_INFO, "Rank %d\tObjects Processed %d\t%0.3lf%%", i,
                 total_objects_processed_array[i],
