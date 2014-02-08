@@ -742,14 +742,16 @@ int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
 
     /* TODO; use isend to avoid deadlock, but in that case, be careful
      * to not overwrite space in queue before sends complete */
+
+    /* get communicator */
     MPI_Comm comm = st->work_comm;
 
     /* send item count, total bytes, and offsets of each item */
-    MPI_Ssend(st->offsets_send_buf, numoffsets, MPI_INT, dest, WORK, comm);
+    MPI_Send(st->offsets_send_buf, numoffsets, MPI_INT, dest, WORK, comm);
 
     /* send data */
     char* buf = qp->base + start_offset;
-    MPI_Ssend(buf, bytes, MPI_CHAR, dest, WORK, comm);
+    MPI_Send(buf, bytes, MPI_CHAR, dest, WORK, comm);
 
     LOG(CIRCLE_LOG_DBG,
         "Sent %d of %d items to %d.", st->offsets_send_buf[0], qp->count, dest);
