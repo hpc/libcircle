@@ -338,7 +338,7 @@ int8_t CIRCLE_worker()
 
     /* get our rank and the size of the communicator */
     int rank, size;
-    MPI_Comm_size(comm, &rank);
+    MPI_Comm_rank(comm, &rank);
     MPI_Comm_size(comm, &size);
 
     /* initialize all local state variables */
