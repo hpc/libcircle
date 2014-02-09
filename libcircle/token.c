@@ -122,11 +122,13 @@ void CIRCLE_reduce_progress(CIRCLE_state_st* st, int count)
 
             /* if we got a message, receive and reduce it */
             if(flag) {
+                /* TODO: change me to uint64_t at some point */
+
                 /* receive message form child, first int contains
                  * number of completed libcircle work elements,
                  * second int is number of bytes of user data */
-                int recvbuf[2];
-                MPI_Recv(&recvbuf, 2, MPI_INT, child,
+                long long int recvbuf[2];
+                MPI_Recv(&recvbuf, 2, MPI_LONG_LONG, child,
                     CIRCLE_TAG_REDUCE, comm, &status);
 
                 /* combine child's data with our buffer */
@@ -142,7 +144,8 @@ void CIRCLE_reduce_progress(CIRCLE_state_st* st, int count)
                     }
 
                     /* receive data */
-                    MPI_Recv(inbuf, recvbuf[1], MPI_BYTE, child,
+                    int bytes = (int) recvbuf[1];
+                    MPI_Recv(inbuf, bytes, MPI_BYTE, child,
                         CIRCLE_TAG_REDUCE, comm, &status);
                 }
 
@@ -164,26 +167,27 @@ void CIRCLE_reduce_progress(CIRCLE_state_st* st, int count)
         /* check whether we've gotten replies from all children */
         if(st->reduce_replies == children) {
             /* all children have replied, add our own content to reduce buffer */
-            st->reduce_buf[0] += count;
+            st->reduce_buf[0] += (long long int) count;
 
             /* send message to parent if we have one */
             if(parent_rank != MPI_PROC_NULL) {
                 /* get size of user data */
                 int bytes = (int) CIRCLE_INPUT_ST.reduce_buf_size;
-                st->reduce_buf[1] = bytes;
+                st->reduce_buf[1] = (long long int) bytes;
 
                 /* send partial result to parent */
-                MPI_Send(st->reduce_buf, 2, MPI_INT, parent_rank, CIRCLE_TAG_REDUCE, comm);
+                MPI_Send(st->reduce_buf, 2, MPI_LONG_LONG, parent_rank,
+                    CIRCLE_TAG_REDUCE, comm);
 
                 /* also send along user data if any */
                 if(bytes > 0) {
                     void* currbuf = CIRCLE_INPUT_ST.reduce_buf;
-                    MPI_Send(currbuf, bytes, MPI_BYTE, parent_rank, CIRCLE_TAG_REDUCE, comm);
+                    MPI_Send(currbuf, bytes, MPI_BYTE, parent_rank,
+                        CIRCLE_TAG_REDUCE, comm);
                 }
             } else {
                 /* we're the root, print the results now */
-                fprintf(CIRCLE_debug_stream, "Objects processed: %d\n", st->reduce_buf[0]);
-                fflush(CIRCLE_debug_stream);
+                LOG(CIRCLE_LOG_INFO, "Objects processed: %d ...", st->reduce_buf[0]);
 
                 /* invoke callback on root to deliver final result */
                 if(CIRCLE_INPUT_ST.reduce_fini_cb != NULL) {
@@ -214,7 +218,8 @@ void CIRCLE_reduce_progress(CIRCLE_state_st* st, int count)
                 /* kick off reduce if message came in */
                 if(flag) {
                     /* receive message from parent and set flag to start reduce */
-                    MPI_Recv(NULL, 0, MPI_BYTE, parent_rank, CIRCLE_TAG_REDUCE, comm, &status);
+                    MPI_Recv(NULL, 0, MPI_BYTE, parent_rank,
+                        CIRCLE_TAG_REDUCE, comm, &status);
                     start_reduce = 1;
                 }
             }
@@ -242,7 +247,8 @@ void CIRCLE_reduce_progress(CIRCLE_state_st* st, int count)
             for(i = 0; i < children; i++) {
                 /* send message to each child */
                 int child = child_ranks[i];
-                MPI_Send(NULL, 0, MPI_BYTE, child, CIRCLE_TAG_REDUCE, comm);
+                MPI_Send(NULL, 0, MPI_BYTE, child,
+                    CIRCLE_TAG_REDUCE, comm);
             }
         }
     }

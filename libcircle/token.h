@@ -84,7 +84,7 @@ typedef struct CIRCLE_state_st {
     double reduce_time_interval; /* seconds between reductions */
     int reduce_outstanding;      /* flag indicating whether a reduce is outstanding */
     int reduce_replies;          /* keeps count of number of children who have replied */
-    int reduce_buf[2];           /* local reduction buffer */
+    long long int reduce_buf[2]; /* local reduction buffer */
 
     /* profiling counters */
     int32_t local_objects_processed; /* number of locally completed work items */
