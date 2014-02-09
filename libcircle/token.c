@@ -122,12 +122,39 @@ void CIRCLE_reduce_progress(CIRCLE_state_st* st, int count)
 
             /* if we got a message, receive and reduce it */
             if(flag) {
-                /* receive message form child */
-                int recvbuf;
-                MPI_Recv(&recvbuf, 1, MPI_INT, child, CIRCLE_TAG_REDUCE, comm, &status);
+                /* receive message form child, first int contains
+                 * number of completed libcircle work elements,
+                 * second int is number of bytes of user data */
+                int recvbuf[2];
+                MPI_Recv(&recvbuf, 2, MPI_INT, child,
+                    CIRCLE_TAG_REDUCE, comm, &status);
 
                 /* combine child's data with our buffer */
-                st->reduce_buf += recvbuf;
+                st->reduce_buf[0] += recvbuf[0];
+
+                /* get incoming user data if we have any */
+                void* inbuf = NULL;
+                size_t insize = (size_t) recvbuf[1];
+                if(insize > 0) {
+                    /* allocate space to hold data */
+                    inbuf = malloc(insize);
+                    if(inbuf == NULL) {
+                    }
+
+                    /* receive data */
+                    MPI_Recv(inbuf, recvbuf[1], MPI_BYTE, child,
+                        CIRCLE_TAG_REDUCE, comm, &status);
+                }
+
+                /* invoke callback to reduce user data */
+                if(CIRCLE_INPUT_ST.reduce_op_cb != NULL) {
+                    void* currbuf   = CIRCLE_INPUT_ST.reduce_buf;
+                    size_t currsize = CIRCLE_INPUT_ST.reduce_buf_size;
+                    (*(CIRCLE_INPUT_ST.reduce_op_cb))(currbuf, currsize, inbuf, insize);
+                }
+
+                /* free temporary buffer holding incoming user data */
+                CIRCLE_free(&inbuf);
 
                 /* increment the number of replies */
                 st->reduce_replies++;
@@ -136,16 +163,34 @@ void CIRCLE_reduce_progress(CIRCLE_state_st* st, int count)
 
         /* check whether we've gotten replies from all children */
         if(st->reduce_replies == children) {
-            /* add our own content to reduce buffer */
-            st->reduce_buf += count;
+            /* all children have replied, add our own content to reduce buffer */
+            st->reduce_buf[0] += count;
 
-            /* send message to parent if all children have replied */
+            /* send message to parent if we have one */
             if(parent_rank != MPI_PROC_NULL) {
-                MPI_Send(&st->reduce_buf, 1, MPI_INT, parent_rank, CIRCLE_TAG_REDUCE, comm);
+                /* get size of user data */
+                int bytes = (int) CIRCLE_INPUT_ST.reduce_buf_size;
+                st->reduce_buf[1] = bytes;
+
+                /* send partial result to parent */
+                MPI_Send(st->reduce_buf, 2, MPI_INT, parent_rank, CIRCLE_TAG_REDUCE, comm);
+
+                /* also send along user data if any */
+                if(bytes > 0) {
+                    void* currbuf = CIRCLE_INPUT_ST.reduce_buf;
+                    MPI_Send(currbuf, bytes, MPI_BYTE, parent_rank, CIRCLE_TAG_REDUCE, comm);
+                }
             } else {
                 /* we're the root, print the results now */
-                fprintf(CIRCLE_debug_stream, "Objects processed: %d\n", st->reduce_buf);
+                fprintf(CIRCLE_debug_stream, "Objects processed: %d\n", st->reduce_buf[0]);
                 fflush(CIRCLE_debug_stream);
+
+                /* invoke callback on root to deliver final result */
+                if(CIRCLE_INPUT_ST.reduce_fini_cb != NULL) {
+                    void* resultbuf   = CIRCLE_INPUT_ST.reduce_buf;
+                    size_t resultsize = CIRCLE_INPUT_ST.reduce_buf_size;
+                    (*(CIRCLE_INPUT_ST.reduce_fini_cb))(resultbuf, resultsize);
+                }
             }
 
             /* disable flag that indicates we have an outstanding reduce */
@@ -176,17 +221,25 @@ void CIRCLE_reduce_progress(CIRCLE_state_st* st, int count)
         }
 
         /* kick off a reduce if it's time */
-        if (start_reduce) {
+        if(start_reduce) {
             /* set flag to indicate we have a reduce outstanding
              * and initialize state for a fresh reduction */
             st->reduce_time_last   = time_now;
             st->reduce_outstanding = 1;
             st->reduce_replies     = 0;
-            st->reduce_buf         = 0;
+            st->reduce_buf[0]      = 0;
+            st->reduce_buf[1]      = 0;
+
+            /* invoke callback on all procs to get input data,
+             * it will be stored in CIRCLE_INPUT_ST after user
+             * calls CIRCLE_reduce which should be done in callback */
+            if(CIRCLE_INPUT_ST.reduce_init_cb != NULL) {
+                (*(CIRCLE_INPUT_ST.reduce_init_cb))();
+            }
 
             /* send message to each child */
             /* check for messages from our children */
-            for (i = 0; i < children; i++) {
+            for(i = 0; i < children; i++) {
                 /* send message to each child */
                 int child = child_ranks[i];
                 MPI_Send(NULL, 0, MPI_BYTE, child, CIRCLE_TAG_REDUCE, comm);

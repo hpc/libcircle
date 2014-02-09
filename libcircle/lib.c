@@ -52,6 +52,17 @@ __inline__ int32_t CIRCLE_init(int argc, char* argv[], int user_options)
     CIRCLE_debug_stream = stdout;
     CIRCLE_debug_level = CIRCLE_LOG_INFO;
 
+    /* initialize callback pointers */
+    CIRCLE_INPUT_ST.create_cb      = NULL;
+    CIRCLE_INPUT_ST.process_cb     = NULL;
+    CIRCLE_INPUT_ST.reduce_init_cb = NULL;
+    CIRCLE_INPUT_ST.reduce_op_cb   = NULL;
+    CIRCLE_INPUT_ST.reduce_fini_cb = NULL;
+
+    /* initialize user reduction buffer */
+    CIRCLE_INPUT_ST.reduce_buf      = NULL;
+    CIRCLE_INPUT_ST.reduce_buf_size = 0;
+
     CIRCLE_INPUT_ST.work_comm = (MPI_Comm*) malloc(sizeof(MPI_Comm));
     CIRCLE_INPUT_ST.token_comm = (MPI_Comm*) malloc(sizeof(MPI_Comm));
     CIRCLE_set_options(user_options);
@@ -131,6 +142,67 @@ __inline__ void CIRCLE_cb_process(CIRCLE_cb func)
 }
 
 /**
+ * This function will be invoked on all processes to get initial input
+ * data for the reduction.
+ *
+ * @param func the callback to be used to provide data for reduction.
+ */
+__inline__ void CIRCLE_cb_reduce_init(CIRCLE_cb_reduce_init_fn func)
+{
+    CIRCLE_INPUT_ST.reduce_init_cb = func;
+}
+
+/**
+ * This function will be invoked on processes to execute the reduction
+ * tree.
+ *
+ * @param func the callback to be used to combine data during reduction.
+ */
+__inline__ void CIRCLE_cb_reduce_op(CIRCLE_cb_reduce_op_fn func)
+{
+    CIRCLE_INPUT_ST.reduce_op_cb = func;
+}
+
+/**
+ * This function will be invoked on the root (rank 0) to provide the
+ * final result of the reduction.
+ *
+ * @param func the callback to be provide reduction output on root.
+ */
+__inline__ void CIRCLE_cb_reduce_fini(CIRCLE_cb_reduce_fini_fn func)
+{
+    CIRCLE_INPUT_ST.reduce_fini_cb = func;
+}
+
+/**
+ * Call this function to give libcircle initial reduction data.
+ *
+ * @param buf pointer to buffer holding reduction data
+ * @param size size of buffer in bytes
+ */
+__inline__ void CIRCLE_reduce(const void* buf, size_t size)
+{
+    /* free existing buffer memory if we have any */
+    CIRCLE_free(&CIRCLE_INPUT_ST.reduce_buf);
+
+    /* allocate memory to copy reduction data */
+    if(size > 0) {
+        /* allocate memory */
+        void* copy = malloc(size);
+        if(copy == NULL) {
+            LOG(CIRCLE_LOG_FATAL, "Unable to allocate %llu bytes for reduction buffer.",
+                (unsigned long long) size);
+            /* TODO: bail with fatal error */
+            return;
+        }
+
+        /* copy data and store buffer on input state */
+        memcpy(copy, buf, size);
+        CIRCLE_INPUT_ST.reduce_buf;
+    }
+}
+
+/**
  * Once you've defined and told libcircle about your callbacks, use this to
  * execute your program.
  */
@@ -171,6 +243,9 @@ __inline__ void CIRCLE_abort(void)
 __inline__ void CIRCLE_finalize(void)
 {
     CIRCLE_internal_queue_free(CIRCLE_INPUT_ST.queue);
+
+    /* free buffer holding user reduction data */
+    CIRCLE_free(&CIRCLE_INPUT_ST.reduce_buf);
 
     /* free off MPI resources and shut it down */
     MPI_Comm_free(CIRCLE_INPUT_ST.token_comm);

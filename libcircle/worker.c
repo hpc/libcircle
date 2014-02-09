@@ -185,7 +185,7 @@ static void CIRCLE_init_local_state(MPI_Comm comm, CIRCLE_state_st* local_state)
 
 /* provides address of pointer, and if value of pointer is not NULL,
  * frees memory and sets pointer value to NULL */
-static void CIRCLE_free(void* pptr)
+void CIRCLE_free(void* pptr)
 {
     void** ptr = (void**) pptr;
 

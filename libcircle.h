@@ -55,6 +55,14 @@ typedef struct {
 typedef void (*CIRCLE_cb)(CIRCLE_handle *handle);
 
 /**
+ * Callbacks for initializing, executing, and obtaining final result
+ * of a reduction
+ */
+typedef void (*CIRCLE_cb_reduce_init_fn)(void);
+typedef void (*CIRCLE_cb_reduce_op_fn)(const void* buf1, size_t size1, const void* buf2, size_t size2);
+typedef void (*CIRCLE_cb_reduce_fini_fn)(const void* buf, size_t size);
+
+/**
  * Initialize internal state needed by libcircle. This should be called before
  * any other libcircle API call. This returns the MPI rank value.
  */
@@ -76,6 +84,31 @@ void CIRCLE_cb_create(CIRCLE_cb func);
  * work should be processed.
  */
 void CIRCLE_cb_process(CIRCLE_cb func);
+
+/**
+ * Specify function that libcircle should call to get initial data for
+ * a reduction.
+ */
+void CIRCLE_cb_reduce_init(CIRCLE_cb_reduce_init_fn);
+
+/**
+ * Specify function that libcircle should call to execute a reduction
+ * operation.
+ */
+void CIRCLE_cb_reduce_op(CIRCLE_cb_reduce_op_fn);
+
+/**
+ * Specify function that libcicle should invoke at end of reduction.
+ * This function is only invoked on rank 0.
+ */
+void CIRCLE_cb_reduce_fini(CIRCLE_cb_reduce_fini_fn);
+
+/**
+ * Provide libcircle with initial reduction data during initial
+ * and intermediate reduction callbacks, libcircle makes a copy
+ * of the data so the user buffer can be immediately released.
+ */
+void CIRCLE_reduce(const void* buf, size_t size);
 
 /**
  * Once you've defined and told libcircle about your callbacks, use this to
