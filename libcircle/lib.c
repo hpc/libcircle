@@ -196,9 +196,12 @@ __inline__ void CIRCLE_reduce(const void* buf, size_t size)
             return;
         }
 
-        /* copy data and store buffer on input state */
+        /* copy data from user buffer */
         memcpy(copy, buf, size);
-        CIRCLE_INPUT_ST.reduce_buf;
+
+        /* store buffer on input state */
+        CIRCLE_INPUT_ST.reduce_buf      = copy;
+        CIRCLE_INPUT_ST.reduce_buf_size = size;
     }
 }
 
