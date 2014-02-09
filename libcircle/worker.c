@@ -126,9 +126,6 @@ static void CIRCLE_init_local_state(MPI_Comm comm, CIRCLE_state_st* local_state)
         local_state->token_flag = 1;
     }
 
-    /* get communicators */
-    local_state->token_comm = *CIRCLE_INPUT_ST.token_comm;
-
     /* identify ranks for the token passing ring */
     local_state->token_partner_recv = (rank - 1 + size) % size;
     local_state->token_partner_send = (rank + 1 + size) % size;

@@ -305,7 +305,7 @@ void CIRCLE_bcast_abort(void)
 int32_t CIRCLE_check_for_term(CIRCLE_state_st* st)
 {
     /* get communicator */
-    MPI_Comm comm = st->token_comm;
+    MPI_Comm comm = st->work_comm;
 
     /* If I have the token (I am already idle) */
     if(st->token_flag) {

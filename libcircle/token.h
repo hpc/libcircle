@@ -45,7 +45,6 @@ typedef struct CIRCLE_state_st {
     /* tracks state of token */
     int token_flag;             /* flag indicating whether we have the token */
     int token;                  /* current color of process: WHITE, BLACK, TERMINATE */
-    MPI_Comm token_comm;        /* communicator for all token traffic */
     int token_partner_recv;     /* rank of process who will send token to us */
     int token_partner_send;     /* rank of process to which we send token */
     int token_recv_pending;     /* flag indicating whether we have a receive posted for token */

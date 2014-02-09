@@ -64,7 +64,6 @@ __inline__ int32_t CIRCLE_init(int argc, char* argv[], int user_options)
     CIRCLE_INPUT_ST.reduce_buf_size = 0;
 
     CIRCLE_INPUT_ST.work_comm = (MPI_Comm*) malloc(sizeof(MPI_Comm));
-    CIRCLE_INPUT_ST.token_comm = (MPI_Comm*) malloc(sizeof(MPI_Comm));
     CIRCLE_set_options(user_options);
 
     /* determine whether we need to initialize MPI,
@@ -89,10 +88,8 @@ __inline__ int32_t CIRCLE_init(int argc, char* argv[], int user_options)
     }
 
     MPI_Comm_dup(MPI_COMM_WORLD, CIRCLE_INPUT_ST.work_comm);
-    MPI_Comm_dup(MPI_COMM_WORLD, CIRCLE_INPUT_ST.token_comm);
     MPI_Comm_set_name(*CIRCLE_INPUT_ST.work_comm, CIRCLE_WORK_COMM_NAME);
-    MPI_Comm_set_name(*CIRCLE_INPUT_ST.token_comm, CIRCLE_TOKEN_COMM_NAME);
-    MPI_Comm_rank(*CIRCLE_INPUT_ST.token_comm, &CIRCLE_global_rank);
+    MPI_Comm_rank(*CIRCLE_INPUT_ST.work_comm, &CIRCLE_global_rank);
 
     CIRCLE_INPUT_ST.queue = CIRCLE_internal_queue_init();
 
@@ -251,7 +248,6 @@ __inline__ void CIRCLE_finalize(void)
     CIRCLE_free(&CIRCLE_INPUT_ST.reduce_buf);
 
     /* free off MPI resources and shut it down */
-    MPI_Comm_free(CIRCLE_INPUT_ST.token_comm);
     MPI_Comm_free(CIRCLE_INPUT_ST.work_comm);
 
     if(CIRCLE_must_finalize_mpi) {
@@ -259,7 +255,6 @@ __inline__ void CIRCLE_finalize(void)
         MPI_Finalize();
     }
 
-    free(CIRCLE_INPUT_ST.token_comm);
     free(CIRCLE_INPUT_ST.work_comm);
 
     CIRCLE_debug_stream = NULL;

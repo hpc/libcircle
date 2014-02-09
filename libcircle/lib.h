@@ -17,7 +17,6 @@ typedef struct CIRCLE_input_st {
     size_t reduce_buf_size;
 
     MPI_Comm* work_comm;
-    MPI_Comm* token_comm;
 
     int options;
 
