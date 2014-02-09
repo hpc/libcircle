@@ -14,12 +14,10 @@
 enum tags {
     WHITE,
     BLACK,
-    DONE,
     TERMINATE = -1,
-    WORK_REQUEST,
-    WORK,
+    CIRCLE_TAG_WORK_REQUEST,
+    CIRCLE_TAG_WORK_REPLY,
     CIRCLE_TAG_TOKEN,
-    SUCCESS,
     CIRCLE_TAG_REDUCE,
     ABORT = -32
 };
@@ -75,7 +73,6 @@ typedef struct CIRCLE_state_st {
     /* manage state for requesting work from other procs */
     int work_requested;             /* flag indicating we have requested work */
     int work_requested_rank;        /* rank of process we requested work from */
-    MPI_Request work_requested_req; /* MPI req associated with isend */
 
     /* manage state for reduction operations */
     CIRCLE_tree_state_st tree;   /* parent and children of reduction tree */

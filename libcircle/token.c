@@ -277,8 +277,8 @@ void CIRCLE_bcast_abort(void)
     int buffer = ABORT;
     for(i = 0; i < size; i++) {
         if(i != rank) {
-            MPI_Send(&buffer, 1, MPI_INT, i, \
-                     WORK_REQUEST, *CIRCLE_INPUT_ST.work_comm);
+            MPI_Send(&buffer, 1, MPI_INT, i,
+                CIRCLE_TAG_WORK_REQUEST, *CIRCLE_INPUT_ST.work_comm);
             LOG(CIRCLE_LOG_WARN, "Libcircle abort message sent to %d", i);
         }
     }
@@ -495,7 +495,7 @@ static int32_t CIRCLE_work_receive(
     /* Receive item count, character count, and offsets */
     MPI_Status status;
     MPI_Recv(st->offsets_recv_buf, size, MPI_INT, source,
-             WORK, comm, &status);
+        CIRCLE_TAG_WORK_REPLY, comm, &status);
 
     /* the first int has number of items or an ABORT code */
     int items = st->offsets_recv_buf[0];
@@ -529,8 +529,8 @@ static int32_t CIRCLE_work_receive(
     }
 
     /* receive second message containing work elements */
-    MPI_Recv(qp->base, chars, MPI_CHAR, source, WORK,
-             comm, MPI_STATUS_IGNORE);
+    MPI_Recv(qp->base, chars, MPI_CHAR, source,
+        CIRCLE_TAG_WORK_REPLY, comm, MPI_STATUS_IGNORE);
 
     /* make sure we have a pointer allocated for each element */
     int32_t count = items;
@@ -607,9 +607,10 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
             buf = ABORT;
         }
 
-        /* send work request (we use isend to avoid deadlock) */
-        MPI_Isend(&buf, 1, MPI_INT, source, WORK_REQUEST,
-            comm, &st->work_requested_req);
+        /* TODO: use isend to avoid deadlocks */
+        /* send work request */
+        MPI_Send(&buf, 1, MPI_INT, source,
+            CIRCLE_TAG_WORK_REQUEST, comm);
 
         /* set flag and source to indicate we requested work */
         st->work_requested = 1;
@@ -625,7 +626,7 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
          * we got a reply */
         int flag;
         MPI_Status status;
-        MPI_Iprobe(source, WORK, comm, &flag, &status);
+        MPI_Iprobe(source, CIRCLE_TAG_WORK_REPLY, comm, &flag, &status);
 
         /* if we got a reply, process it */
         if(flag) {
@@ -635,11 +636,6 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 
             /* receive message(s) and set return code */
             rc = CIRCLE_work_receive(qp, st, source, size);
-
-            /* send request asking for work can be completed now,
-             * since we reuse status here, be careful we don't trash
-             * it between iprobe and get_count calls */
-            MPI_Wait(&st->work_requested_req, &status);
 
             /* flip flag to indicate we're no longer waiting for a reply */
             st->work_requested = 0;
@@ -738,8 +734,8 @@ void CIRCLE_send_no_work(int dest)
     no_work[1] = 0;
 
     MPI_Request r;
-    MPI_Isend(&no_work, 1, MPI_INT, \
-              dest, WORK, *CIRCLE_INPUT_ST.work_comm, &r);
+    MPI_Isend(&no_work, 1, MPI_INT, dest,
+        CIRCLE_TAG_WORK_REPLY, *CIRCLE_INPUT_ST.work_comm, &r);
     MPI_Wait(&r, MPI_STATUS_IGNORE);
 
 }
@@ -805,11 +801,13 @@ int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
     MPI_Comm comm = st->work_comm;
 
     /* send item count, total bytes, and offsets of each item */
-    MPI_Send(st->offsets_send_buf, numoffsets, MPI_INT, dest, WORK, comm);
+    MPI_Send(st->offsets_send_buf, numoffsets, MPI_INT, dest,
+        CIRCLE_TAG_WORK_REPLY, comm);
 
     /* send data */
     char* buf = qp->base + start_offset;
-    MPI_Send(buf, bytes, MPI_CHAR, dest, WORK, comm);
+    MPI_Send(buf, bytes, MPI_CHAR, dest,
+        CIRCLE_TAG_WORK_REPLY, comm);
 
     LOG(CIRCLE_LOG_DBG,
         "Sent %d of %d items to %d.", st->offsets_send_buf[0], qp->count, dest);
@@ -841,7 +839,7 @@ int32_t CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* 
             if(i != st->rank) {
                 st->request_recv_buf[i] = 0;
                 MPI_Recv_init(&st->request_recv_buf[i], 1, MPI_INT, i,
-                              WORK_REQUEST, comm, &requests[i]);
+                    CIRCLE_TAG_WORK_REQUEST, comm, &requests[i]);
 
                 MPI_Start(&requests[i]);
             }
