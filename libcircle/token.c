@@ -85,15 +85,12 @@ void CIRCLE_tree_init(int rank, int ranks, int k, MPI_Comm comm, CIRCLE_tree_sta
 void CIRCLE_tree_free(CIRCLE_tree_state_st* t)
 {
     /* free child rank list */
-    if (t->child_ranks != NULL) {
-        free(t->child_ranks);
-        t->child_ranks = NULL;
-    }
+    CIRCLE_free(&t->child_ranks);
 
     return;
 }
 
-/* intiates and progresses a reduce operation at specified interval,
+/* intiate and progress a reduce operation at specified interval,
  * ensures progress of reduction in background, stops reduction if
  * cleanup == 1 */
 void CIRCLE_reduce_check(CIRCLE_state_st* st, int count, int cleanup)
@@ -126,8 +123,9 @@ void CIRCLE_reduce_check(CIRCLE_state_st* st, int count, int cleanup)
                 /* TODO: change me to uint64_t at some point */
 
                 /* receive message form child, first int contains
-                 * number of completed libcircle work elements,
-                 * second int is number of bytes of user data */
+                 * flag indicating whether message is valid,
+                 * second int is number of completed libcircle work
+                 * elements, third int is number of bytes of user data */
                 long long int recvbuf[3];
                 MPI_Recv(recvbuf, 3, MPI_LONG_LONG, child,
                     CIRCLE_TAG_REDUCE, comm, &status);
@@ -137,8 +135,8 @@ void CIRCLE_reduce_check(CIRCLE_state_st* st, int count, int cleanup)
 
                 /* check whether child is sending valid data */
                 if(recvbuf[0] == MSG_INVALID) {
-                    /* child's data is invalid, set our result
-                     * to invalid */
+                    /* child's data is invalid,
+                     * set our result to invalid */
                     st->reduce_buf[0] = MSG_INVALID;
                     continue;
                 }
@@ -165,7 +163,7 @@ void CIRCLE_reduce_check(CIRCLE_state_st* st, int count, int cleanup)
 
                 /* if we have valid data, invoke user's callback to
                  * reduce user data */
-                if(st->reduce_buf[0] != MSG_INVALID) {
+                if(st->reduce_buf[0] == MSG_VALID) {
                     if(CIRCLE_INPUT_ST.reduce_op_cb != NULL) {
                         void* currbuf   = CIRCLE_INPUT_ST.reduce_buf;
                         size_t currsize = CIRCLE_INPUT_ST.reduce_buf_size;
@@ -193,15 +191,15 @@ void CIRCLE_reduce_check(CIRCLE_state_st* st, int count, int cleanup)
                 MPI_Send(st->reduce_buf, 3, MPI_LONG_LONG, parent_rank,
                     CIRCLE_TAG_REDUCE, comm);
 
-                /* also send along user data if any and data is not invalid */
-                if(bytes > 0 && st->reduce_buf[0] != MSG_INVALID) {
+                /* also send along user data if any, and if it is valid */
+                if(bytes > 0 && st->reduce_buf[0] == MSG_VALID) {
                     void* currbuf = CIRCLE_INPUT_ST.reduce_buf;
                     MPI_Send(currbuf, bytes, MPI_BYTE, parent_rank,
                         CIRCLE_TAG_REDUCE, comm);
                 }
             } else {
                 /* we're the root, print the results if we have valid data */
-                if(st->reduce_buf[0] != MSG_INVALID) {
+                if(st->reduce_buf[0] == MSG_VALID) {
                     LOG(CIRCLE_LOG_INFO, "Objects processed: %lld ...", st->reduce_buf[1]);
 
                     /* invoke callback on root to deliver final result */
@@ -277,9 +275,7 @@ void CIRCLE_reduce_check(CIRCLE_state_st* st, int count, int cleanup)
             }
 
             /* send message to each child */
-            /* check for messages from our children */
             for(i = 0; i < children; i++) {
-                /* send message to each child */
                 int child = child_ranks[i];
                 MPI_Send(NULL, 0, MPI_BYTE, child,
                     CIRCLE_TAG_REDUCE, comm);
