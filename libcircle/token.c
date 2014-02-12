@@ -599,7 +599,7 @@ int CIRCLE_check_for_term(CIRCLE_state_st* st)
     }
 
     /* return our current state */
-    int32_t state = st->token_proc;
+    int state = st->token_proc;
     return state;
 }
 
@@ -778,15 +778,39 @@ static int32_t CIRCLE_work_receive(
  * rank.  If it doesn't receive work, a different rank will be asked during
  * the next iteration.
  */
-int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
+int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, int cleanup)
 {
     int rc = 0;
 
     /* get communicator */
     MPI_Comm comm = st->comm;
 
-    /* check whether we've already sent a request or not */
-    if(! st->work_requested) {
+    /* check whether we have a work request outstanding, and check for
+     * a reply if we do, otherwise send a request so long as we're not
+     * in cleanup mode */
+    if(st->work_requested) {
+        /* get source rank */
+        int source = st->work_requested_rank;
+
+        /* we've already requested work from someone, check whether
+         * we got a reply */
+        int flag;
+        MPI_Status status;
+        MPI_Iprobe(source, CIRCLE_TAG_WORK_REPLY, comm, &flag, &status);
+
+        /* if we got a reply, process it */
+        if(flag) {
+            /* get number of integers in reply message */
+            int size;
+            MPI_Get_count(&status, MPI_INT, &size);
+
+            /* receive message(s) and set return code */
+            rc = CIRCLE_work_receive(qp, st, source, size);
+
+            /* flip flag to indicate we're no longer waiting for a reply */
+            st->work_requested = 0;
+        }
+    } else if (!cleanup) {
         /* need to send request, get rank of process to request work from */
         int source = st->next_processor;
 
@@ -818,28 +842,6 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 
         /* randomly pick another source to ask next time */
         CIRCLE_get_next_proc(st);
-    } else {
-        /* get source rank */
-        int source = st->work_requested_rank;
-
-        /* we've already requested work from someone, check whether
-         * we got a reply */
-        int flag;
-        MPI_Status status;
-        MPI_Iprobe(source, CIRCLE_TAG_WORK_REPLY, comm, &flag, &status);
-
-        /* if we got a reply, process it */
-        if(flag) {
-            /* get number of integers in reply message */
-            int size;
-            MPI_Get_count(&status, MPI_INT, &size);
-
-            /* receive message(s) and set return code */
-            rc = CIRCLE_work_receive(qp, st, source, size);
-
-            /* flip flag to indicate we're no longer waiting for a reply */
-            st->work_requested = 0;
-        }
     }
 
     return rc;

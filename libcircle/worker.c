@@ -230,7 +230,7 @@ static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
 
         /* If I have no work, request work from another rank */
         if(CIRCLE_INPUT_ST.queue->count == 0) {
-            CIRCLE_request_work(CIRCLE_INPUT_ST.queue, sptr);
+            CIRCLE_request_work(CIRCLE_INPUT_ST.queue, sptr, cleanup);
         }
 
         /* If I have some work and have not received a signal to
@@ -293,6 +293,9 @@ static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
             CIRCLE_reduce_check(sptr, sptr->local_objects_processed, cleanup);
         }
         
+        /* receive any incoming work reply messages */
+        CIRCLE_request_work(CIRCLE_INPUT_ST.queue, sptr, cleanup);
+
         /* check for and receive any incoming token */
         CIRCLE_token_check(sptr);
 

@@ -124,7 +124,8 @@ void CIRCLE_workreq_check(CIRCLE_internal_queue_t* queue,
                           int cleanup);
 
 int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* queue,
-                            CIRCLE_state_st* state);
+                            CIRCLE_state_st* state,
+                            int cleanup);
 
 void CIRCLE_send_no_work(int32_t dest);
 
