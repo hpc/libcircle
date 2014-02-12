@@ -245,7 +245,7 @@ void CIRCLE_reduce_check(CIRCLE_state_st* st, int count, int cleanup)
         /* it's critical that we don't start a reduce if we're in cleanup phase,
          * because we may have already started the non-blocking barrier,
          * just send an invalid message back to our parent */
-        if(cleanup) {
+        if(start_reduce && cleanup) {
             /* avoid starting a reduce below */
             start_reduce = 0;
 
