@@ -410,8 +410,8 @@ void CIRCLE_bcast_abort(void)
         "Libcircle abort started from %d", CIRCLE_global_rank);
 
     int rank, size;
-    MPI_Comm_rank(*CIRCLE_INPUT_ST.work_comm, &rank);
-    MPI_Comm_size(*CIRCLE_INPUT_ST.work_comm, &size);
+    MPI_Comm_rank(CIRCLE_INPUT_ST.comm, &rank);
+    MPI_Comm_size(CIRCLE_INPUT_ST.comm, &size);
 
     CIRCLE_ABORT_FLAG = 1;
 
@@ -420,7 +420,7 @@ void CIRCLE_bcast_abort(void)
     for(i = 0; i < size; i++) {
         if(i != rank) {
             MPI_Send(&buffer, 1, MPI_INT, i,
-                CIRCLE_TAG_WORK_REQUEST, *CIRCLE_INPUT_ST.work_comm);
+                CIRCLE_TAG_WORK_REQUEST, CIRCLE_INPUT_ST.comm);
             LOG(CIRCLE_LOG_WARN, "Libcircle abort message sent to %d", i);
         }
     }
@@ -881,7 +881,7 @@ void CIRCLE_send_no_work(int dest)
 
     MPI_Request r;
     MPI_Isend(&no_work, 1, MPI_INT, dest,
-        CIRCLE_TAG_WORK_REPLY, *CIRCLE_INPUT_ST.work_comm, &r);
+        CIRCLE_TAG_WORK_REPLY, CIRCLE_INPUT_ST.comm, &r);
     MPI_Wait(&r, MPI_STATUS_IGNORE);
 
 }

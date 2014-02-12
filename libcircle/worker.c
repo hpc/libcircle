@@ -116,7 +116,7 @@ static void CIRCLE_init_local_state(MPI_Comm comm, CIRCLE_state_st* local_state)
     MPI_Comm_size(comm, &size);
 
     /* set rank and size in state */
-    local_state->comm = *CIRCLE_INPUT_ST.work_comm;
+    local_state->comm = CIRCLE_INPUT_ST.comm;
     local_state->rank = rank;
     local_state->size = size;
 
@@ -331,7 +331,7 @@ int8_t CIRCLE_worker()
     queue_handle.local_queue_size = &CIRCLE_local_queue_size;
 
     /* get MPI communicator */
-    MPI_Comm comm = *CIRCLE_INPUT_ST.work_comm;
+    MPI_Comm comm = CIRCLE_INPUT_ST.comm;
 
     /* get our rank and the size of the communicator */
     int rank, size;
