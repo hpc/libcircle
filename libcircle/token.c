@@ -193,8 +193,8 @@ void CIRCLE_reduce_check(CIRCLE_state_st* st, int count, int cleanup)
                 MPI_Send(st->reduce_buf, 3, MPI_LONG_LONG, parent_rank,
                     CIRCLE_TAG_REDUCE, comm);
 
-                /* also send along user data if any */
-                if(bytes > 0) {
+                /* also send along user data if any and data is not invalid */
+                if(bytes > 0 && st->reduce_buf[0] != MSG_INVALID) {
                     void* currbuf = CIRCLE_INPUT_ST.reduce_buf;
                     MPI_Send(currbuf, bytes, MPI_BYTE, parent_rank,
                         CIRCLE_TAG_REDUCE, comm);
