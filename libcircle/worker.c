@@ -415,6 +415,10 @@ int8_t CIRCLE_worker()
             "Total Objects Processed: %d", total_objects_processed);
     }
 
+    /* restore original error handler and free our custom one */
+    MPI_Comm_set_errhandler(comm, MPI_ERRORS_ARE_FATAL);
+    MPI_Errhandler_free(&circle_err);
+
     /* free memory */
     CIRCLE_free(&total_no_work_received_array);
     CIRCLE_free(&total_work_requests_array);
