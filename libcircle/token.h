@@ -19,6 +19,9 @@ enum tags {
     CIRCLE_TAG_WORK_REPLY,
     CIRCLE_TAG_TOKEN,
     CIRCLE_TAG_REDUCE,
+    CIRCLE_TAG_BARRIER,
+    MSG_VALID,
+    MSG_INVALID,
     ABORT = -32
 };
 
@@ -38,18 +41,17 @@ typedef struct CIRCLE_tree_state_st {
 
 typedef struct CIRCLE_state_st {
     /* communicator and our rank and its size */
-    MPI_Comm work_comm;
+    MPI_Comm comm;
     int rank;
     int size;
 
     /* tracks state of token */
-    int token_flag;             /* flag indicating whether we have the token */
-    int token;                  /* current color of process: WHITE, BLACK, TERMINATE */
-    int token_partner_recv;     /* rank of process who will send token to us */
-    int token_partner_send;     /* rank of process to which we send token */
-    int token_recv_pending;     /* flag indicating whether we have a receive posted for token */
-    int token_recv_buf;         /* buffer to receive incoming token */
-    MPI_Request token_recv_req; /* request associated with pending receive */
+    int token_is_local;          /* flag indicating whether we have the token */
+    int token_proc;              /* current color of process: WHITE, BLACK, TERMINATE */
+    int token_buf;               /* buffer holding current token color */
+    int token_src;               /* rank of process who will send token to us */
+    int token_dest;              /* rank of process to which we send token */
+    MPI_Request token_send_req;  /* request associated with pending receive */
 
     /* offset arrays are used to transfer length of items while sending work */
     int offsets_count;     /* number of offsets in work and request offset arrays */
@@ -58,12 +60,7 @@ typedef struct CIRCLE_state_st {
 
     /* these are used for persistent receives of work request messages
      * from other tasks */
-    int request_pending_receive;  /* indicates whether we have created our peristent requests */
-    int* request_flag;            /* array of flags for testing persistent requests */
-    int* request_recv_buf;        /* array of integer buffers for persistent requests */
-    MPI_Status* request_status;   /* array of status objects for persistent requests */
-    MPI_Request* request_request; /* array of request objects for persistent requests */
-    int* requestors;              /* list of ranks requesting work from us */
+    int* requestors; /* list of ranks requesting work from us */
 
     /* used to randomly pick next process to requeset work from */
     unsigned seed;      /* seed for random number generator */
@@ -73,14 +70,21 @@ typedef struct CIRCLE_state_st {
     int work_requested;             /* flag indicating we have requested work */
     int work_requested_rank;        /* rank of process we requested work from */
 
+    /* tree used for collective operations */
+    CIRCLE_tree_state_st tree;   /* parent and children of tree */
+
     /* manage state for reduction operations */
-    CIRCLE_tree_state_st tree;   /* parent and children of reduction tree */
     int reduce_enabled;          /* flag indicating whether reductions are enabled */
     double reduce_time_last;     /* time at which last reduce ran */
     double reduce_time_interval; /* seconds between reductions */
     int reduce_outstanding;      /* flag indicating whether a reduce is outstanding */
     int reduce_replies;          /* keeps count of number of children who have replied */
-    long long int reduce_buf[2]; /* local reduction buffer */
+    long long int reduce_buf[3]; /* local reduction buffer */
+
+    /* manage state for barrier operations */
+    int barrier_started; /* flag indicating whether local process has initiated barrier */
+    int barrier_up;      /* flag indicating whether we have sent message to parent */
+    int barrier_replies; /* keeps count of number of chidren who have replied */
 
     /* profiling counters */
     int32_t local_objects_processed; /* number of locally completed work items */
@@ -97,27 +101,35 @@ void CIRCLE_tree_init(int32_t rank, int32_t ranks, int32_t k, MPI_Comm comm, CIR
 void CIRCLE_tree_free(CIRCLE_tree_state_st* t);
 
 /* initiate and execute reduction in background */
-void CIRCLE_reduce_progress(CIRCLE_state_st* st, int count);
+void CIRCLE_reduce_check(CIRCLE_state_st* st, int count, int cleanup);
+
+/* start non-blocking barrier */
+void CIRCLE_barrier_start(CIRCLE_state_st* st);
+
+/* test for completion of non-blocking barrier,
+ * returns 1 when all procs have called barrier_start (and resets),
+ * returns 0 otherwise */
+int CIRCLE_barrier_test(CIRCLE_state_st* st);
 
 void CIRCLE_get_next_proc(CIRCLE_state_st* st);
+
+/* checks for and receives an incoming token message,
+ * then updates state */
+void CIRCLE_token_check(CIRCLE_state_st* st);
+
+int  CIRCLE_check_for_term(CIRCLE_state_st* st);
+
+void CIRCLE_workreq_check(CIRCLE_internal_queue_t* queue,
+                          CIRCLE_state_st* state,
+                          int cleanup);
+
+int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* queue,
+                            CIRCLE_state_st* state);
+
 void CIRCLE_send_no_work(int32_t dest);
-int32_t  CIRCLE_check_for_term(CIRCLE_state_st* st);
-void  CIRCLE_wait_on_probe(CIRCLE_state_st* st, int32_t source, int32_t tag, \
-                           int* terminate, int* msg, MPI_Status* status);
-
-int32_t  CIRCLE_check_for_requests(CIRCLE_internal_queue_t* queue, \
-                                   CIRCLE_state_st* state);
-int32_t  CIRCLE_request_work(CIRCLE_internal_queue_t* queue, \
-                             CIRCLE_state_st* state);
-
-void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* queue, \
-                              CIRCLE_state_st* state, \
-                              int* requestors, int32_t rcount);
-int32_t  CIRCLE_send_work(CIRCLE_internal_queue_t* queue, \
-                          CIRCLE_state_st* state, \
-                          int32_t dest, int32_t count);
 
 int8_t CIRCLE_extend_offsets(CIRCLE_state_st* st, int32_t size);
+
 void CIRCLE_print_offsets(uint32_t* offsets, int32_t count);
 
 void CIRCLE_bcast_abort(void);

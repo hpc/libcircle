@@ -116,24 +116,24 @@ static void CIRCLE_init_local_state(MPI_Comm comm, CIRCLE_state_st* local_state)
     MPI_Comm_size(comm, &size);
 
     /* set rank and size in state */
-    local_state->work_comm = *CIRCLE_INPUT_ST.work_comm;
+    local_state->comm = *CIRCLE_INPUT_ST.work_comm;
     local_state->rank = rank;
     local_state->size = size;
 
     /* start the termination token on rank 0 */
-    local_state->token_flag = 0;
+    local_state->token_is_local = 0;
     if(rank == 0) {
-        local_state->token_flag = 1;
+        local_state->token_is_local = 1;
     }
 
-    /* identify ranks for the token passing ring */
-    local_state->token_partner_recv = (rank - 1 + size) % size;
-    local_state->token_partner_send = (rank + 1 + size) % size;
+    /* identify ranks for the token ring */
+    local_state->token_src  = (rank - 1 + size) % size;
+    local_state->token_dest = (rank + 1 + size) % size;
 
     /* initialize token state */
-    local_state->token = WHITE;
-    local_state->token_recv_pending = 0;
-    local_state->token_recv_buf     = BLACK;
+    local_state->token_proc     = WHITE;
+    local_state->token_buf      = BLACK;
+    local_state->token_send_req = MPI_REQUEST_NULL;
 
     /* allocate memory for our offset arrays */
     int32_t offsets = CIRCLE_INPUT_ST.queue->str_count;
@@ -141,22 +141,9 @@ static void CIRCLE_init_local_state(MPI_Comm comm, CIRCLE_state_st* local_state)
     local_state->offsets_send_buf = (int*) calloc((size_t)offsets, sizeof(int));
     local_state->offsets_recv_buf = (int*) calloc((size_t)offsets, sizeof(int));
 
-    /* initialize flag to denote we have yet to post persistent requests */
-    local_state->request_pending_receive = 0;
-
-    /* allocate arrays for persistent requests */
+    /* allocate array for work request */
     size_t array_elems = (size_t) size;
-    local_state->request_flag     = (int*) calloc(array_elems, sizeof(int));
-    local_state->request_recv_buf = (int*) calloc(array_elems, sizeof(int));
-    local_state->request_status   = (MPI_Status*) malloc(sizeof(MPI_Status) * array_elems);
-    local_state->request_request  = (MPI_Request*) malloc(sizeof(MPI_Request) * array_elems);
-    local_state->requestors       = (int*) malloc(sizeof(int) * array_elems);
-
-    /* initialize all persistent requests to REQUEST_NULL */
-    int i;
-    for(i = 0; i < size; i++) {
-        local_state->request_request[i] = MPI_REQUEST_NULL;
-    }
+    local_state->requestors = (int*) malloc(sizeof(int) * array_elems);
 
     /* randomize the first task we request work from */
     local_state->seed = (unsigned) rank;
@@ -165,12 +152,19 @@ static void CIRCLE_init_local_state(MPI_Comm comm, CIRCLE_state_st* local_state)
     /* initialize work request state */
     local_state->work_requested = 0;
 
-    /* create our reduction tree and initialize flag */
-    CIRCLE_tree_init(rank, size, 2, local_state->work_comm, &local_state->tree);
+    /* create our collective tree */
+    CIRCLE_tree_init(rank, size, 2, local_state->comm, &local_state->tree);
+
+    /* init state for reduction operations */
     local_state->reduce_enabled       = 1;    /* hard code to always for now */
     local_state->reduce_time_last     = MPI_Wtime();
     local_state->reduce_time_interval = 10.0; /* hard code to 10 seconds for now */
     local_state->reduce_outstanding   = 0;
+
+    /* init state for barrier operations */
+    local_state->barrier_started = 0;
+    local_state->barrier_up      = 0;
+    local_state->barrier_replies = 0;
 
     /* initalize counters */
     local_state->local_objects_processed = 0;
@@ -204,55 +198,7 @@ static void CIRCLE_finalize_local_state(CIRCLE_state_st* local_state)
     CIRCLE_tree_free(&local_state->tree);
     CIRCLE_free(&local_state->offsets_send_buf);
     CIRCLE_free(&local_state->offsets_recv_buf);
-    CIRCLE_free(&local_state->request_flag);
-    CIRCLE_free(&local_state->request_recv_buf);
-    CIRCLE_free(&local_state->request_status);
-    CIRCLE_free(&local_state->request_request);
     CIRCLE_free(&local_state->requestors);
-    return;
-}
-
-/**
- * @brief Responds with no_work to pending work requests.
- *
- * Answers any pending work requests in case a rank is blocking,
- * waiting for a response.
- */
-static void CIRCLE_cleanup_mpi_messages(CIRCLE_state_st* sptr)
-{
-    int i = 0;
-    int j = 0;
-
-    /* TODO: this is O(N^2)... need a better way at large scale */
-    /* Make sure that all pending work requests are answered. */
-    for(j = 0; j < sptr->size; j++) {
-        for(i = 0; i < sptr->size; i++) {
-            if(i != sptr->rank) {
-                sptr->request_flag[i] = 0;
-
-                if(MPI_Test(&sptr->request_request[i],
-                            &sptr->request_flag[i],
-                            &sptr->request_status[i])
-                        != MPI_SUCCESS) {
-
-                    MPI_Abort(sptr->work_comm, LIBCIRCLE_MPI_ERROR);
-                }
-
-                if(sptr->request_flag[i]) {
-                    MPI_Start(&sptr->request_request[i]);
-                    CIRCLE_send_no_work(i);
-                }
-            }
-        }
-    }
-
-    /* free off persistent requests */
-    for(i = 0; i < sptr->size; i++) {
-        if(i != sptr->rank) {
-            MPI_Request_free(&sptr->request_request[i]);
-        }
-    }
-
     return;
 }
 
@@ -270,14 +216,16 @@ static void CIRCLE_cleanup_mpi_messages(CIRCLE_state_st* sptr)
  */
 static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
 {
-    /* Loop until done */
+    int cleanup = 0;
+
+    /* Loop until done, we break on normal termination or abort */
     while(1) {
         /* Check for and service work requests */
-        CIRCLE_check_for_requests(CIRCLE_INPUT_ST.queue, sptr);
+        CIRCLE_workreq_check(CIRCLE_INPUT_ST.queue, sptr, cleanup);
 
         /* Make progress on any outstanding reduction */
         if(sptr->reduce_enabled) {
-            CIRCLE_reduce_progress(sptr, sptr->local_objects_processed);
+            CIRCLE_reduce_check(sptr, sptr->local_objects_processed, cleanup);
         }
 
         /* If I have no work, request work from another rank */
@@ -304,8 +252,57 @@ static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
         }
     }
 
+    /* We get here either because all procs have completed all work,
+     * or we got an ABORT message. */
+
+    /* We need to be sure that all sent messages have been received
+     * before returning control to the user, so that if the caller
+     * invokes libcirlce again, no messages from this invocation
+     * interfere with messages from the next.  Since receivers do not
+     * know wether a message is coming to them, a sender records whether
+     * it has a message outstanding.  When a receiver gets a message,
+     * it acknowledges receipt by sending a reply back to the sender,
+     * and at that point, the sender knows its message is no longer
+     * outstanding.  All processes continue to receive and reply to
+     * incoming messages until all senders have declared that they
+     * have no more outstanding messages. */
+
+    cleanup = 1;
+
     /* clear up any MPI messages that may still be outstanding */
-    CIRCLE_cleanup_mpi_messages(sptr);
+    while(1) {
+        /* start a non-blocking barrier once we have no outstanding
+         * items */
+        if (! sptr->work_requested &&
+            ! sptr->reduce_outstanding &&
+            sptr->token_send_req == MPI_REQUEST_NULL)
+        {
+            CIRCLE_barrier_start(sptr);
+        }
+
+        /* break the loop when the non-blocking barrier completes */
+        if (CIRCLE_barrier_test(sptr)) {
+            break;
+        }
+
+        /* send no work message for any work request that comes in */
+        CIRCLE_workreq_check(CIRCLE_INPUT_ST.queue, sptr, cleanup);
+
+        /* cleanup any outstanding reduction */
+        if(sptr->reduce_enabled) {
+            CIRCLE_reduce_check(sptr, sptr->local_objects_processed, cleanup);
+        }
+        
+        /* check for and receive any incoming token */
+        CIRCLE_token_check(sptr);
+
+        /* if we have an outstanding token, check whether it's been received */
+        if(sptr->token_send_req != MPI_REQUEST_NULL) {
+            int flag;
+            MPI_Status status;
+            MPI_Test(&sptr->token_send_req, &flag, &status);
+        }
+    }
 
     return;
 }

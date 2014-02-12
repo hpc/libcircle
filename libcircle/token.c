@@ -94,15 +94,16 @@ void CIRCLE_tree_free(CIRCLE_tree_state_st* t)
 }
 
 /* intiates and progresses a reduce operation at specified interval,
- * ensures progress of reduction in background */
-void CIRCLE_reduce_progress(CIRCLE_state_st* st, int count)
+ * ensures progress of reduction in background, stops reduction if
+ * cleanup == 1 */
+void CIRCLE_reduce_check(CIRCLE_state_st* st, int count, int cleanup)
 {
     int i;
     int flag;
     MPI_Status status;
 
     /* get our communicator */
-    MPI_Comm comm = st->work_comm;
+    MPI_Comm comm = st->comm;
 
     /* get info about tree */
     int  parent_rank = st->tree.parent_rank;
@@ -127,16 +128,29 @@ void CIRCLE_reduce_progress(CIRCLE_state_st* st, int count)
                 /* receive message form child, first int contains
                  * number of completed libcircle work elements,
                  * second int is number of bytes of user data */
-                long long int recvbuf[2];
-                MPI_Recv(&recvbuf, 2, MPI_LONG_LONG, child,
+                long long int recvbuf[3];
+                MPI_Recv(recvbuf, 3, MPI_LONG_LONG, child,
                     CIRCLE_TAG_REDUCE, comm, &status);
 
-                /* combine child's data with our buffer */
-                st->reduce_buf[0] += recvbuf[0];
+                /* increment the number of replies */
+                st->reduce_replies++;
+
+                /* check whether child is sending valid data */
+                if(recvbuf[0] == MSG_INVALID) {
+                    /* child's data is invalid, set our result
+                     * to invalid */
+                    st->reduce_buf[0] = MSG_INVALID;
+                    continue;
+                }
+
+                /* otherwise, we got a real message, combine child's
+                 * data with our buffer (this step won't hurt even
+                 * if our buffer has invalid data) */
+                st->reduce_buf[1] += recvbuf[1];
 
                 /* get incoming user data if we have any */
                 void* inbuf = NULL;
-                size_t insize = (size_t) recvbuf[1];
+                size_t insize = (size_t) recvbuf[2];
                 if(insize > 0) {
                     /* allocate space to hold data */
                     inbuf = malloc(insize);
@@ -144,39 +158,39 @@ void CIRCLE_reduce_progress(CIRCLE_state_st* st, int count)
                     }
 
                     /* receive data */
-                    int bytes = (int) recvbuf[1];
+                    int bytes = (int) recvbuf[2];
                     MPI_Recv(inbuf, bytes, MPI_BYTE, child,
                         CIRCLE_TAG_REDUCE, comm, &status);
                 }
 
-                /* invoke callback to reduce user data */
-                if(CIRCLE_INPUT_ST.reduce_op_cb != NULL) {
-                    void* currbuf   = CIRCLE_INPUT_ST.reduce_buf;
-                    size_t currsize = CIRCLE_INPUT_ST.reduce_buf_size;
-                    (*(CIRCLE_INPUT_ST.reduce_op_cb))(currbuf, currsize, inbuf, insize);
+                /* if we have valid data, invoke user's callback to
+                 * reduce user data */
+                if(st->reduce_buf[0] != MSG_INVALID) {
+                    if(CIRCLE_INPUT_ST.reduce_op_cb != NULL) {
+                        void* currbuf   = CIRCLE_INPUT_ST.reduce_buf;
+                        size_t currsize = CIRCLE_INPUT_ST.reduce_buf_size;
+                        (*(CIRCLE_INPUT_ST.reduce_op_cb))(currbuf, currsize, inbuf, insize);
+                    }
                 }
 
                 /* free temporary buffer holding incoming user data */
                 CIRCLE_free(&inbuf);
-
-                /* increment the number of replies */
-                st->reduce_replies++;
             }
         }
 
         /* check whether we've gotten replies from all children */
         if(st->reduce_replies == children) {
             /* all children have replied, add our own content to reduce buffer */
-            st->reduce_buf[0] += (long long int) count;
+            st->reduce_buf[1] += (long long int) count;
 
             /* send message to parent if we have one */
             if(parent_rank != MPI_PROC_NULL) {
                 /* get size of user data */
                 int bytes = (int) CIRCLE_INPUT_ST.reduce_buf_size;
-                st->reduce_buf[1] = (long long int) bytes;
+                st->reduce_buf[2] = (long long int) bytes;
 
                 /* send partial result to parent */
-                MPI_Send(st->reduce_buf, 2, MPI_LONG_LONG, parent_rank,
+                MPI_Send(st->reduce_buf, 3, MPI_LONG_LONG, parent_rank,
                     CIRCLE_TAG_REDUCE, comm);
 
                 /* also send along user data if any */
@@ -186,14 +200,16 @@ void CIRCLE_reduce_progress(CIRCLE_state_st* st, int count)
                         CIRCLE_TAG_REDUCE, comm);
                 }
             } else {
-                /* we're the root, print the results now */
-                LOG(CIRCLE_LOG_INFO, "Objects processed: %d ...", st->reduce_buf[0]);
+                /* we're the root, print the results if we have valid data */
+                if(st->reduce_buf[0] != MSG_INVALID) {
+                    LOG(CIRCLE_LOG_INFO, "Objects processed: %lld ...", st->reduce_buf[1]);
 
-                /* invoke callback on root to deliver final result */
-                if(CIRCLE_INPUT_ST.reduce_fini_cb != NULL) {
-                    void* resultbuf   = CIRCLE_INPUT_ST.reduce_buf;
-                    size_t resultsize = CIRCLE_INPUT_ST.reduce_buf_size;
-                    (*(CIRCLE_INPUT_ST.reduce_fini_cb))(resultbuf, resultsize);
+                    /* invoke callback on root to deliver final result */
+                    if(CIRCLE_INPUT_ST.reduce_fini_cb != NULL) {
+                        void* resultbuf   = CIRCLE_INPUT_ST.reduce_buf;
+                        size_t resultsize = CIRCLE_INPUT_ST.reduce_buf_size;
+                        (*(CIRCLE_INPUT_ST.reduce_fini_cb))(resultbuf, resultsize);
+                    }
                 }
             }
 
@@ -201,12 +217,13 @@ void CIRCLE_reduce_progress(CIRCLE_state_st* st, int count)
             st->reduce_outstanding = 0;
         }
     } else {
-        /* determine whether a new reduce should be started, only bother
-         * checking if we think it's about time */
+        /* we don't have an outstanding reduction, determine whether a
+         * new reduce should be started, only bother checking if we
+         * think it's about time or if we're in cleanup mode */
         int start_reduce = 0;
         double time_now = MPI_Wtime();
         double time_next = st->reduce_time_last + st->reduce_time_interval;
-        if(time_now >= time_next) {
+        if(time_now >= time_next || cleanup) {
             /* time has expired, new reduce should be started */
             if(parent_rank == MPI_PROC_NULL) {
                 /* we're the root, kick it off */
@@ -225,6 +242,22 @@ void CIRCLE_reduce_progress(CIRCLE_state_st* st, int count)
             }
         }
 
+        /* it's critical that we don't start a reduce if we're in cleanup phase,
+         * because we may have already started the non-blocking barrier,
+         * just send an invalid message back to our parent */
+        if(cleanup) {
+            /* avoid starting a reduce below */
+            start_reduce = 0;
+
+            /* set message to invalid data, and send it back to parent
+             * if we have one */
+            if(parent_rank != MPI_PROC_NULL) {
+                st->reduce_buf[0] = MSG_INVALID;
+                MPI_Send(st->reduce_buf, 3, MPI_LONG_LONG, parent_rank,
+                    CIRCLE_TAG_REDUCE, comm);
+            }
+        }
+
         /* kick off a reduce if it's time */
         if(start_reduce) {
             /* set flag to indicate we have a reduce outstanding
@@ -232,10 +265,11 @@ void CIRCLE_reduce_progress(CIRCLE_state_st* st, int count)
             st->reduce_time_last   = time_now;
             st->reduce_outstanding = 1;
             st->reduce_replies     = 0;
-            st->reduce_buf[0]      = 0;
-            st->reduce_buf[1]      = 0;
+            st->reduce_buf[0]      = MSG_VALID;
+            st->reduce_buf[1]      = 0; /* set total to 0 */
+            st->reduce_buf[2]      = 0; /* initialize byte count */
 
-            /* invoke callback on all procs to get input data,
+            /* invoke callback to get input data,
              * it will be stored in CIRCLE_INPUT_ST after user
              * calls CIRCLE_reduce which should be done in callback */
             if(CIRCLE_INPUT_ST.reduce_init_cb != NULL) {
@@ -254,6 +288,114 @@ void CIRCLE_reduce_progress(CIRCLE_state_st* st, int count)
     }
 
     return;
+}
+
+/* marks our state as ready for the barrier */
+void CIRCLE_barrier_start(CIRCLE_state_st* st)
+{
+    st->barrier_started = 1;
+}
+
+/* process a barrier message */
+int CIRCLE_barrier_test(CIRCLE_state_st* st)
+{
+    int flag;
+    MPI_Status status;
+
+    /* if we haven't started the barrier, it's not complete */
+    if (! st->barrier_started) {
+        return 0;
+    }
+
+    /* get our communicator */
+    MPI_Comm comm = st->comm;
+
+    /* get info about tree */
+    int  parent_rank = st->tree.parent_rank;
+    int  children    = st->tree.children;
+    int* child_ranks = st->tree.child_ranks;
+
+    /* check whether we have received message from all children (if any) */
+    if(st->barrier_replies < children) {
+        /* still waiting on barrier messages from our children */
+        MPI_Iprobe(MPI_ANY_SOURCE, CIRCLE_TAG_BARRIER, comm, &flag, &status);
+
+        /* if we got a message increase our count */
+        if(flag) {
+            /* get rank of child */
+            int child = status.MPI_SOURCE;
+
+            /* receive message from that child */
+            MPI_Recv(NULL, 0, MPI_BYTE, child,
+                CIRCLE_TAG_BARRIER, comm, &status);
+
+            /* increase count */
+            st->barrier_replies++;
+        }
+    }
+
+    /* if we have not sent a message to our parent, and we have
+     * received a message from all of our children (or we have
+     * no children), send a message to our parent */
+    if(!st->barrier_up && st->barrier_replies == children) {
+        /* send a message to our parent if we have one */
+        if (parent_rank != MPI_PROC_NULL) {
+            MPI_Send(NULL, 0, MPI_BYTE, parent_rank,
+                CIRCLE_TAG_BARRIER, comm);
+        }
+
+        /* transition to state where we're waiting for parent
+         * to notify us that the barrier is complete */
+        st->barrier_up = 1;
+    }
+
+    /* wait for message to come back down from parent to mark end
+     * of barrier */
+    int complete = 0;
+    if(st->barrier_up) {
+        if(parent_rank != MPI_PROC_NULL) {
+            /* check for message from parent */
+            MPI_Iprobe(parent_rank, CIRCLE_TAG_BARRIER, comm, &flag, &status);
+
+            if(flag) {
+                /* got a message, receive message */
+                MPI_Recv(NULL, 0, MPI_BYTE, parent_rank,
+                    CIRCLE_TAG_BARRIER, comm, &status);
+
+                /* mark barrier as complete */
+                complete = 1;
+            }
+        } else {
+            /* if we have no parent, we're the root, so mark
+             * barrier as complete */
+            complete = 1;
+        }
+    }
+
+    /* if barrier is complete, send messages to children (if any)
+     * and return true */
+    if(complete) {
+        int i;
+        for(i = 0; i < children; i++) {
+            /* get rank of child */
+            int child = child_ranks[i];
+
+            /* send child a message */
+            MPI_Send(NULL, 0, MPI_BYTE, child,
+                CIRCLE_TAG_BARRIER, comm);
+        }
+
+        /* reset state for another barrier */
+        st->barrier_started = 0;
+        st->barrier_up      = 0;
+        st->barrier_replies = 0;
+
+        /* return that barrier has completed */
+        return 1;
+    }
+
+    /* barrier is still not complete */
+    return 0;
 }
 
 /**
@@ -286,6 +428,117 @@ void CIRCLE_bcast_abort(void)
     return;
 }
 
+/* send token using MPI_Issend and update state */
+static void CIRCLE_token_issend(CIRCLE_state_st* st)
+{
+    /* don't bother sending if we have aborted */
+    if(CIRCLE_ABORT_FLAG) {
+        return;
+    }
+
+    /* send token -- it's important that we use issend here,
+     * because this way the send won't complete until a matching
+     * receive has been posted, which means as long as the send
+     * is pending, the message is still on the wire */
+    MPI_Issend(&st->token_buf, 1, MPI_INT, st->token_dest,
+        CIRCLE_TAG_TOKEN, st->comm, &st->token_send_req);
+
+    /* remember that we no longer have the token */
+    st->token_is_local = 0;
+
+    return;
+}
+
+/* given that we've received a token message,
+ * receive it and update our state */
+static void CIRCLE_token_recv(CIRCLE_state_st* st)
+{
+    /* get communicator */
+    MPI_Comm comm = st->comm;
+
+    /* verify that we don't already have a token */
+    if(st->token_is_local) {
+        /* ERROR */
+    }
+
+    /* get source of token */
+    int src = st->token_src;
+
+    /* receive the token message, this won't block because
+     * we assume a message is waiting if to enter this call,
+     * we receive to a temporary buffer because token_buf
+     * may still be active from a send to another process */
+    int token;
+    MPI_Status status;
+    MPI_Recv(&token, 1, MPI_INT, src,
+        CIRCLE_TAG_TOKEN, comm, &status);
+
+    /* record that token is now local */
+    st->token_is_local = 1;
+
+    /* if we have a token outstanding, at this point
+     * we should have received the reply (even if we sent
+     * the token to ourself, we just replied above so
+     * the send should now complete) */
+    if(st->token_send_req != MPI_PROC_NULL) {
+        MPI_Wait(&st->token_send_req, &status);
+    }
+
+    /* now that our send is complete,
+     * it's safe to overwrite the token buffer */
+    st->token_buf = token;
+
+    /* now set our state based on current state and token value */
+
+    /* what's the purpose of this logic? */
+    if(st->token_proc == BLACK && token == BLACK) {
+        st->token_proc = WHITE;
+    }
+
+    /* check for termination conditions */
+    int terminate = 0;
+    if(st->rank == 0 && token == WHITE) {
+        /* if rank 0 receives a white token,
+         * we initiate the termination token */
+        LOG(CIRCLE_LOG_DBG, "Master has detected termination.");
+        terminate = 1;
+    } else if (token == TERMINATE) {
+        /* if we're not rank 0, we just look for the terminate token */
+        terminate = 1;
+    }
+
+    /* forward the terminate token if we have one */
+    if (terminate) {
+        /* send the terminate token, don't bother if we're
+         * the last rank */
+        st->token_buf = TERMINATE;
+        if (st->rank < st->size - 1) {
+            CIRCLE_token_issend(st);
+        }
+
+        /* set our state to terminate */
+        st->token_proc = TERMINATE;
+    }
+
+    return;
+}
+
+void CIRCLE_token_check(CIRCLE_state_st* st)
+{
+    /* check for token and receive it if it arrived */
+    int flag;
+    MPI_Status status;
+    MPI_Iprobe(st->token_src, CIRCLE_TAG_TOKEN, st->comm, &flag, &status);
+
+    /* process it if we found one */
+    if(flag) {
+        /* found an incoming token, receive and process it */
+        CIRCLE_token_recv(st);
+    }
+
+    return;
+}
+
 /**
  * Checks for incoming tokens, determines termination conditions.
  *
@@ -302,105 +555,52 @@ void CIRCLE_bcast_abort(void)
  *
  * @param st the libcircle state struct.
  */
-int32_t CIRCLE_check_for_term(CIRCLE_state_st* st)
+int CIRCLE_check_for_term(CIRCLE_state_st* st)
 {
-    /* get communicator */
-    MPI_Comm comm = st->work_comm;
+    /* if our state is marked TERMINATE, we're done */
+    if(st->token_proc == TERMINATE) {
+        return TERMINATE;
+    }
 
-    /* If I have the token (I am already idle) */
-    if(st->token_flag) {
-        /* no need to go through the messaging
-         * if we're the only rank in the job */
-        if(st->size == 1) {
-            /* TODO: need to set any other fields? */
-            st->token = TERMINATE;
-            return TERMINATE;
-        }
+#if 0
+    /* if we only have one process, we're done */
+    if(st->size == 1) {
+        st->token_proc = TERMINATE;
+        return TERMINATE;
+    }
+#endif
 
-        /* get current token color */
-        int token = st->token_recv_buf;
-
-        /* Immediately post a receive to listen for the token when it
-         * comes back around */
-        MPI_Irecv(&st->token_recv_buf, 1, MPI_INT, st->token_partner_recv,
-                  CIRCLE_TAG_TOKEN, comm, &st->token_recv_req);
-        st->token_recv_pending = 1;
-
-        /* change token color depending on our rank and state */
+    /* to get here, we're idle, but we haven't yet terminated,
+     * if we have the token, send it along, otherwise check to
+     * see if it has arrived */
+    if(st->token_is_local) {
+        /* we have no work and we have the token,
+         * set token color based on our rank and state and
+         * its current value */
         if(st->rank == 0) {
-            /* The master rank generates the original WHITE token */
-            token = WHITE;
-        } else if (st->token == BLACK) {
-            /* Others turn the token black if they are in the black
-             * state */
-             token = BLACK;
+            /* The master rank starts a white token */
+            st->token_buf = WHITE;
+        } else if(st->token_proc == BLACK) {
+            /* Others turn the token black if they are
+             * in the black state */
+             st->token_buf = BLACK;
         }
-
-        /* TODO: change this to non-blocking to avoid deadlock */
 
         /* send the token */
-        MPI_Send(&token, 1, MPI_INT, st->token_partner_send,
-                 CIRCLE_TAG_TOKEN, comm);
+        CIRCLE_token_issend(st);
 
-        /* flip our color back to white and record that we sent
-         * the token */
-        st->token = WHITE;
-        st->token_flag = 0;
-
-        return 0;
+        /* flip our color back to white */
+        st->token_proc = WHITE;
     }
-    /* If I don't have the token. */
     else {
-        /* post a receive for the token if we haven't already */
-        if(! st->token_recv_pending) {
-            MPI_Irecv(&st->token_recv_buf, 1, MPI_INT, st->token_partner_recv,
-                      CIRCLE_TAG_TOKEN, comm, &st->token_recv_req);
-            st->token_recv_pending = 1;
-        }
-
-        /* Check to see if my pending receive has completed */
-        int flag;
-        MPI_Status status;
-        MPI_Test(&st->token_recv_req, &flag, &status);
-
-        /* still don't have the token, return */
-        if(! flag) {
-            return 0;
-        }
-
-        /* If I get here, then I received the token */
-        st->token_recv_pending = 0;
-        st->token_flag = 1;
-
-        /* what's this logic account for? */
-        if(st->token == BLACK && st->token_recv_buf == BLACK) {
-            st->token = WHITE;
-        }
-
-        /* check for termination */
-        int terminate = 0;
-        if(st->rank == 0 && st->token_recv_buf == WHITE) {
-            /* if a white token makes it back to rank 0,
-             * we start the termination token */
-            LOG(CIRCLE_LOG_DBG, "Master has detected termination.");
-            terminate = 1;
-        } else if (st->token_recv_buf == TERMINATE) {
-            /* if we're not rank 0, we just look for the terminate token */
-            terminate = 1;
-        }
-
-        /* forward the terminate token if we have one */
-        if (terminate) {
-            /* TODO: change this to non-blocking to avoid deadlock */
-            /* set state to TERMINATE, and forward the token */
-            st->token = TERMINATE;
-            MPI_Send(&st->token, 1, MPI_INT, st->token_partner_send,
-                     CIRCLE_TAG_TOKEN, comm);
-            return TERMINATE;
-        }
+        /* we have no work but we don't have the token,
+         * check whether it's arrived to us */
+        CIRCLE_token_check(st);
     }
 
-    return 0;
+    /* return our current state */
+    int32_t state = st->token_proc;
+    return state;
 }
 
 /**
@@ -475,7 +675,7 @@ static int32_t CIRCLE_work_receive(
     int size)
 {
     /* get communicator */
-    MPI_Comm comm = st->work_comm;
+    MPI_Comm comm = st->comm;
 
     /* this shouldn't happen, but let's check so we don't blow out
      * memory allocation below */
@@ -519,7 +719,7 @@ static int32_t CIRCLE_work_receive(
     /* the second int is the number of characters we'll receive,
      * make sure our queue has enough storage */
     int chars = st->offsets_recv_buf[1];
-    size_t new_bytes = (size_t)(qp->head + chars) * sizeof(char);
+    size_t new_bytes = (size_t)(qp->head + (uintptr_t)chars) * sizeof(char);
     if(new_bytes > qp->bytes) {
         if(CIRCLE_internal_queue_extend(qp, new_bytes) < 0) {
             LOG(CIRCLE_LOG_ERR, "Error: Unable to realloc string pool.");
@@ -583,7 +783,7 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
     int rc = 0;
 
     /* get communicator */
-    MPI_Comm comm = st->work_comm;
+    MPI_Comm comm = st->comm;
 
     /* check whether we've already sent a request or not */
     if(! st->work_requested) {
@@ -669,62 +869,6 @@ static void spread_counts(int* sizes, int ranks, int count)
 }
 
 /**
- * Distributes a random amount of the local work queue to the n requestors.
- */
-void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
-                              CIRCLE_state_st* st, int* requestors, int rcount)
-{
-    int i = 0;
-
-    if(rcount <= 0) {
-        LOG(CIRCLE_LOG_FATAL,
-            "Something is wrong with the amount of work we think we have.");
-        exit(EXIT_FAILURE);
-    }
-
-    /* TODO: could allocate this once up front during init */
-    /* we have rcount requestors and ourself, allocate array to store
-     * number of elements we'll send to each, storing the amount we
-     * keep as the first entry */
-    int num_ranks = rcount + 1;
-    int* sizes = (int*) malloc((size_t)num_ranks * sizeof(int));
-
-    if(sizes == NULL) {
-        LOG(CIRCLE_LOG_FATAL,
-            "Failed to allocate memory for sizes.");
-        MPI_Abort(st->work_comm, LIBCIRCLE_MPI_ERROR);
-    }
-
-    if(CIRCLE_INPUT_ST.options & CIRCLE_SPLIT_EQUAL) {
-        /* split queue equally among ourself and all requestors */
-        spread_counts(&sizes[0], num_ranks, qp->count);
-    }
-    else { /* CIRCLE_SPLIT_RANDOM */
-        /* randomly pick a total amount to send to requestors,
-         * but keep at least one item */
-        int send_count = (rand_r(&st->seed) % qp->count) + 1;
-
-        if(send_count == qp->count) {
-            send_count--;
-        }
-
-        /* we keep the first portion, and spread the rest */
-        sizes[0] = qp->count - send_count;
-        spread_counts(&sizes[1], rcount, send_count);
-    }
-
-    /* send elements to requestors, note the requestor array
-     * starts at 0 and sizes start at 1 */
-    for(i = 0; i < rcount; i ++) {
-        CIRCLE_send_work(qp, st, requestors[i], sizes[i + 1]);
-    }
-
-    free(sizes);
-
-    LOG(CIRCLE_LOG_DBG, "Done servicing requests.");
-}
-
-/**
  * Sends a no work reply to someone requesting work.
  */
 void CIRCLE_send_no_work(int dest)
@@ -743,7 +887,7 @@ void CIRCLE_send_no_work(int dest)
 /**
  * Sends work to a requestor
  */
-int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
+static int CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
                          int dest, int32_t count)
 {
     if(count <= 0) {
@@ -753,8 +897,8 @@ int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
     }
 
     /* For termination detection */
-    if(dest < st->rank || dest == st->token_partner_recv) {
-        st->token = BLACK;
+    if(dest < st->rank || dest == st->token_src) {
+        st->token_proc = BLACK;
     }
 
     /* Base address of the buffer to be sent */
@@ -798,7 +942,7 @@ int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
      * to not overwrite space in queue before sends complete */
 
     /* get communicator */
-    MPI_Comm comm = st->work_comm;
+    MPI_Comm comm = st->comm;
 
     /* send item count, total bytes, and offsets of each item */
     MPI_Send(st->offsets_send_buf, numoffsets, MPI_INT, dest,
@@ -819,76 +963,115 @@ int32_t CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
 }
 
 /**
- * Checks for outstanding work requests
+ * Distributes a random amount of the local work queue to the n requestors.
  */
-int32_t CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
+static void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
+                              CIRCLE_state_st* st, int* requestors, int rcount)
 {
-    int i;
+    int i = 0;
 
-    /* get MPI communicator */
-    MPI_Comm comm = st->work_comm;
+    if(rcount <= 0) {
+        LOG(CIRCLE_LOG_FATAL,
+            "Something is wrong with the amount of work we think we have.");
+        exit(EXIT_FAILURE);
+    }
 
-    /* get pointer to array of requests */
-    MPI_Request* requests = st->request_request;
+    /* TODO: could allocate this once up front during init */
+    /* we have rcount requestors and ourself, allocate array to store
+     * number of elements we'll send to each, storing the amount we
+     * keep as the first entry */
+    int num_ranks = rcount + 1;
+    int* sizes = (int*) malloc((size_t)num_ranks * sizeof(int));
 
-    /* This loop is only excuted once.  It is used to initiate receives.
-     * When a received is completed, we repost it immediately to capture
-     * the next request */
-    if(! st->request_pending_receive) {
-        for(i = 0; i < st->size; i++) {
-            if(i != st->rank) {
-                st->request_recv_buf[i] = 0;
-                MPI_Recv_init(&st->request_recv_buf[i], 1, MPI_INT, i,
-                    CIRCLE_TAG_WORK_REQUEST, comm, &requests[i]);
+    if(sizes == NULL) {
+        LOG(CIRCLE_LOG_FATAL,
+            "Failed to allocate memory for sizes.");
+        MPI_Abort(st->comm, LIBCIRCLE_MPI_ERROR);
+    }
 
-                MPI_Start(&requests[i]);
-            }
+    if(CIRCLE_INPUT_ST.options & CIRCLE_SPLIT_EQUAL) {
+        /* split queue equally among ourself and all requestors */
+        spread_counts(&sizes[0], num_ranks, qp->count);
+    }
+    else { /* CIRCLE_SPLIT_RANDOM */
+        /* randomly pick a total amount to send to requestors,
+         * but keep at least one item */
+        int send_count = (rand_r(&st->seed) % qp->count) + 1;
+
+        if(send_count == qp->count) {
+            send_count--;
         }
 
-        st->request_pending_receive = 1;
+        /* we keep the first portion, and spread the rest */
+        sizes[0] = qp->count - send_count;
+        spread_counts(&sizes[1], rcount, send_count);
     }
+
+    /* send elements to requestors, note the requestor array
+     * starts at 0 and sizes start at 1 */
+    for(i = 0; i < rcount; i ++) {
+        CIRCLE_send_work(qp, st, requestors[i], sizes[i + 1]);
+    }
+
+    free(sizes);
+
+    LOG(CIRCLE_LOG_DBG, "Done servicing requests.");
+}
+
+/**
+ * Checks for outstanding work requests
+ */
+void CIRCLE_workreq_check(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, int cleanup)
+{
+    /* get MPI communicator */
+    MPI_Comm comm = st->comm;
 
     /* record list of requesting ranks in requestors
      * and number in rcount */
     int* requestors = st->requestors;
     int rcount = 0;
 
-    /* Test to see if any posted receive has completed */
-    for(i = 0; i < st->size; i++) {
-        if(i != st->rank) {
-            st->request_flag[i] = 0;
+    /* pick off any work request mesasges we have */
+    while(1) {
+        /* Test to see if any posted receive has completed */
+        int flag;
+        MPI_Status status;
+        MPI_Iprobe(MPI_ANY_SOURCE, CIRCLE_TAG_WORK_REQUEST, comm, &flag, &status);
 
-            if(MPI_Test(&requests[i], &st->request_flag[i],
-                        &st->request_status[i]) != MPI_SUCCESS) {
-                MPI_Abort(comm, LIBCIRCLE_MPI_ERROR);
-            }
+        /* if we don't have any, break out of the loop */
+        if(! flag) {
+            break;
+        }
 
-            if(st->request_flag[i]) {
-                if(st->request_recv_buf[i] == ABORT) {
-                    CIRCLE_ABORT_FLAG = 1;
-                    return ABORT;
-                }
+        /* we got a work request message, get the rank */
+        int rank = status.MPI_SOURCE;
 
-                LOG(CIRCLE_LOG_DBG, "Received work request from %d", i);
-                requestors[rcount++] = i;
-                st->request_flag[i] = 0;
-            }
+        /* receive the message */
+        int buf;
+        MPI_Recv(&buf, 1, MPI_INT, rank,
+            CIRCLE_TAG_WORK_REQUEST, comm, &status);
+
+        /* check message content */
+        if (buf == ABORT) {
+            /* got an abort message, let's bail */
+            CIRCLE_ABORT_FLAG = 1;
+            return;
+        } else {
+            /* add rank to requestor list */
+            LOG(CIRCLE_LOG_DBG, "Received work request from %d", rank);
+            requestors[rcount] = rank;
+            rcount++;
         }
     }
 
-    /* If we didn't received any work request, no need to continue */
+    /* If we didn't receive any work request, no need to continue */
     if(rcount == 0) {
-        return 0;
-    }
-
-    /* reset our receives before we send work to requestors */
-    for(i = 0; i < rcount; i++) {
-        int id = requestors[i];
-        MPI_Start(&requests[id]);
+        return;
     }
 
     /* send work to requestors */
-    if(qp->count == 0 || CIRCLE_ABORT_FLAG) {
+    if(qp->count == 0 || cleanup) {
+        int i;
         for(i = 0; i < rcount; i++) {
             CIRCLE_send_no_work(requestors[i]);
         }
@@ -901,7 +1084,7 @@ int32_t CIRCLE_check_for_requests(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* 
         CIRCLE_send_work_to_many(qp, st, requestors, rcount);
     }
 
-    return 0;
+    return;
 }
 
 /**
