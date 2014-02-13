@@ -156,7 +156,7 @@ int8_t CIRCLE_internal_queue_extend(CIRCLE_internal_queue_t* qp, size_t new_size
     size_t current = qp->bytes;
 
     /* TODO: check for overflow */
-    while (current < new_size) {
+    while(current < new_size) {
         current += ((size_t)sysconf(_SC_PAGESIZE)) * 4096;
     }
 
@@ -213,6 +213,7 @@ int8_t CIRCLE_internal_queue_push(CIRCLE_internal_queue_t* qp, char* str)
     }
 
     size_t new_bytes = (size_t)(qp->head + len) * sizeof(char);
+
     if(new_bytes > qp->bytes) {
         LOG(CIRCLE_LOG_DBG, \
             "The queue is not large enough to add another value.");

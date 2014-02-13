@@ -13,9 +13,9 @@ extern "C" {
  * queue structure.
  */
 #ifdef PATH_MAX
-    #define CIRCLE_MAX_STRING_LEN PATH_MAX
+#define CIRCLE_MAX_STRING_LEN PATH_MAX
 #else
-    #define CIRCLE_MAX_STRING_LEN (4096)
+#define CIRCLE_MAX_STRING_LEN (4096)
 #endif
 
 /**
@@ -29,8 +29,7 @@ extern "C" {
 /**
  * The various logging levels that libcircle will output.
  */
-typedef enum CIRCLE_loglevel
-{
+typedef enum CIRCLE_loglevel {
     CIRCLE_LOG_FATAL = 1,
     CIRCLE_LOG_ERR   = 2,
     CIRCLE_LOG_WARN  = 3,
@@ -44,15 +43,15 @@ typedef enum CIRCLE_loglevel
  * terminated string.
  */
 typedef struct {
-    int8_t (*enqueue)(char *element);
-    int8_t (*dequeue)(char *element);
+    int8_t (*enqueue)(char* element);
+    int8_t (*dequeue)(char* element);
     uint32_t (*local_queue_size)(void);
 } CIRCLE_handle;
 
 /**
  * The type for defining callbacks for create and process.
  */
-typedef void (*CIRCLE_cb)(CIRCLE_handle *handle);
+typedef void (*CIRCLE_cb)(CIRCLE_handle* handle);
 
 /**
  * Callbacks for initializing, executing, and obtaining final result
@@ -66,7 +65,7 @@ typedef void (*CIRCLE_cb_reduce_fini_fn)(const void* buf, size_t size);
  * Initialize internal state needed by libcircle. This should be called before
  * any other libcircle API call. This returns the MPI rank value.
  */
-int CIRCLE_init(int argc, char *argv[], int options);
+int CIRCLE_init(int argc, char* argv[], int options);
 
 /**
  * Change run time flags

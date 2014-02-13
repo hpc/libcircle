@@ -122,6 +122,7 @@ static void CIRCLE_init_local_state(MPI_Comm comm, CIRCLE_state_st* local_state)
 
     /* start the termination token on rank 0 */
     local_state->token_is_local = 0;
+
     if(rank == 0) {
         local_state->token_is_local = 1;
     }
@@ -273,15 +274,14 @@ static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
     while(1) {
         /* start a non-blocking barrier once we have no outstanding
          * items */
-        if (! sptr->work_requested &&
-            ! sptr->reduce_outstanding &&
-            sptr->token_send_req == MPI_REQUEST_NULL)
-        {
+        if(! sptr->work_requested &&
+                ! sptr->reduce_outstanding &&
+                sptr->token_send_req == MPI_REQUEST_NULL) {
             CIRCLE_barrier_start(sptr);
         }
 
         /* break the loop when the non-blocking barrier completes */
-        if (CIRCLE_barrier_test(sptr)) {
+        if(CIRCLE_barrier_test(sptr)) {
             break;
         }
 
@@ -292,7 +292,7 @@ static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
         if(sptr->reduce_enabled) {
             CIRCLE_reduce_check(sptr, sptr->local_objects_processed, cleanup);
         }
-        
+
         /* receive any incoming work reply messages */
         CIRCLE_request_work(CIRCLE_INPUT_ST.queue, sptr, cleanup);
 
@@ -402,6 +402,7 @@ int8_t CIRCLE_worker()
     /* print summary from rank 0 */
     if(rank == 0) {
         int i;
+
         for(i = 0; i < size; i++) {
             LOG(CIRCLE_LOG_INFO, "Rank %d\tObjects Processed %d\t%0.3lf%%", i,
                 total_objects_processed_array[i],
