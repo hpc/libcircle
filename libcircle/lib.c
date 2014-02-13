@@ -185,6 +185,7 @@ __inline__ void CIRCLE_reduce(const void* buf, size_t size)
     if(size > 0) {
         /* allocate memory */
         void* copy = malloc(size);
+
         if(copy == NULL) {
             LOG(CIRCLE_LOG_FATAL, "Unable to allocate %llu bytes for reduction buffer.",
                 (unsigned long long) size);
