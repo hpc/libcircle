@@ -154,6 +154,7 @@ PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
 PACKAGE_NAME = @PACKAGE_NAME@
 PACKAGE_STRING = @PACKAGE_STRING@
 PACKAGE_TARNAME = @PACKAGE_TARNAME@
+PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
@@ -215,7 +216,7 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-check_queue_SOURCES = check_queue.c $(top_srcdir)/libcircle.h
+check_queue_SOURCES = check_queue.c $(top_srcdir)/libcircle/libcircle.h
 check_queue_CFLAGS = -I$(top_srcdir)/libcircle/ @CHECK_CFLAGS@
 check_queue_LDADD = $(top_builddir)/libcircle.la @CHECK_LIBS@
 all: all-am

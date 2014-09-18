@@ -9,13 +9,27 @@ lib_LTLIBRARIES = libcircle.la
 
 libcircle_la_LIBADD = $(MPI_CLDFLAGS)
 libcircle_la_LDFLAGS = -version-info $(LIBCIRCLE_SO_VERSION)
-libcircle_la_SOURCES = libcircle/lib.c    \
-                                                libcircle/queue.c  \
-                                                libcircle/worker.c \
-                                                libcircle/token.c  
+libcircle_la_SOURCES = \
+        libcircle/lib.c \
+        libcircle/queue.c \
+        libcircle/token.c \
+        libcircle/worker.c
 
 libcircle_includedir = $(includedir)/
-nobase_libcircle_include_HEADERS = libcircle.h
+#nobase_libcircle_include_HEADERS = libcircle.h
+
+# headers to be installed in /include
+include_HEADERS = \
+        libcircle/libcircle.h
+
+# headers that should be part of distribution
+# but not installed in /include
+noinst_HEADERS = \
+        libcircle/log.h \
+        libcircle/lib.h \
+        libcircle/queue.h \
+        libcircle/token.h \
+        libcircle/worker.h
 
 AM_CFLAGS += $(MPI_CFLAGS)
 
