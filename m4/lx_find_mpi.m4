@@ -1,16 +1,16 @@
 #################################################################################################
-# Copyright (c) 2010, Lawrence Livermore National Security, LLC.  
-# Produced at the Lawrence Livermore National Laboratory  
+# Copyright (c) 2010, Lawrence Livermore National Security, LLC.
+# Produced at the Lawrence Livermore National Laboratory
 # Written by Todd Gamblin, tgamblin@llnl.gov.
 # LLNL-CODE-417602
-# All rights reserved.  
-# 
+# All rights reserved.
+#
 # This file is part of Libra. For details, see http://github.com/tgamblin/libra.
 # Please also read the LICENSE file for further information.
-# 
+#
 # Redistribution and use in source and binary forms, with or without modification, are
 # permitted provided that the following conditions are met:
-# 
+#
 #  * Redistributions of source code must retain the above copyright notice, this list of
 #    conditions and the disclaimer below.
 #  * Redistributions in binary form must reproduce the above copyright notice, this list of
@@ -18,7 +18,7 @@
 #    provided with the distribution.
 #  * Neither the name of the LLNS/LLNL nor the names of its contributors may be used to endorse
 #    or promote products derived from this software without specific prior written permission.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS
 # OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
 # MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
@@ -33,7 +33,7 @@
 #
 # LX_FIND_MPI()
 #  ------------------------------------------------------------------------
-# This macro finds an MPI compiler and extracts includes and libraries from 
+# This macro finds an MPI compiler and extracts includes and libraries from
 # it for use in automake projects.  The script exports the following variables:
 #
 # AC_DEFINE variables:
@@ -51,18 +51,18 @@
 #     MPIF77           Name of MPI Fortran 77 compiler
 #     MPI_F77FLAGS     Includes and defines for MPI Fortran 77 compilation
 #     MPI_F77LDFLAGS   Libraries and library paths for linking MPI Fortran 77 programs
-# 
+#
 #     MPIFC            Name of MPI Fortran compiler
 #     MPI_FFLAGS       Includes and defines for MPI Fortran compilation
 #     MPI_FLDFLAGS     Libraries and library paths for linking MPI Fortran programs
-# 
+#
 # Shell variables output by this macro:
 #     have_C_mpi       'yes' if we found MPI for C, 'no' otherwise
 #     have_CXX_mpi     'yes' if we found MPI for C++, 'no' otherwise
 #     have_F77_mpi     'yes' if we found MPI for F77, 'no' otherwise
 #     have_F_mpi       'yes' if we found MPI for Fortran, 'no' otherwise
 #
-AC_DEFUN([LX_FIND_MPI], 
+AC_DEFUN([LX_FIND_MPI],
 [
      AC_LANG_CASE(
      [C], [
@@ -73,7 +73,7 @@ AC_DEFUN([LX_FIND_MPI],
              LX_QUERY_MPI_COMPILER(MPICC, [mpicc mpiicc mpixlc mpipgcc], C)
          fi
      ],
-     [C++], [    
+     [C++], [
          AC_REQUIRE([AC_PROG_CXX])
          if [[ ! -z "$MPICXX" ]]; then
              LX_QUERY_MPI_COMPILER(MPICXX, [$MPICXX], CXX)
@@ -110,7 +110,7 @@ AC_DEFUN([LX_FIND_MPI],
 # AC_SUBST variables:
 #     MPI_<prefix>FLAGS       Includes and defines for MPI compilation
 #     MPI_<prefix>LDFLAGS     Libraries and library paths for linking MPI C programs
-# 
+#
 # Shell variables output by this macro:
 #     found_mpi_flags         'yes' if we were able to get flags, 'no' otherwise
 #
@@ -118,9 +118,9 @@ AC_DEFUN([LX_QUERY_MPI_COMPILER],
 [
      # Try to find a working MPI compiler from the supplied names
      AC_PATH_PROGS($1, [$2], [not-found])
-     
+
      # Figure out what the compiler responds to to get it to show us the compile
-     # and link lines.  After this part of the macro, we'll have a valid 
+     # and link lines.  After this part of the macro, we'll have a valid
      # lx_mpi_command_line
      echo -n "Checking whether $$1 responds to '-showme:compile'... "
      lx_mpi_compile_line=`$$1 -showme:compile 2>/dev/null`
@@ -145,27 +145,34 @@ AC_DEFUN([LX_QUERY_MPI_COMPILER],
                  if [[ "$?" -eq 0 ]]; then
                      echo yes
                  else
-                     echo no
+                    echo no
+                     echo -n "Checking whether $$1 responds to '-compile_info'... "
+                     lx_mpi_command_line=`$$1 -compile_info 2>/dev/null`
+                    if [[ "$?" -eq 0 ]]; then
+                        echo yes
+                    else
+                        echo no
+                    fi
                  fi
              fi
          else
              echo yes
          fi
      fi
-          
+
      if [[ ! -z "$lx_mpi_compile_line" -a ! -z "$lx_mpi_link_line" ]]; then
          lx_mpi_command_line="$lx_mpi_compile_line $lx_mpi_link_line"
      fi
 
      if [[ ! -z "$lx_mpi_command_line" ]]; then
-         # Now extract the different parts of the MPI command line.  Do these separately in case we need to 
+         # Now extract the different parts of the MPI command line.  Do these separately in case we need to
          # parse them all out in future versions of this macro.
          lx_mpi_defines=`    echo "$lx_mpi_command_line" | grep -o -- '\(^\| \)-D\([[^\"[:space:]]]\+\|\"[[^\"[:space:]]]\+\"\)'`
          lx_mpi_includes=`   echo "$lx_mpi_command_line" | grep -o -- '\(^\| \)-I\([[^\"[:space:]]]\+\|\"[[^\"[:space:]]]\+\"\)'`
          lx_mpi_link_paths=` echo "$lx_mpi_command_line" | grep -o -- '\(^\| \)-L\([[^\"[:space:]]]\+\|\"[[^\"[:space:]]]\+\"\)'`
          lx_mpi_libs=`       echo "$lx_mpi_command_line" | grep -o -- '\(^\| \)-l\([[^\"[:space:]]]\+\|\"[[^\"[:space:]]]\+\"\)'`
          lx_mpi_link_args=`  echo "$lx_mpi_command_line" | grep -o -- '\(^\| \)-Wl,\([[^\"[:space:]]]\+\|\"[[^\"[:space:]]]\+\"\)'`
-         
+
          # Create variables and clean up newlines and multiple spaces
          MPI_$3FLAGS="$lx_mpi_defines $lx_mpi_includes"
          MPI_$3LDFLAGS="$lx_mpi_link_paths $lx_mpi_libs $lx_mpi_link_args"
@@ -198,7 +205,6 @@ AC_DEFUN([LX_QUERY_MPI_COMPILER],
          CPPFLAGS=$OLD_CPPFLAGS
      else
          echo Unable to find suitable MPI Compiler. Try setting $1.
-         have_$3_mpi='no'         
+         have_$3_mpi='no'
      fi
 ])
-
