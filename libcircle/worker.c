@@ -168,6 +168,7 @@ static void CIRCLE_init_local_state(MPI_Comm comm, CIRCLE_state_st* local_state)
     local_state->barrier_replies = 0;
 
     /* init state for termination allreduce operations */
+    local_state->work_outstanding = 0;
     local_state->term_flag    = 0;
     local_state->term_up      = 0;
     local_state->term_replies = 0;
@@ -228,6 +229,9 @@ static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
     while(1) {
         /* Check for and service work requests */
         CIRCLE_workreq_check(CIRCLE_INPUT_ST.queue, sptr, cleanup);
+
+        /* process any incoming work receipt messages */
+        CIRCLE_workreceipt_check(CIRCLE_INPUT_ST.queue, sptr);
 
         /* Make progress on any outstanding reduction */
         if(sptr->reduce_enabled) {
