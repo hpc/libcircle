@@ -404,6 +404,116 @@ int CIRCLE_barrier_test(CIRCLE_state_st* st)
     return 0;
 }
 
+/* test whether we have terminated via allreduce */
+int CIRCLE_check_for_term_allreduce(CIRCLE_state_st* st)
+{
+    int flag;
+    MPI_Status status;
+
+    /* get our communicator */
+    MPI_Comm comm = st->comm;
+
+    /* get info about tree */
+    int  parent_rank = st->tree.parent_rank;
+    int  children    = st->tree.children;
+    int* child_ranks = st->tree.child_ranks;
+
+    /* check whether we have received message from all children (if any) */
+    if(st->term_replies < children) {
+        /* still waiting on input messages from our children */
+        MPI_Iprobe(MPI_ANY_SOURCE, CIRCLE_TAG_TERM, comm, &flag, &status);
+
+        /* if we got a message increase our count */
+        if(flag) {
+            /* get rank of child */
+            int child = status.MPI_SOURCE;
+
+            /* receive message from that child */
+            int child_flag;
+            MPI_Recv(&child_flag, 1, MPI_INT, child,
+                     CIRCLE_TAG_TERM, comm, &status);
+
+            /* OR child flag in with ours */
+            st->term_flag |= child_flag;
+
+            /* increase count */
+            st->term_replies++;
+        }
+    }
+
+    int term_flag = 0;
+
+    /* if we have not sent a message to our parent, and we have
+     * received a message from all of our children (or we have
+     * no children), send a message to our parent */
+    if(!st->term_up && st->term_replies == children) {
+        /* send a message to our parent if we have one */
+        if(parent_rank != MPI_PROC_NULL) {
+            MPI_Send(&st->term_flag, 1, MPI_INT, parent_rank,
+                     CIRCLE_TAG_TERM, comm);
+        } else {
+            /* we are root, capture result of allreduce */
+            term_flag = st->term_flag;
+        }
+
+        /* reset our flag for next iteration */
+        st->term_flag = 0;
+
+        /* transition to state where we're waiting for parent
+         * to send us result */
+        st->term_up = 1;
+    }
+
+    /* wait for message to come back down from parent to mark end
+     * of barrier */
+    int complete = 0;
+
+    if(st->term_up) {
+        if(parent_rank != MPI_PROC_NULL) {
+            /* check for message from parent */
+            MPI_Iprobe(parent_rank, CIRCLE_TAG_TERM, comm, &flag, &status);
+
+            if(flag) {
+                /* got a message, receive message */
+                MPI_Recv(&term_flag, 1, MPI_INT, parent_rank,
+                         CIRCLE_TAG_TERM, comm, &status);
+
+                /* mark barrier as complete */
+                complete = 1;
+            }
+        }
+        else {
+            /* if we have no parent, we're the root, so mark
+             * barrier as complete */
+            complete = 1;
+        }
+    }
+
+    /* if allreduce is complete, send messages to children (if any)
+     * and return true */
+    if(complete) {
+        int i;
+        for(i = 0; i < children; i++) {
+            /* get rank of child */
+            int child = child_ranks[i];
+
+            /* send child a message */
+            MPI_Send(&term_flag, 1, MPI_INT, child,
+                     CIRCLE_TAG_TERM, comm);
+        }
+
+        /* reset state for another barrier */
+        st->term_up      = 0;
+        st->term_replies = 0;
+    }
+
+    /* return whether term flag */
+    if (complete && term_flag == 0) {
+        return TERMINATE;
+    }
+    return WHITE;
+}
+
 /**
  * Sends an abort message to all ranks.
  *
@@ -921,6 +1031,7 @@ static int CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
     if(dest < st->rank || dest == st->token_src) {
         st->token_proc = BLACK;
     }
+    st->term_flag = 1;
 
     /* Base address of the buffer to be sent */
     int32_t start_elem = qp->count - count;

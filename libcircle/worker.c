@@ -167,6 +167,11 @@ static void CIRCLE_init_local_state(MPI_Comm comm, CIRCLE_state_st* local_state)
     local_state->barrier_up      = 0;
     local_state->barrier_replies = 0;
 
+    /* init state for termination allreduce operations */
+    local_state->term_flag    = 0;
+    local_state->term_up      = 0;
+    local_state->term_replies = 0;
+
     /* initalize counters */
     local_state->local_objects_processed = 0;
     local_state->local_work_requested    = 0;
@@ -243,7 +248,7 @@ static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
         /* If I don't have work, or if I received signal to abort,
          * check for termination */
         else {
-            int term_status = CIRCLE_check_for_term(sptr);
+            int term_status = CIRCLE_check_for_term_allreduce(sptr);
 
             if(term_status == TERMINATE) {
                 /* got the terminate signal, break the loop */
