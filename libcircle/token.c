@@ -419,28 +419,40 @@ int CIRCLE_check_for_term_allreduce(CIRCLE_state_st* st)
     int* child_ranks = st->tree.child_ranks;
 
     /* check whether we have received message from all children (if any) */
-    if(st->term_replies < children) {
+    while(st->term_replies < children) {
         /* still waiting on input messages from our children */
         MPI_Iprobe(MPI_ANY_SOURCE, CIRCLE_TAG_TERM, comm, &flag, &status);
 
-        /* if we got a message increase our count */
-        if(flag) {
-            /* get rank of child */
-            int child = status.MPI_SOURCE;
-
-            /* receive message from that child */
-            int child_flag;
-            MPI_Recv(&child_flag, 1, MPI_INT, child,
-                     CIRCLE_TAG_TERM, comm, &status);
-
-            /* OR child flag in with ours */
-            st->term_flag |= child_flag;
-
-            /* increase count */
-            st->term_replies++;
+        /* break out if there is no message from children */
+        if(! flag) {
+            break;
         }
+
+        /* got a message, get rank of child */
+        int child = status.MPI_SOURCE;
+
+        /* receive message from that child */
+        int child_flag;
+        MPI_Recv(&child_flag, 1, MPI_INT, child,
+                 CIRCLE_TAG_TERM, comm, &status);
+
+        /* OR child's flag value with ours */
+        st->term_flag |= child_flag;
+
+        /* increase count */
+        st->term_replies++;
     }
 
+    /* do not allow this allreduce to make progress while
+     * we have outstanding work transfer messages, we know
+     * the remote process is accounting for that work after
+     * it has been acknowledged, we'll also force a fresh
+     * allreduce upon any acknowledgement */
+    if (st->work_outstanding > 0) {
+        return WHITE;
+    }
+
+    /* this will hold result of allreduce */
     int term_flag = 0;
 
     /* if we have not sent a message to our parent, and we have
@@ -895,6 +907,11 @@ static int32_t CIRCLE_work_receive(
     /* log number of items we received */
     LOG(CIRCLE_LOG_DBG, "Received %d items from %d", count, source);
 
+    /* send receipt back to source to notify we are now
+     * accounting for this work */
+    MPI_Send(NULL, 0, MPI_BYTE, source,
+        CIRCLE_TAG_WORK_RECEIPT, comm);
+
     return 0;
 }
 
@@ -1031,7 +1048,6 @@ static int CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
     if(dest < st->rank || dest == st->token_src) {
         st->token_proc = BLACK;
     }
-    st->term_flag = 1;
 
     /* Base address of the buffer to be sent */
     int32_t start_elem = qp->count - count;
@@ -1092,6 +1108,9 @@ static int CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
     /* subtract elements from our queue */
     qp->count -= count;
 
+    /* track number of outstanding messages that transfer work */
+    st->work_outstanding++;
+
     return 0;
 }
 
@@ -1149,6 +1168,42 @@ static void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
     free(sizes);
 
     LOG(CIRCLE_LOG_DBG, "Done servicing requests.");
+}
+
+/**
+ * Checks for outstanding work requests
+ */
+void CIRCLE_workreceipt_check(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
+{
+    /* get MPI communicator */
+    MPI_Comm comm = st->comm;
+
+    /* pick off any work request mesasges we have */
+    while(st->work_outstanding > 0) {
+        /* Test to see if we have any work receipt message to receive */
+        int flag;
+        MPI_Status status;
+        MPI_Iprobe(MPI_ANY_SOURCE, CIRCLE_TAG_WORK_RECEIPT, comm, &flag, &status);
+
+        /* if we don't have any, break out of the loop */
+        if(! flag) {
+            break;
+        }
+
+        /* we got a work receipt message, get the rank */
+        int rank = status.MPI_SOURCE;
+
+        /* receive the message */
+        MPI_Recv(NULL, 0, MPI_BYTE, rank,
+                 CIRCLE_TAG_WORK_RECEIPT, comm, &status);
+
+        /* decrement our count of outstanding work messages */
+        st->work_outstanding--;
+
+        /* force a fresh termination allreduce
+         * when transferring work */
+        st->term_flag = 1;
+    }
 }
 
 /**

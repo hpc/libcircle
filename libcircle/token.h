@@ -17,6 +17,7 @@ enum tags {
     TERMINATE = -1,
     CIRCLE_TAG_WORK_REQUEST,
     CIRCLE_TAG_WORK_REPLY,
+    CIRCLE_TAG_WORK_RECEIPT,
     CIRCLE_TAG_TOKEN,
     CIRCLE_TAG_REDUCE,
     CIRCLE_TAG_BARRIER,
@@ -88,6 +89,7 @@ typedef struct CIRCLE_state_st {
     int barrier_replies; /* keeps count of number of chidren who have replied */
 
     /* manage state for termination allreduce operations */
+    int work_outstanding; /* counter to track number of outstanding work transfer messages */
     int term_flag;    /* whether we have sent work to anyone since last allreduce */
     int term_up;      /* flag indicating whether we have sent message to parent */
     int term_replies; /* keeps count of number of chidren who have replied */
@@ -126,6 +128,9 @@ void CIRCLE_token_check(CIRCLE_state_st* st);
 int  CIRCLE_check_for_term(CIRCLE_state_st* st);
 
 int  CIRCLE_check_for_term_allreduce(CIRCLE_state_st* st);
+
+void CIRCLE_workreceipt_check(CIRCLE_internal_queue_t* queue,
+                          CIRCLE_state_st* state);
 
 void CIRCLE_workreq_check(CIRCLE_internal_queue_t* queue,
                           CIRCLE_state_st* state,
