@@ -252,7 +252,11 @@ static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
         /* If I don't have work, or if I received signal to abort,
          * check for termination */
         else {
+#ifdef USE_TREETERM
             int term_status = CIRCLE_check_for_term_allreduce(sptr);
+#else
+            int term_status = CIRCLE_check_for_term(sptr);
+#endif
 
             if(term_status == TERMINATE) {
                 /* got the terminate signal, break the loop */
