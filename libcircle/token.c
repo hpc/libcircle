@@ -404,7 +404,73 @@ int CIRCLE_barrier_test(CIRCLE_state_st* st)
     return 0;
 }
 
-/* test whether we have terminated via allreduce */
+/* test whether we have terminated via allreduce.
+ *
+ * In this algorithm, a non-blocking allreduce
+ * is used to determine whether all procs have terminated.
+ * There is some complication in dealing with work that
+ * may be in flight to a process that otherwise thought
+ * it was done when it last contributed its partial result
+ * to the termination reduction.
+ *
+ * First, this function is only called when a process
+ * has exhausted its local work queue, so the reduction
+ * only makes progress when a process is locally done
+ * with its work.
+ *
+ * Each process sets a term_flag to 1 if it is
+ * still working or knows that others could be working.
+ * It sets the flag to 0 when it is done.
+ * When flags on all procs are 0, then all procs are done.
+ *
+ * state: waiting for children
+ *        (term_replies < children) && (term_up == 0)
+ * A process waits until it has received reduction messages
+ * from all of its children.  It ORs the flags from its
+ * children with its own flag.  Upon receiving messages
+ * from all children, it forwards the partial result to its parent
+ * and sets the term_up flag to 1 to remember that it sent
+ * to its parent.
+ *
+ * state: waiting for parent
+ *        (term_replies == children) && (term_up == 1)
+ * A process waits for its parent.  If the process is the
+ * root of the tree or it has received a message from its
+ * parent, it forwards the final result to all of its children,
+ * and it resets its state tracking flags:
+ *   term_up = 0
+ *   term_replies = 0
+ *
+ * If the result of the reduction is flag==0, all procs
+ * have completed.
+ *
+ * One complication: a process with an empty queue will
+ * be simultaneously progressing the termination reduction
+ * with a flag indicating it is done while randomly asking
+ * other procs for work.  If a process has sent work to this
+ * process, we cannot allow the process that sent the work
+ * to also declare that it is done until the transferred work
+ * has been accounted for on the requesting process.  Otherwise,
+ * both processes could declare they are done, and we could
+ * terminate without having actually done the work that was
+ * transferred.
+ *
+ * To deal with this, all work transfers must be acknowledged
+ * before the sender can assume that it itself is done.  A process
+ * sending work to another process records the number of outstanding
+ * work transfer messages it has sent.  Upon receiving work,
+ * a requesting process sends a work receipt message back to
+ * the sender.  Upon receiving a work receipt, the process that
+ * sent the work can decrement its count of outstanding work transfer
+ * messages.  Any process that has a non-zero work transfer count
+ * will not progress the termination reduction up the tree until
+ * its count hits zero.  Additionally, upon receiving a work receipt,
+ * a process forces another iteration of the termination reduction by
+ * setting its term_flag=1 before sending to its parent.  That is
+ * to ensure that the process that received the work participates
+ * in the reduction again after having accounting for the work items
+ * it just received, since it may have already declared itself done
+ * in the current reduction iteration. */
 int CIRCLE_check_for_term_allreduce(CIRCLE_state_st* st)
 {
     int flag;
