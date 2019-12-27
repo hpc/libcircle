@@ -1,6 +1,11 @@
 include $(top_srcdir)/common.mk
 
-SUBDIRS = tests doc
+SUBDIRS = doc
+
+# add in unit tests if we found libcheck
+if HAVE_CHECK
+  SUBDIRS += tests
+endif
 
 AUTOMAKE_OPTIONS = subdir-objects foreign
 ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
