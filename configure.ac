@@ -1,4 +1,4 @@
-AC_INIT([LibCircle],[0.2.1-rc.1],[github-hpc@lanl.gov],[libcircle],[http://github.com/hpc/libcircle])
+AC_INIT([LibCircle],[0.2.2],[github-hpc@lanl.gov],[libcircle],[http://github.com/hpc/libcircle])
 
 # Keep artifacts in directories as much as possible.
 AC_CONFIG_AUX_DIR(auxdir)
@@ -36,7 +36,19 @@ AC_FUNC_MALLOC
 
 # Define the library version.
 AC_SUBST([LIBCIRCLE_SO_VERSION], [2:0:0])
-AC_SUBST([LIBCIRCLE_API_VERSION], [0.2.1])
+AC_SUBST([LIBCIRCLE_API_VERSION], [0.2.2])
+
+# Allow user to switch to tree-based termination
+AC_ARG_ENABLE([treeterm],
+  AS_HELP_STRING(--enable-treeterm, [switch to tree-based termination (improved scalability, but abort and checkpoint not supported)]),
+  [case "${enableval}" in
+   yes) AC_DEFINE(USE_TREETERM, 1, [tree-based termination for improved scalability, but abort and checkpoint are not supported])
+        x_ac_libcircle_treeterm=yes ;;
+   no)  x_ac_libcircle_treeterm=no ;;
+   *) AC_MSG_ERROR([bad value ${enableval} for --enable-treeterm]) ;;
+   esac],
+  [x_ac_libcircle_treeterm=no]
+)
 
 # Check for MPI
 LX_FIND_MPI
@@ -54,6 +66,7 @@ echo
 echo "Build Options:"
 echo "  Unit tests ..................................... $x_ac_libcircle_check"
 echo "  Doxygen ........................................ $x_ac_libcircle_doxygen"
+echo "  Tree termination ............................... $x_ac_libcircle_treeterm"
 echo "========================================================"
 echo
 
