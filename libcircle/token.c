@@ -609,7 +609,7 @@ static void CIRCLE_token_recv(CIRCLE_state_st* st)
      * we should have received the reply (even if we sent
      * the token to ourself, we just replied above so
      * the send should now complete) */
-    if(st->token_send_req != MPI_PROC_NULL) {
+    if(st->token_send_req != MPI_REQUEST_NULL) {
         MPI_Wait(&st->token_send_req, &status);
     }
 
