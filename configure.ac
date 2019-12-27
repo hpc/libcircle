@@ -18,6 +18,7 @@ X_AC_LIBCIRCLE_PKG_CONFIG
 
 # Needed for tests
 X_AC_LIBCIRCLE_CHECK
+AM_CONDITIONAL([HAVE_CHECK], [test x$x_ac_libcircle_check = xyes])
 
 # Needed for docs
 X_AC_LIBCIRCLE_DOXYGEN
