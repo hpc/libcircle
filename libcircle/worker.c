@@ -122,7 +122,6 @@ static void CIRCLE_init_local_state(MPI_Comm comm, CIRCLE_state_st* local_state)
 
     /* start the termination token on rank 0 */
     local_state->token_is_local = 0;
-
     if(rank == 0) {
         local_state->token_is_local = 1;
     }
@@ -169,9 +168,10 @@ static void CIRCLE_init_local_state(MPI_Comm comm, CIRCLE_state_st* local_state)
 
     /* init state for termination allreduce operations */
     local_state->work_outstanding = 0;
-    local_state->term_flag    = 0;
-    local_state->term_up      = 0;
-    local_state->term_replies = 0;
+    local_state->term_flags[0]    = 1;
+    local_state->term_flags[1]    = 0;
+    local_state->term_up          = 0;
+    local_state->term_replies     = 0;
 
     /* initalize counters */
     local_state->local_objects_processed = 0;
@@ -253,7 +253,7 @@ static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
          * check for termination */
         else {
 #ifdef USE_TREETERM
-            int term_status = CIRCLE_check_for_term_allreduce(sptr);
+            int term_status = CIRCLE_check_for_term_allreduce(sptr, cleanup);
 #else
             int term_status = CIRCLE_check_for_term(sptr);
 #endif
@@ -283,13 +283,26 @@ static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
 
     cleanup = 1;
 
+#ifdef USE_TREETERM
+    /* when using the termination tree, let's progress it until
+     * we get a terminate result to clear out any messages in the tree */
+    int terminated = WHITE;
+#else
+    /* when not using the tree we'll check on the token below,
+     * we set this to TERMINATE to simplify the start barrier check */
+    int terminated = TERMINATE;
+#endif
+
     /* clear up any MPI messages that may still be outstanding */
     while(1) {
         /* start a non-blocking barrier once we have no outstanding
          * items */
-        if(! sptr->work_requested &&
-                ! sptr->reduce_outstanding &&
-                sptr->token_send_req == MPI_REQUEST_NULL) {
+        if(! sptr->work_requested      &&
+           ! sptr->reduce_outstanding  &&
+           sptr->work_outstanding == 0 &&
+           terminated == TERMINATE     &&
+           sptr->token_send_req == MPI_REQUEST_NULL)
+        {
             CIRCLE_barrier_start(sptr);
         }
 
@@ -301,6 +314,9 @@ static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
         /* send no work message for any work request that comes in */
         CIRCLE_workreq_check(CIRCLE_INPUT_ST.queue, sptr, cleanup);
 
+        /* process any incoming work receipt messages */
+        CIRCLE_workreceipt_check(CIRCLE_INPUT_ST.queue, sptr);
+
         /* cleanup any outstanding reduction */
         if(sptr->reduce_enabled) {
             CIRCLE_reduce_check(sptr, sptr->local_objects_processed, cleanup);
@@ -309,6 +325,14 @@ static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
         /* receive any incoming work reply messages */
         CIRCLE_request_work(CIRCLE_INPUT_ST.queue, sptr, cleanup);
 
+#ifdef USE_TREETERM
+        /* to clean out any messages in the termination tree,
+         * continue to progress termination tree until we get
+         * a TERMINATE signal */
+        if(terminated != TERMINATE) {
+            terminated = CIRCLE_check_for_term_allreduce(sptr, cleanup);
+        }
+#else
         /* check for and receive any incoming token */
         CIRCLE_token_check(sptr);
 
@@ -318,6 +342,7 @@ static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
             MPI_Status status;
             MPI_Test(&sptr->token_send_req, &flag, &status);
         }
+#endif
     }
 
     return;

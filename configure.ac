@@ -41,9 +41,9 @@ AC_SUBST([LIBCIRCLE_API_VERSION], [0.2.2])
 
 # Allow user to switch to tree-based termination
 AC_ARG_ENABLE([treeterm],
-  AS_HELP_STRING(--enable-treeterm, [switch to tree-based termination (improved scalability, but abort and checkpoint not supported)]),
+  AS_HELP_STRING(--enable-treeterm, [switch to tree-based termination for improved scalability]),
   [case "${enableval}" in
-   yes) AC_DEFINE(USE_TREETERM, 1, [tree-based termination for improved scalability, but abort and checkpoint are not supported])
+   yes) AC_DEFINE(USE_TREETERM, 1, [tree-based termination for improved scalability])
         x_ac_libcircle_treeterm=yes ;;
    no)  x_ac_libcircle_treeterm=no ;;
    *) AC_MSG_ERROR([bad value ${enableval} for --enable-treeterm]) ;;

@@ -414,26 +414,31 @@ int CIRCLE_barrier_test(CIRCLE_state_st* st)
  * to the termination reduction.
  *
  * First, this function is only called when a process
- * has exhausted its local work queue, so the reduction
- * only makes progress when a process is locally done
- * with its work.
+ * has exhausted its local work queue or when a process
+ * has entered the cleanup phase after processing an
+ * abort message.  Thus, the reduction only makes progress
+ * when a process is locally done working.
  *
- * Each process sets a term_flag to 1 if it is
- * still working or knows that others could be working.
- * It sets the flag to 0 when it is done.
- * When flags on all procs are 0, then all procs are done.
+ * Two integer flags are reduced with a logical AND
+ * operation.  The first flag will be set to 1 so long
+ * as no process declares another reduction iteration.
+ * Any process can force another termination allreduce
+ * iteration by setting term_flag[0] to 0, which is done
+ * if a process has transferred work to another process.
+ * The second flag is set to 1 when all procs are in
+ * cleanup phase.
  *
  * state: waiting for children
- *        (term_replies < children) && (term_up == 0)
+ *   (term_replies < children) && (term_up == 0)
  * A process waits until it has received reduction messages
- * from all of its children.  It ORs the flags from its
+ * from all of its children.  It ANDs the flags from its
  * children with its own flag.  Upon receiving messages
  * from all children, it forwards the partial result to its parent
  * and sets the term_up flag to 1 to remember that it sent
  * to its parent.
  *
  * state: waiting for parent
- *        (term_replies == children) && (term_up == 1)
+ *   (term_replies == children) && (term_up == 1)
  * A process waits for its parent.  If the process is the
  * root of the tree or it has received a message from its
  * parent, it forwards the final result to all of its children,
@@ -441,8 +446,8 @@ int CIRCLE_barrier_test(CIRCLE_state_st* st)
  *   term_up = 0
  *   term_replies = 0
  *
- * If the result of the reduction is flag==0, all procs
- * have completed.
+ * term_flag[0]==1, all procs have stopped working
+ * term_flag[1]==1, all procs have reached cleanup phase
  *
  * One complication: a process with an empty queue will
  * be simultaneously progressing the termination reduction
@@ -466,12 +471,12 @@ int CIRCLE_barrier_test(CIRCLE_state_st* st)
  * will not progress the termination reduction up the tree until
  * its count hits zero.  Additionally, upon receiving a work receipt,
  * a process forces another iteration of the termination reduction by
- * setting its term_flag=1 before sending to its parent.  That is
+ * setting its term_flag[0]=0 before sending to its parent.  That is
  * to ensure that the process that received the work participates
- * in the reduction again after having accounting for the work items
+ * in another reduction after having accounting for the work items
  * it just received, since it may have already declared itself done
- * in the current reduction iteration. */
-int CIRCLE_check_for_term_allreduce(CIRCLE_state_st* st)
+ * in the current iteration. */
+int CIRCLE_check_for_term_allreduce(CIRCLE_state_st* st, int cleanup)
 {
     int flag;
     MPI_Status status;
@@ -483,6 +488,13 @@ int CIRCLE_check_for_term_allreduce(CIRCLE_state_st* st)
     int  parent_rank = st->tree.parent_rank;
     int  children    = st->tree.children;
     int* child_ranks = st->tree.child_ranks;
+
+    /* initialize our cleanup state in reduction flags,
+     * we can update this until we have processed a
+     * message from a child */
+    if(st->term_replies == 0 && st->term_up == 0) {
+        st->term_flags[1] = cleanup;
+    }
 
     /* check whether we have received message from all children (if any) */
     while(st->term_replies < children) {
@@ -498,12 +510,13 @@ int CIRCLE_check_for_term_allreduce(CIRCLE_state_st* st)
         int child = status.MPI_SOURCE;
 
         /* receive message from that child */
-        int child_flag;
-        MPI_Recv(&child_flag, 1, MPI_INT, child,
+        int child_flags[2];
+        MPI_Recv(child_flags, 2, MPI_INT, child,
                  CIRCLE_TAG_TERM, comm, &status);
 
-        /* OR child's flag value with ours */
-        st->term_flag |= child_flag;
+        /* reduce child's flag value with ours */
+        st->term_flags[0] &= child_flags[0];
+        st->term_flags[1] &= child_flags[1];
 
         /* increase count */
         st->term_replies++;
@@ -514,12 +527,12 @@ int CIRCLE_check_for_term_allreduce(CIRCLE_state_st* st)
      * the remote process is accounting for that work after
      * it has been acknowledged, we'll also force a fresh
      * allreduce upon any acknowledgement */
-    if (st->work_outstanding > 0) {
+    if(st->work_outstanding > 0) {
         return WHITE;
     }
 
     /* this will hold result of allreduce */
-    int term_flag = 0;
+    int term_flags[2] = {0};
 
     /* if we have not sent a message to our parent, and we have
      * received a message from all of our children (or we have
@@ -527,25 +540,27 @@ int CIRCLE_check_for_term_allreduce(CIRCLE_state_st* st)
     if(!st->term_up && st->term_replies == children) {
         /* send a message to our parent if we have one */
         if(parent_rank != MPI_PROC_NULL) {
-            MPI_Send(&st->term_flag, 1, MPI_INT, parent_rank,
+            MPI_Send(st->term_flags, 2, MPI_INT, parent_rank,
                      CIRCLE_TAG_TERM, comm);
         } else {
             /* we are root, capture result of allreduce */
-            term_flag = st->term_flag;
+            term_flags[0] = st->term_flags[0];
+            term_flags[1] = st->term_flags[1];
         }
 
         /* reset our flag for next iteration */
-        st->term_flag = 0;
+        st->term_flags[0] = 1;
 
         /* transition to state where we're waiting for parent
          * to send us result */
         st->term_up = 1;
     }
 
-    /* wait for message to come back down from parent to mark end
-     * of barrier */
+    /* we'll set complete to 1 if we get the allreduce result */
     int complete = 0;
 
+    /* if we've sent to our parent, check whether we've received
+     * a reply coming back down */
     if(st->term_up) {
         if(parent_rank != MPI_PROC_NULL) {
             /* check for message from parent */
@@ -553,7 +568,7 @@ int CIRCLE_check_for_term_allreduce(CIRCLE_state_st* st)
 
             if(flag) {
                 /* got a message, receive message */
-                MPI_Recv(&term_flag, 1, MPI_INT, parent_rank,
+                MPI_Recv(term_flags, 2, MPI_INT, parent_rank,
                          CIRCLE_TAG_TERM, comm, &status);
 
                 /* mark barrier as complete */
@@ -576,7 +591,7 @@ int CIRCLE_check_for_term_allreduce(CIRCLE_state_st* st)
             int child = child_ranks[i];
 
             /* send child a message */
-            MPI_Send(&term_flag, 1, MPI_INT, child,
+            MPI_Send(term_flags, 2, MPI_INT, child,
                      CIRCLE_TAG_TERM, comm);
         }
 
@@ -585,8 +600,12 @@ int CIRCLE_check_for_term_allreduce(CIRCLE_state_st* st)
         st->term_replies = 0;
     }
 
-    /* return whether term flag */
-    if (complete && term_flag == 0) {
+    /* if we have a result, return whether we terminated
+     * if not in cleanup: just need first flag to be true
+     * if in cleanup: need both flags to be true
+     *   term_flags[0]=1 when all procs have terminated
+     *   term_flags[1]=1 when all procs are in cleanup */
+    if(complete && term_flags[0] && (!cleanup || term_flags[1])) {
         return TERMINATE;
     }
     return WHITE;
@@ -1268,7 +1287,7 @@ void CIRCLE_workreceipt_check(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 
         /* force a fresh termination allreduce
          * when transferring work */
-        st->term_flag = 1;
+        st->term_flags[0] = 0;
     }
 }
 

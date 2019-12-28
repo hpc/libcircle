@@ -90,9 +90,9 @@ typedef struct CIRCLE_state_st {
 
     /* manage state for termination allreduce operations */
     int work_outstanding; /* counter to track number of outstanding work transfer messages */
-    int term_flag;    /* whether we have sent work to anyone since last allreduce */
-    int term_up;      /* flag indicating whether we have sent message to parent */
-    int term_replies; /* keeps count of number of chidren who have replied */
+    int term_flags[2];    /* whether we have sent work to anyone since last allreduce */
+    int term_up;          /* flag indicating whether we have sent message to parent */
+    int term_replies;     /* keeps count of number of chidren who have replied */
 
     /* profiling counters */
     int32_t local_objects_processed; /* number of locally completed work items */
@@ -127,7 +127,7 @@ void CIRCLE_token_check(CIRCLE_state_st* st);
 
 int  CIRCLE_check_for_term(CIRCLE_state_st* st);
 
-int  CIRCLE_check_for_term_allreduce(CIRCLE_state_st* st);
+int  CIRCLE_check_for_term_allreduce(CIRCLE_state_st* st, int cleanup);
 
 void CIRCLE_workreceipt_check(CIRCLE_internal_queue_t* queue,
                           CIRCLE_state_st* state);
