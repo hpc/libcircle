@@ -169,7 +169,7 @@ static void CIRCLE_init_local_state(MPI_Comm comm, CIRCLE_state_st* local_state)
 
     /* init state for termination allreduce operations */
     local_state->work_outstanding = 0;
-    local_state->term_flag    = 0;
+    local_state->term_flag    = 1;
     local_state->term_up      = 0;
     local_state->term_replies = 0;
 
@@ -281,15 +281,67 @@ static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
      * incoming messages until all senders have declared that they
      * have no more outstanding messages. */
 
+    /* To get here when using the termination allreduce, we can be sure
+     * that there is both no outstanding work transfer message for this
+     * process nor any additional termination allreduce messages to
+     * cleanup.  This was not immediately obvious, so here is a proof
+     * to convince myself:
+     *
+     * Assumptions (requirements):
+     * a) A process only makes progress on the current termination
+     *    reduction when its queue is empty or it is in abort state.
+     * b) If a process is in abort state, it does not transfer work.
+     * c) If a process transferred work at any point before sending
+     *    to its parent, it will force a new reduction iteration after
+     *    the work has been transferred to the new process by setting
+     *    its reduction flag to 0.
+     *
+     * Question:
+     * - Can a process have an outstanding work transfer at the point
+     *   it receives 1 from the termination allreduce?
+     *
+     * Answer: No (why?)
+     * In order to send to its parent, this process (X) must have an
+     * empty queue or is in the abort state.  If it transferred data
+     * before calling the reduction, it would set its flag=0 and
+     * force a new reduction iteration.  So to get a 1 from the
+     * reduction it must not have transferred data before sending to
+     * its parent.  If the process was is abort state, it cannot have
+     * transferred work after sending to its parent, so it can only be
+     * that its queue must have been empty, then it sent flag=1 to its
+     * parent, and then transferred work.
+     *
+     * For its queue to have been empty and then for it to have
+     * transferred work later, it must have received work items from
+     * another process (Y).  If that sending process (Y) was from a
+     * process yet to contribute its flag to the allreduce, the current
+     * iteration would return 0, so it must be from a process that had
+     * already contributed a 1.  For that process (Y) to have sent 1 to
+     * its own parent, it must have an empty queue or be in the abort
+     * state.  If it was in abort state, it could not have transferred
+     * work, so it must have had an empty queue, meaning that it must
+     * have acquired the work items from another process (Z) and
+     * process Z cannot be either process X or Y.
+     *
+     * We can apply this logic recursively until we rule out all
+     * processes in the tree, i.e., no process yet to send to its
+     * parent and no process that has already sent a 1 to its parent,
+     * and of course if any process had sent 0 to its parent, then
+     * the allreduce will not return 1 on that iteration.
+     *
+     * Thus, there is no need to cleanup work transfer or termination
+     * allreduce messages at this point. */
+
     cleanup = 1;
 
     /* clear up any MPI messages that may still be outstanding */
     while(1) {
         /* start a non-blocking barrier once we have no outstanding
          * items */
-        if(! sptr->work_requested &&
-                ! sptr->reduce_outstanding &&
-                sptr->token_send_req == MPI_REQUEST_NULL) {
+        if(! sptr->work_requested     &&
+           ! sptr->reduce_outstanding &&
+           sptr->token_send_req == MPI_REQUEST_NULL)
+        {
             CIRCLE_barrier_start(sptr);
         }
 
@@ -309,6 +361,7 @@ static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
         /* receive any incoming work reply messages */
         CIRCLE_request_work(CIRCLE_INPUT_ST.queue, sptr, cleanup);
 
+#ifndef USE_TREETERM
         /* check for and receive any incoming token */
         CIRCLE_token_check(sptr);
 
@@ -318,6 +371,7 @@ static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
             MPI_Status status;
             MPI_Test(&sptr->token_send_req, &flag, &status);
         }
+#endif
     }
 
     return;

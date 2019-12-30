@@ -24,7 +24,8 @@ enum tags {
     CIRCLE_TAG_TERM,
     MSG_VALID,
     MSG_INVALID,
-    ABORT = -32
+    PAYLOAD_ABORT = -32,
+    PAYLOAD_REQUEST
 };
 
 typedef struct options {
