@@ -413,47 +413,49 @@ int CIRCLE_barrier_test(CIRCLE_state_st* st)
  * it was done when it last contributed its partial result
  * to the termination reduction.
  *
- * First, this function is only called when a process
- * has exhausted its local work queue, so the reduction
- * only makes progress when a process is locally done
+ * This function is only called when a process has either
+ * exhausted its local work queue or after it has
+ * received an abort message, so the reduction only
+ * makes progress when a process is locally done
  * with its work.
  *
- * Each process sets a term_flag to 1 if it is
- * still working or knows that others could be working.
- * It sets the flag to 0 when it is done.
- * When flags on all procs are 0, then all procs are done.
+ * An integer flag is reduced using an AND operation to
+ * determine whether any process has set the flag to 0.
+ * Any process can force another termination reduction
+ * to be executed by setting its flag to 0, which is done
+ * if a process has transferred work to another process.
+ * When the final reduction flag is 1, then all processes
+ * have terminated.
  *
  * state: waiting for children
- *        (term_replies < children) && (term_up == 0)
+ *   (term_replies < children) && (term_up == 0)
  * A process waits until it has received reduction messages
- * from all of its children.  It ORs the flags from its
+ * from all of its children.  It ANDs the flags from its
  * children with its own flag.  Upon receiving messages
  * from all children, it forwards the partial result to its parent
  * and sets the term_up flag to 1 to remember that it sent
  * to its parent.
  *
  * state: waiting for parent
- *        (term_replies == children) && (term_up == 1)
+ *   (term_replies == children) && (term_up == 1)
  * A process waits for its parent.  If the process is the
  * root of the tree or it has received a message from its
- * parent, it forwards the final result to all of its children,
- * and it resets its state tracking flags:
+ * parent, it forwards the final reduction result to its
+ * children, and it resets its state tracking flags:
  *   term_up = 0
  *   term_replies = 0
  *
- * If the result of the reduction is flag==0, all procs
+ * If the result of the reduction is 1, all procs
  * have completed.
  *
  * One complication: a process with an empty queue will
  * be simultaneously progressing the termination reduction
- * with a flag indicating it is done while randomly asking
- * other procs for work.  If a process has sent work to this
- * process, we cannot allow the process that sent the work
- * to also declare that it is done until the transferred work
- * has been accounted for on the requesting process.  Otherwise,
- * both processes could declare they are done, and we could
- * terminate without having actually done the work that was
- * transferred.
+ * while randomly asking other procs for work.  If a process
+ * sends work to this process, we cannot allow the process that
+ * sent the work to also declare that it is done until the
+ * transferred work has been accounted for on the requesting
+ * process.  Otherwise, we could terminate without having
+ * actually done the work that was transferred.
  *
  * To deal with this, all work transfers must be acknowledged
  * before the sender can assume that it itself is done.  A process
@@ -466,8 +468,8 @@ int CIRCLE_barrier_test(CIRCLE_state_st* st)
  * will not progress the termination reduction up the tree until
  * its count hits zero.  Additionally, upon receiving a work receipt,
  * a process forces another iteration of the termination reduction by
- * setting its term_flag=1 before sending to its parent.  That is
- * to ensure that the process that received the work participates
+ * setting its term_flag=0 before sending to its parent.  This
+ * ensures that the process that received the work participates
  * in the reduction again after having accounting for the work items
  * it just received, since it may have already declared itself done
  * in the current reduction iteration. */
@@ -486,7 +488,8 @@ int CIRCLE_check_for_term_allreduce(CIRCLE_state_st* st)
 
     /* check whether we have received message from all children (if any) */
     while(st->term_replies < children) {
-        /* still waiting on input messages from our children */
+        /* still waiting on input messages from our children,
+         * probe to see if we got a message from a child */
         MPI_Iprobe(MPI_ANY_SOURCE, CIRCLE_TAG_TERM, comm, &flag, &status);
 
         /* break out if there is no message from children */
@@ -502,8 +505,8 @@ int CIRCLE_check_for_term_allreduce(CIRCLE_state_st* st)
         MPI_Recv(&child_flag, 1, MPI_INT, child,
                  CIRCLE_TAG_TERM, comm, &status);
 
-        /* OR child's flag value with ours */
-        st->term_flag |= child_flag;
+        /* AND child's flag value with ours */
+        st->term_flag &= child_flag;
 
         /* increase count */
         st->term_replies++;
@@ -535,7 +538,7 @@ int CIRCLE_check_for_term_allreduce(CIRCLE_state_st* st)
         }
 
         /* reset our flag for next iteration */
-        st->term_flag = 0;
+        st->term_flag = 1;
 
         /* transition to state where we're waiting for parent
          * to send us result */
@@ -543,9 +546,11 @@ int CIRCLE_check_for_term_allreduce(CIRCLE_state_st* st)
     }
 
     /* wait for message to come back down from parent to mark end
-     * of barrier */
+     * of allreduce */
     int complete = 0;
 
+    /* if we have sent to our parent, check whether our parent
+     * has sent the result back down */
     if(st->term_up) {
         if(parent_rank != MPI_PROC_NULL) {
             /* check for message from parent */
@@ -556,13 +561,13 @@ int CIRCLE_check_for_term_allreduce(CIRCLE_state_st* st)
                 MPI_Recv(&term_flag, 1, MPI_INT, parent_rank,
                          CIRCLE_TAG_TERM, comm, &status);
 
-                /* mark barrier as complete */
+                /* mark allreduce as complete */
                 complete = 1;
             }
         }
         else {
             /* if we have no parent, we're the root, so mark
-             * barrier as complete */
+             * allreduce as complete */
             complete = 1;
         }
     }
@@ -580,13 +585,14 @@ int CIRCLE_check_for_term_allreduce(CIRCLE_state_st* st)
                      CIRCLE_TAG_TERM, comm);
         }
 
-        /* reset state for another barrier */
+        /* reset state for another allreduce */
         st->term_up      = 0;
         st->term_replies = 0;
     }
 
-    /* return whether term flag */
-    if (complete && term_flag == 0) {
+    /* if we have result of allreduce, determine
+     * whether we have terminated */
+    if (complete && term_flag) {
         return TERMINATE;
     }
     return WHITE;
@@ -610,7 +616,7 @@ void CIRCLE_bcast_abort(void)
     CIRCLE_ABORT_FLAG = 1;
 
     int i;
-    int buffer = ABORT;
+    int buffer = PAYLOAD_ABORT;
 
     for(i = 0; i < size; i++) {
         if(i != rank) {
@@ -907,11 +913,11 @@ static int32_t CIRCLE_work_receive(
         st->local_no_work_received++;
         return 0;
     }
-    else if(items == ABORT) {
+    else if(items == PAYLOAD_ABORT) {
         /* we've received a signal to kill the job,
          * there is no follow on message in this case */
         CIRCLE_ABORT_FLAG = 1;
-        return ABORT;
+        return PAYLOAD_ABORT;
     }
     else if(items < 0) {
         /* TODO: when does this happen? */
@@ -984,9 +990,9 @@ static int32_t CIRCLE_work_receive(
 /**
  * @brief Requests work from other ranks.
  *
- * Somewhat complicated, but essentially it requests work from a random
- * rank.  If it doesn't receive work, a different rank will be asked during
- * the next iteration.
+ * Request work from a random rank.  If it receives no work
+ * in the work reply from that process, a different rank
+ * will be asked during the next iteration.
  */
 int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, int cleanup)
 {
@@ -999,11 +1005,13 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, in
      * a reply if we do, otherwise send a request so long as we're not
      * in cleanup mode */
     if(st->work_requested) {
-        /* get source rank */
-        int source = st->work_requested_rank;
-
         /* we've already requested work from someone, check whether
          * we got a reply */
+
+        /* get rank of process we requested work from */
+        int source = st->work_requested_rank;
+
+        /* see if we got a work reply from that process */
         int flag;
         MPI_Status status;
         MPI_Iprobe(source, CIRCLE_TAG_WORK_REPLY, comm, &flag, &status);
@@ -1032,15 +1040,13 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, in
 
         LOG(CIRCLE_LOG_DBG, "Sending work request to %d...", source);
 
-        /* increment number of work requests */
+        /* increment number of work requests for profiling */
         st->local_work_requested++;
 
-        /* TODO: why 3? */
         /* if abort flag is set, pack abort code into send buffer */
-        int buf = 3;
-
+        int buf = PAYLOAD_REQUEST;
         if(CIRCLE_ABORT_FLAG) {
-            buf = ABORT;
+            buf = PAYLOAD_ABORT;
         }
 
         /* TODO: use isend to avoid deadlocks */
@@ -1088,14 +1094,13 @@ static void spread_counts(int* sizes, int ranks, int count)
 void CIRCLE_send_no_work(int dest)
 {
     int no_work[2];
-    no_work[0] = (CIRCLE_ABORT_FLAG) ? ABORT : 0;
+    no_work[0] = (CIRCLE_ABORT_FLAG) ? PAYLOAD_ABORT : 0;
     no_work[1] = 0;
 
     MPI_Request r;
     MPI_Isend(&no_work, 1, MPI_INT, dest,
               CIRCLE_TAG_WORK_REPLY, CIRCLE_INPUT_ST.comm, &r);
     MPI_Wait(&r, MPI_STATUS_IGNORE);
-
 }
 
 /**
@@ -1268,7 +1273,7 @@ void CIRCLE_workreceipt_check(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 
         /* force a fresh termination allreduce
          * when transferring work */
-        st->term_flag = 1;
+        st->term_flag = 0;
     }
 }
 
@@ -1287,7 +1292,7 @@ void CIRCLE_workreq_check(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, int 
 
     /* pick off any work request mesasges we have */
     while(1) {
-        /* Test to see if any posted receive has completed */
+        /* Test for any work request message */
         int flag;
         MPI_Status status;
         MPI_Iprobe(MPI_ANY_SOURCE, CIRCLE_TAG_WORK_REQUEST, comm, &flag, &status);
@@ -1306,7 +1311,7 @@ void CIRCLE_workreq_check(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, int 
                  CIRCLE_TAG_WORK_REQUEST, comm, &status);
 
         /* check message content */
-        if(buf == ABORT) {
+        if(buf == PAYLOAD_ABORT) {
             /* got an abort message, let's bail */
             CIRCLE_ABORT_FLAG = 1;
             return;
@@ -1325,18 +1330,18 @@ void CIRCLE_workreq_check(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, int 
     }
 
     /* send work to requestors */
-    if(qp->count == 0 || cleanup) {
+    if(qp->count == 0 || cleanup || CIRCLE_ABORT_FLAG) {
+        /* we send "no work" messages back if we have no work,
+         * we are in a cleanup phase, or we have received an
+         * abort message */
         int i;
-
         for(i = 0; i < rcount; i++) {
             CIRCLE_send_no_work(requestors[i]);
         }
     }
-    /*
-     * If you get here, then you have work to send AND the CIRCLE_ABORT_FLAG
-     * is not set
-     */
     else {
+        /* Otherwise, divy up the work items we have among the
+         * requesting ranks */
         CIRCLE_send_work_to_many(qp, st, requestors, rcount);
     }
 
