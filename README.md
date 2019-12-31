@@ -114,14 +114,12 @@ To use the optional reduction:
  * CIRCLE_cb_reduce_op - this function is called each time libcircle needs to combine two reduction values.
  * CIRCLE_cb_reduce_fini - this function is called once on the root process to output the final reduction result.
 2. Update the value of reduction variable(s) within the CIRCLE_cb_process callback as work items are dequeued and processed by libcircle.
+3. Enable reductions by specifying the period between reductions with a call to CIRCLE_set_reduce_period.
 
-The libcircle library will periodically invoke a reduction if one has
-registered the reduction callbacks.  The period between consecutive
-reduction invocations is currently hard-coded to 10 seconds.  The first
-reduction is started after 10 seconds has expired.  Note that if
-libcircle complets execution before the first reduction timeout has
-expired, no reduction will be executed.  The reduction period will be
-configurable in a future release.
+When enabled, libcircle periodically executes a global reduction.
+The first reduction is started after the reduction period has expired.
+If libcircle completes execution before the first reduction period has
+expired, no reduction will be executed.
 
 The example below shows how to count the number of items processed.
 Each process counts the number of items it has processed locally.
@@ -185,22 +183,24 @@ static void reduce_exec(const void* buf1, size_t size1, const void* buf2, size_t
      * In this example, we sum two input uint64_t values and
      * libcircle makes a copy of the result when we call CIRCLE_reduce.
      */
-    const uint64_t* a = (const uint64_t*) buf1;
-    const uint64_t* b = (const uint64_t*) buf2;
-    uint64_t val = a[0] + b[0];
-    CIRCLE_reduce(&val, sizeof(uint64_t));
+    uint64_t a = *(const uint64_t*) buf1;
+    uint64_t b = *(const uint64_t*) buf2;
+    uint64_t sum = a + b;
+    CIRCLE_reduce(&sum, sizeof(uint64_t));
 }
 
 /*
  * The reduce_fini callback is only invoked on the root process.  It
  * provides a buffer holding the final reduction result as in input
  * parameter. Typically, one might print the result in this callback.
- *
- * In this example, we compute the average processing rate,
- * and we print the rate and global count of items processed.
  */
 static void reduce_fini(const void* buf, size_t size)
 {
+    /*
+     * In this example, we compute the average processing rate,
+     * and we print the rate and global count of items processed.
+     */
+
     // get result of reduction
     uint64_t count = *(const uint64_t*) buf;
 
@@ -248,11 +248,16 @@ reduce_count = 0; // set our count to 0
 
 /*
  * Register our 3 reduction callback functions.
- * This enables the periodic reduction operations.
  */
 CIRCLE_cb_reduce_init(&reduce_init);
 CIRCLE_cb_reduce_op(&reduce_exec);
 CIRCLE_cb_reduce_fini(&reduce_fini);
+
+/*
+ * Specify period between reductions.
+ * Here we set a time of 10 seconds.
+ */
+CIRCLE_set_reduce_period(10);
 
 /*
  * Then do all of the regular libcircle stuff

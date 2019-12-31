@@ -63,6 +63,13 @@ __inline__ int32_t CIRCLE_init(int argc, char* argv[], int user_options)
     CIRCLE_INPUT_ST.reduce_buf      = NULL;
     CIRCLE_INPUT_ST.reduce_buf_size = 0;
 
+    /* initialize reduction period to 0 seconds
+     * to disable reductions by default */
+    CIRCLE_INPUT_ST.reduce_period = 0;
+
+    /* initialize width of communication tree */
+    CIRCLE_INPUT_ST.tree_width = 64;
+
     CIRCLE_set_options(user_options);
 
     /* determine whether we need to initialize MPI,
@@ -120,6 +127,24 @@ void CIRCLE_set_options(int user_options)
 {
     CIRCLE_INPUT_ST.options = user_options;
     LOG(CIRCLE_LOG_DBG, "Circle options set: %X", user_options);
+}
+
+/**
+ * Change the width of the k-ary communication tree.
+ */
+void CIRCLE_set_tree_width(int width)
+{
+    CIRCLE_INPUT_ST.tree_width = width;
+    LOG(CIRCLE_LOG_DBG, "Circle tree width set: %d", width);
+}
+
+/**
+ * Change the number of seconds between consecutive reductions.
+ */
+void CIRCLE_set_reduce_period(int secs)
+{
+    CIRCLE_INPUT_ST.reduce_period = secs;
+    LOG(CIRCLE_LOG_DBG, "Circle reduce period (secs): %d", secs);
 }
 
 /**
