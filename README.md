@@ -117,8 +117,11 @@ To use the optional reduction:
 
 The libcircle library will periodically invoke a reduction if one has
 registered the reduction callbacks.  The period between consecutive
-reduction invocations is currently hard-coded to 10 seconds.  This
-period will be configurable in a future release.
+reduction invocations is currently hard-coded to 10 seconds.  The first
+reduction is started after 10 seconds has expired.  Note that if
+libcircle complets execution before the first reduction timeout has
+expired, no reduction will be executed.  The reduction period will be
+configurable in a future release.
 
 The example below shows how to count the number of items processed.
 Each process counts the number of items it has processed locally.
@@ -144,7 +147,7 @@ static uint64_t reduce_count;
  * One can specify an arbitrary block of data as input.  When a new
  * reduction is started, libcircle invokes this callback on each
  * process to snapshot the memory block specified in the call to CIRCLE_reduce.
- * The library makes a memcpy of this memory block given to CIRCLE_reduce.
+ * The library makes a memcpy of the memory block given to CIRCLE_reduce.
  */
 static void reduce_init(void)
 {
@@ -180,7 +183,7 @@ static void reduce_exec(const void* buf1, size_t size1, const void* buf2, size_t
      * or they could be intermediate results captured from a reduce_exec call.
      *
      * In this example, we sum two input uint64_t values and
-     * save a copy the result by calling CIRCLE_reduce.
+     * libcircle makes a copy of the result when we call CIRCLE_reduce.
      */
     const uint64_t* a = (const uint64_t*) buf1;
     const uint64_t* b = (const uint64_t*) buf2;
@@ -204,7 +207,7 @@ static void reduce_fini(const void* buf, size_t size)
     // get current time
     double now = MPI_Wtime();
 
-    // compute average processing rate
+    // compute average processing rate since we started
     double rate = 0.0;
     double secs = now - reduce_start;
     if (secs > 0.0) {
@@ -212,13 +215,14 @@ static void reduce_fini(const void* buf, size_t size)
     }
 
     // print status to stdout
-    MFU_LOG(MFU_LOG_INFO, "Processed %llu items in %f secs (%f items/sec) ...",
+    printf("Processed %llu items in %f secs (%f items/sec) ...\n",
         (unsigned long long)count, secs, rate);
+    fflush(stdout);
 }
 
 /*
  * Modify our CIRCLE_cb_process callback to increment our reduction
- * counter, e.g., to count number of items processed.
+ * counter to count each item we process
  */
 void my_process_some_work(CIRCLE_handle *handle)
 {
@@ -231,7 +235,7 @@ void my_process_some_work(CIRCLE_handle *handle)
      * items we have processed.  libcircle will periodically
      * snapshot this variable as input to a reduction operation
      * due to our reduce_init callback that provides the memory
-     * address and size of this variable.
+     * address and size of this variable to CIRCLE_reduce.
      */
     reduce_count++;
 }
@@ -244,7 +248,7 @@ reduce_count = 0; // set our count to 0
 
 /*
  * Register our 3 reduction callback functions.
- * This enables the reduction operations.
+ * This enables the periodic reduction operations.
  */
 CIRCLE_cb_reduce_init(&reduce_init);
 CIRCLE_cb_reduce_op(&reduce_exec);
