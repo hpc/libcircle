@@ -154,7 +154,7 @@ static void CIRCLE_init_local_state(MPI_Comm comm, CIRCLE_state_st* local_state)
     local_state->work_requested = 0;
 
     /* create our collective tree */
-    CIRCLE_tree_init(rank, size, 2, local_state->comm, &local_state->tree);
+    CIRCLE_tree_init(rank, size, 64, local_state->comm, &local_state->tree);
 
     /* init state for progress reduction operations */
     local_state->reduce_enabled       = 1;    /* hard code to always for now */
