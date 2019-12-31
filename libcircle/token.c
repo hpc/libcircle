@@ -91,7 +91,7 @@ void CIRCLE_tree_free(CIRCLE_tree_state_st* t)
     return;
 }
 
-/* intiate and progress a reduce operation at specified interval,
+/* initiate and progress a reduce operation at specified interval,
  * ensures progress of reduction in background, stops reduction if
  * cleanup == 1 */
 void CIRCLE_reduce_check(CIRCLE_state_st* st, int count, int cleanup)
@@ -598,6 +598,66 @@ int CIRCLE_check_for_term_allreduce(CIRCLE_state_st* st)
     return WHITE;
 }
 
+/* execute an allreduce to determine whether any rank has entered
+ * the abort state, and if so, set all ranks to be in abort state */
+void CIRCLE_abort_reduce(CIRCLE_state_st* st)
+{
+    MPI_Status status;
+
+    /* get our communicator */
+    MPI_Comm comm = st->comm;
+
+    /* get info about tree */
+    int  parent_rank = st->tree.parent_rank;
+    int  children    = st->tree.children;
+    int* child_ranks = st->tree.child_ranks;
+
+    /* initialize flag to our abort state */
+    int flag = (int) CIRCLE_ABORT_FLAG;
+
+    /* reduce messages from children if any */
+    int i;
+    for(i = 0; i < children; i++) {
+        /* get rank of child */
+        int child = child_ranks[i];
+
+        /* receive message from child */
+        int child_flag;
+        MPI_Recv(&child_flag, 1, MPI_INT, child,
+                 CIRCLE_TAG_ABORT_REDUCE, comm, &status);
+
+        /* OR child's flag value with ours */
+        flag |= child_flag;
+    }
+
+    /* send a message to our parent and wait on reply if we have one */
+    if(parent_rank != MPI_PROC_NULL) {
+        /* send partial result to parent */
+        MPI_Send(&flag, 1, MPI_INT, parent_rank,
+                 CIRCLE_TAG_ABORT_REDUCE, comm);
+
+        /* wait for final result from parent */
+        MPI_Recv(&flag, 1, MPI_INT, parent_rank,
+                 CIRCLE_TAG_ABORT_REDUCE, comm, &status);
+    }
+
+    /* forward result to children */
+    for(i = 0; i < children; i++) {
+        /* get rank of child */
+        int child = child_ranks[i];
+
+        /* send child a message */
+        MPI_Send(&flag, 1, MPI_INT, child,
+                 CIRCLE_TAG_ABORT_REDUCE, comm);
+    }
+
+    /* finally, set our abort flags */
+    CIRCLE_ABORT_FLAG = (int8_t) flag;
+    st->abort_state   = flag;
+
+    return;
+}
+
 /**
  * Sends an abort message to all ranks.
  *
@@ -609,20 +669,125 @@ void CIRCLE_bcast_abort(void)
     LOG(CIRCLE_LOG_WARN, \
         "Libcircle abort started from %d", CIRCLE_global_rank);
 
-    int rank, size;
-    MPI_Comm_rank(CIRCLE_INPUT_ST.comm, &rank);
-    MPI_Comm_size(CIRCLE_INPUT_ST.comm, &size);
-
+    /* set global abort variable, this will kick off an abort bcast
+     * the next time the worker loop calls CIRCLE_abort_check */
     CIRCLE_ABORT_FLAG = 1;
 
-    int i;
-    int buffer = PAYLOAD_ABORT;
+    return;
+}
 
-    for(i = 0; i < size; i++) {
-        if(i != rank) {
-            MPI_Send(&buffer, 1, MPI_INT, i,
-                     CIRCLE_TAG_WORK_REQUEST, CIRCLE_INPUT_ST.comm);
-            LOG(CIRCLE_LOG_WARN, "Libcircle abort message sent to %d", i);
+/**
+ * Transition into abort state and sends abort messages through tree
+ * if needed.
+ */
+static void CIRCLE_abort_start(CIRCLE_state_st* st, int cleanup)
+{
+    /* set global abort flag */
+    CIRCLE_ABORT_FLAG = 1;
+
+    /* if we've already entered our abort state,
+     * no need to do it again */
+    if(st->abort_state) {
+        return;
+    }
+
+    /* transition to local abort state */
+    st->abort_state = 1;
+
+    /* if in cleanup, everyone has terminated and we're trying to drain
+     * messages, so don't send more */
+    if(cleanup) {
+        return;
+    }
+
+    /* otherwise, send abort messages through tree,
+     * get info about our parent and children */
+    int  parent_rank  = st->tree.parent_rank;
+    int  num_children = st->tree.children;
+    int* child_ranks  = st->tree.child_ranks;
+
+    /* index into request array */
+    int k = 0;
+
+    /* send abort message to our parent if we have one */
+    if(parent_rank != MPI_PROC_NULL) {
+        /* post a receive for the reply to our abort request message */
+        MPI_Irecv(NULL, 0, MPI_BYTE, parent_rank,
+                 CIRCLE_TAG_ABORT_REPLY, st->comm, &st->abort_req[k++]);
+
+        /* post abort request to our parent */
+        MPI_Isend(NULL, 0, MPI_BYTE, parent_rank,
+                 CIRCLE_TAG_ABORT_REQUEST, st->comm, &st->abort_req[k++]);
+    }
+
+    /* send abort message to each of our children */
+    int i;
+    for(i = 0; i < num_children; i++) {
+        /* get rank of child */
+        int child_rank = child_ranks[i];
+
+        /* post a receive for the reply to our abort request message */
+        MPI_Irecv(NULL, 0, MPI_BYTE, child_rank,
+                 CIRCLE_TAG_ABORT_REPLY, st->comm, &st->abort_req[k++]);
+
+        /* post abort request to our child */
+        MPI_Isend(NULL, 0, MPI_BYTE, child_rank,
+                 CIRCLE_TAG_ABORT_REQUEST, st->comm, &st->abort_req[k++]);
+    }
+
+    /* remember that we've sent our abort messages */
+    if(k > 0) {
+        st->abort_outstanding = 1;
+    }
+
+    return;
+}
+
+/**
+ * Check whether we have received abort signal.
+ *
+ * Check whether we have received abort signal from the calling
+ * process or from an abort request message sent by another
+ * process, forward abort messages on tree if needed.
+ */
+void CIRCLE_abort_check(CIRCLE_state_st* st, int cleanup)
+{
+    /* check whether caller has set global abort variable */
+    if(CIRCLE_ABORT_FLAG) {
+        /* bcast abort messages if needed */
+        CIRCLE_abort_start(st, cleanup);
+    }
+
+    /* check whether we have received a request to abort
+     * from another process */
+    int flag;
+    MPI_Status status;
+    MPI_Iprobe(MPI_ANY_SOURCE, CIRCLE_TAG_ABORT_REQUEST, st->comm, &flag, &status);
+
+    /* process abort request message if we got one */
+    if(flag) {
+        /* we got a abort request message, get the source rank */
+        int rank = status.MPI_SOURCE;
+
+        /* receive the abort request message */
+        MPI_Recv(NULL, 0, MPI_BYTE, rank,
+                 CIRCLE_TAG_ABORT_REQUEST, st->comm, &status);
+
+        /* send an abort reply back */
+        MPI_Send(NULL, 0, MPI_BYTE, rank,
+                 CIRCLE_TAG_ABORT_REPLY, st->comm);
+
+        /* bcast abort messages if needed */
+        CIRCLE_abort_start(st, cleanup);
+    }
+
+    /* if we have sent abort messages, wait for the replies */
+    if(st->abort_outstanding) {
+        /* test whether all abort messages have completed */
+        MPI_Testall(st->abort_num_req, st->abort_req, &flag, MPI_STATUSES_IGNORE);
+        if(flag) {
+            /* all requests have completed */
+            st->abort_outstanding = 0;
         }
     }
 
@@ -1029,7 +1194,7 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, in
             st->work_requested = 0;
         }
     }
-    else if(!cleanup) {
+    else if(!cleanup && !CIRCLE_ABORT_FLAG) {
         /* need to send request, get rank of process to request work from */
         int source = st->next_processor;
 
@@ -1043,15 +1208,9 @@ int32_t CIRCLE_request_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, in
         /* increment number of work requests for profiling */
         st->local_work_requested++;
 
-        /* if abort flag is set, pack abort code into send buffer */
-        int buf = PAYLOAD_REQUEST;
-        if(CIRCLE_ABORT_FLAG) {
-            buf = PAYLOAD_ABORT;
-        }
-
         /* TODO: use isend to avoid deadlocks */
         /* send work request */
-        MPI_Send(&buf, 1, MPI_INT, source,
+        MPI_Send(NULL, 0, MPI_BYTE, source,
                  CIRCLE_TAG_WORK_REQUEST, comm);
 
         /* set flag and source to indicate we requested work */
@@ -1306,22 +1465,13 @@ void CIRCLE_workreq_check(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, int 
         int rank = status.MPI_SOURCE;
 
         /* receive the message */
-        int buf;
-        MPI_Recv(&buf, 1, MPI_INT, rank,
+        MPI_Recv(NULL, 0, MPI_BYTE, rank,
                  CIRCLE_TAG_WORK_REQUEST, comm, &status);
 
-        /* check message content */
-        if(buf == PAYLOAD_ABORT) {
-            /* got an abort message, let's bail */
-            CIRCLE_ABORT_FLAG = 1;
-            return;
-        }
-        else {
-            /* add rank to requestor list */
-            LOG(CIRCLE_LOG_DBG, "Received work request from %d", rank);
-            requestors[rcount] = rank;
-            rcount++;
-        }
+        /* add rank to requestor list */
+        LOG(CIRCLE_LOG_DBG, "Received work request from %d", rank);
+        requestors[rcount] = rank;
+        rcount++;
     }
 
     /* If we didn't receive any work request, no need to continue */
