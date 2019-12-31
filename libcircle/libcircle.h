@@ -73,6 +73,16 @@ int CIRCLE_init(int argc, char* argv[], int options);
 void CIRCLE_set_options(int options);
 
 /**
+ * Change the width of the k-ary communication tree.
+ */
+void CIRCLE_set_tree_width(int width);
+
+/**
+ * Change the number of seconds between consecutive reductions.
+ */
+void CIRCLE_set_reduce_period(int secs);
+
+/**
  * Processing and creating work is done through callbacks. Here's how we tell
  * libcircle about our function which creates work. This call is optional.
  */

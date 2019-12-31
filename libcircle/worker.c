@@ -154,12 +154,17 @@ static void CIRCLE_init_local_state(MPI_Comm comm, CIRCLE_state_st* local_state)
     local_state->work_requested = 0;
 
     /* create our collective tree */
-    CIRCLE_tree_init(rank, size, 64, local_state->comm, &local_state->tree);
+    int tree_width = CIRCLE_INPUT_ST.tree_width;
+    CIRCLE_tree_init(rank, size, tree_width, local_state->comm, &local_state->tree);
 
     /* init state for progress reduction operations */
-    local_state->reduce_enabled       = 1;    /* hard code to always for now */
+    local_state->reduce_enabled = 0;
+    double secs = (double) CIRCLE_INPUT_ST.reduce_period;
+    if(secs > 0.0) {
+        local_state->reduce_enabled = 1;
+    }
     local_state->reduce_time_last     = MPI_Wtime();
-    local_state->reduce_time_interval = 10.0; /* hard code to 10 seconds for now */
+    local_state->reduce_time_interval = secs;
     local_state->reduce_outstanding   = 0;
 
     /* init state for cleanup barrier operations */
