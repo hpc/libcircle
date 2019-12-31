@@ -22,10 +22,12 @@ enum tags {
     CIRCLE_TAG_REDUCE,
     CIRCLE_TAG_BARRIER,
     CIRCLE_TAG_TERM,
+    CIRCLE_TAG_ABORT_REQUEST,
+    CIRCLE_TAG_ABORT_REPLY,
+    CIRCLE_TAG_ABORT_REDUCE,
     MSG_VALID,
     MSG_INVALID,
-    PAYLOAD_ABORT = -32,
-    PAYLOAD_REQUEST
+    PAYLOAD_ABORT = -32
 };
 
 typedef struct options {
@@ -95,6 +97,12 @@ typedef struct CIRCLE_state_st {
     int term_up;      /* flag indicating whether we have sent message to parent */
     int term_replies; /* keeps count of number of chidren who have replied */
 
+    /* manage state for abort broadcast tree */
+    int abort_state;        /* flag tracking whether process is in abort state or not */
+    int abort_outstanding;  /* flag indicating whether we are waiting on abort reply messages */
+    int abort_num_req;      /* number of abort requests */
+    MPI_Request* abort_req; /* pointer to array of MPI_Requests for abort messages */
+
     /* profiling counters */
     int32_t local_objects_processed; /* number of locally completed work items */
     uint32_t local_work_requested;   /* number of times a process asked us for work */
@@ -119,6 +127,14 @@ void CIRCLE_barrier_start(CIRCLE_state_st* st);
  * returns 1 when all procs have called barrier_start (and resets),
  * returns 0 otherwise */
 int CIRCLE_barrier_test(CIRCLE_state_st* st);
+
+/* test for abort, forward abort messages on tree if needed,
+ * draining incoming abort messages */
+void CIRCLE_abort_check(CIRCLE_state_st* st, int cleanup);
+
+/* execute an allreduce to determine whether any rank has entered
+ *  * the abort state, and if so, set all ranks to be in abort state */
+void CIRCLE_abort_reduce(CIRCLE_state_st* st);
 
 void CIRCLE_get_next_proc(CIRCLE_state_st* st);
 

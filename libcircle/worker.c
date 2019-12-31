@@ -156,13 +156,13 @@ static void CIRCLE_init_local_state(MPI_Comm comm, CIRCLE_state_st* local_state)
     /* create our collective tree */
     CIRCLE_tree_init(rank, size, 2, local_state->comm, &local_state->tree);
 
-    /* init state for reduction operations */
+    /* init state for progress reduction operations */
     local_state->reduce_enabled       = 1;    /* hard code to always for now */
     local_state->reduce_time_last     = MPI_Wtime();
     local_state->reduce_time_interval = 10.0; /* hard code to 10 seconds for now */
     local_state->reduce_outstanding   = 0;
 
-    /* init state for barrier operations */
+    /* init state for cleanup barrier operations */
     local_state->barrier_started = 0;
     local_state->barrier_up      = 0;
     local_state->barrier_replies = 0;
@@ -172,6 +172,26 @@ static void CIRCLE_init_local_state(MPI_Comm comm, CIRCLE_state_st* local_state)
     local_state->term_flag    = 1;
     local_state->term_up      = 0;
     local_state->term_replies = 0;
+
+    /* init state for abort broadcast tree */
+    local_state->abort_state       = 0;
+    local_state->abort_outstanding = 0;
+
+    /* compute number of MPI requets we'll use in abort
+     * (parent + num_children)*2 for one isend/irecv each */
+    int num_req = local_state->tree.children;
+    if(local_state->tree.parent_rank != MPI_PROC_NULL) {
+        num_req++;
+    }
+    num_req *= 2;
+
+    local_state->abort_num_req = num_req;
+    local_state->abort_req     = (MPI_Request*) calloc((size_t)num_req, sizeof(MPI_Request));
+
+    int i;
+    for(i = 0; i < num_req; i++) {
+        local_state->abort_req[i] = MPI_REQUEST_NULL;
+    }
 
     /* initalize counters */
     local_state->local_objects_processed = 0;
@@ -203,6 +223,7 @@ void CIRCLE_free(void* pptr)
 static void CIRCLE_finalize_local_state(CIRCLE_state_st* local_state)
 {
     CIRCLE_tree_free(&local_state->tree);
+    CIRCLE_free(&local_state->abort_req);
     CIRCLE_free(&local_state->offsets_send_buf);
     CIRCLE_free(&local_state->offsets_recv_buf);
     CIRCLE_free(&local_state->requestors);
@@ -232,6 +253,9 @@ static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
 
         /* process any incoming work receipt messages */
         CIRCLE_workreceipt_check(CIRCLE_INPUT_ST.queue, sptr);
+
+        /* check for incoming abort messages */
+        CIRCLE_abort_check(sptr, cleanup);
 
         /* Make progress on any outstanding reduction */
         if(sptr->reduce_enabled) {
@@ -340,6 +364,7 @@ static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
          * items */
         if(! sptr->work_requested     &&
            ! sptr->reduce_outstanding &&
+           ! sptr->abort_outstanding  &&
            sptr->token_send_req == MPI_REQUEST_NULL)
         {
             CIRCLE_barrier_start(sptr);
@@ -361,6 +386,9 @@ static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
         /* receive any incoming work reply messages */
         CIRCLE_request_work(CIRCLE_INPUT_ST.queue, sptr, cleanup);
 
+        /* drain any outstanding abort messages */
+        CIRCLE_abort_check(sptr, cleanup);
+
 #ifndef USE_TREETERM
         /* check for and receive any incoming token */
         CIRCLE_token_check(sptr);
@@ -373,6 +401,10 @@ static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
         }
 #endif
     }
+
+    /* if any process is in the abort state,
+     * set all to be in the abort state */
+    CIRCLE_abort_reduce(sptr);
 
     return;
 }

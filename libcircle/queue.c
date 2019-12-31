@@ -14,8 +14,6 @@
 #include "queue.h"
 #include "log.h"
 
-extern int8_t CIRCLE_ABORT_FLAG;
-
 /**
  * Allocate memory for the basic queue structure used by libcircle.
  *
