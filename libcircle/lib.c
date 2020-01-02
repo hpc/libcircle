@@ -135,7 +135,6 @@ void CIRCLE_set_options(int user_options)
 void CIRCLE_set_tree_width(int width)
 {
     CIRCLE_INPUT_ST.tree_width = width;
-    LOG(CIRCLE_LOG_DBG, "Circle tree width set: %d", width);
 }
 
 /**
@@ -144,7 +143,6 @@ void CIRCLE_set_tree_width(int width)
 void CIRCLE_set_reduce_period(int secs)
 {
     CIRCLE_INPUT_ST.reduce_period = secs;
-    LOG(CIRCLE_LOG_DBG, "Circle reduce period (secs): %d", secs);
 }
 
 /**

@@ -13,7 +13,7 @@ typedef struct CIRCLE_input_st {
     CIRCLE_cb_reduce_init_fn reduce_init_cb;
     CIRCLE_cb_reduce_op_fn   reduce_op_cb;
     CIRCLE_cb_reduce_fini_fn reduce_fini_cb;
-    void* reduce_buf;
+    void*  reduce_buf;
     size_t reduce_buf_size;
     int reduce_period;
 
@@ -21,6 +21,7 @@ typedef struct CIRCLE_input_st {
 
     int options;
 
+    /* width of internal communication k-ary tree */
     int tree_width;
 
     CIRCLE_internal_queue_t* queue;

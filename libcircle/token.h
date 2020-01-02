@@ -92,7 +92,8 @@ typedef struct CIRCLE_state_st {
     int barrier_replies; /* keeps count of number of chidren who have replied */
 
     /* manage state for termination allreduce operations */
-    int work_outstanding; /* counter to track number of outstanding work transfer messages */
+    int term_tree_enabled; /* flag indicating whether to use tree-based termination */
+    int work_outstanding;  /* counter to track number of outstanding work transfer messages */
     int term_flag;    /* whether we have sent work to anyone since last allreduce */
     int term_up;      /* flag indicating whether we have sent message to parent */
     int term_replies; /* keeps count of number of chidren who have replied */

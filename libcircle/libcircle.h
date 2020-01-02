@@ -24,6 +24,7 @@ extern "C" {
 #define CIRCLE_SPLIT_RANDOM     (1 << 0)              /* Split work randomly. */
 #define CIRCLE_SPLIT_EQUAL      (1 << 1)              /* Split work evenly */
 #define CIRCLE_CREATE_GLOBAL    (1 << 2)              /* Call create callback on all procs */
+#define CIRCLE_TERM_TREE        (1 << 3)              /* Use tree-based termination */
 #define CIRCLE_DEFAULT_FLAGS    CIRCLE_SPLIT_EQUAL    /* Default behavior is random work stealing */
 
 /**

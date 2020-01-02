@@ -153,6 +153,13 @@ static void CIRCLE_init_local_state(MPI_Comm comm, CIRCLE_state_st* local_state)
     /* initialize work request state */
     local_state->work_requested = 0;
 
+    /* determine whether we are using tree-based or circle-based
+     * termination detection */
+    local_state->term_tree_enabled = 0;
+    if(CIRCLE_INPUT_ST.options & CIRCLE_TERM_TREE) {
+        local_state->term_tree_enabled = 1;
+    }
+
     /* create our collective tree */
     int tree_width = CIRCLE_INPUT_ST.tree_width;
     CIRCLE_tree_init(rank, size, tree_width, local_state->comm, &local_state->tree);
@@ -281,11 +288,14 @@ static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
         /* If I don't have work, or if I received signal to abort,
          * check for termination */
         else {
-#ifdef USE_TREETERM
-            int term_status = CIRCLE_check_for_term_allreduce(sptr);
-#else
-            int term_status = CIRCLE_check_for_term(sptr);
-#endif
+            /* check whether we have terminated */
+            int term_status;
+            if (sptr->term_tree_enabled) {
+                term_status = CIRCLE_check_for_term_allreduce(sptr);
+            }
+            else {
+                term_status = CIRCLE_check_for_term(sptr);
+            }
 
             if(term_status == TERMINATE) {
                 /* got the terminate signal, break the loop */
@@ -394,17 +404,19 @@ static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
         /* drain any outstanding abort messages */
         CIRCLE_abort_check(sptr, cleanup);
 
-#ifndef USE_TREETERM
-        /* check for and receive any incoming token */
-        CIRCLE_token_check(sptr);
+        /* if we're using circle-based token passing, drain any
+         * messages still outstanding */
+        if(! sptr->term_tree_enabled) {
+            /* check for and receive any incoming token */
+            CIRCLE_token_check(sptr);
 
-        /* if we have an outstanding token, check whether it's been received */
-        if(sptr->token_send_req != MPI_REQUEST_NULL) {
-            int flag;
-            MPI_Status status;
-            MPI_Test(&sptr->token_send_req, &flag, &status);
+            /* if we have an outstanding token, check whether it's been received */
+            if(sptr->token_send_req != MPI_REQUEST_NULL) {
+                int flag;
+                MPI_Status status;
+                MPI_Test(&sptr->token_send_req, &flag, &status);
+            }
         }
-#endif
     }
 
     /* if any process is in the abort state,
@@ -458,6 +470,23 @@ int8_t CIRCLE_worker()
     if(CIRCLE_INPUT_ST.options & CIRCLE_SPLIT_RANDOM) {
         LOG(CIRCLE_LOG_DBG, "Using randomized load splitting.");
     }
+
+    if(CIRCLE_INPUT_ST.options & CIRCLE_CREATE_GLOBAL) {
+        LOG(CIRCLE_LOG_DBG, "Create callback enabled on all ranks.");
+    }
+    else {
+        LOG(CIRCLE_LOG_DBG, "Create callback enabled on rank 0 only.");
+    }
+
+    if(CIRCLE_INPUT_ST.options & CIRCLE_TERM_TREE) {
+        LOG(CIRCLE_LOG_DBG, "Using tree termination detection.");
+    }
+    else {
+        LOG(CIRCLE_LOG_DBG, "Using circle termination detection.");
+    }
+
+    LOG(CIRCLE_LOG_DBG, "Tree width: %d", CIRCLE_INPUT_ST.tree_width);
+    LOG(CIRCLE_LOG_DBG, "Reduce period (secs): %d", CIRCLE_INPUT_ST.reduce_period);
 
     /**********************************
      * this is where the heavy lifting is done
