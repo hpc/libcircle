@@ -43,18 +43,6 @@ AC_SUBST([LIBCIRCLE_SO_VERSION], [3:1:1])
 # https://semver.org
 AC_SUBST([LIBCIRCLE_API_VERSION], [0.3.0])
 
-# Allow user to switch to tree-based termination
-AC_ARG_ENABLE([treeterm],
-  AS_HELP_STRING(--enable-treeterm, [switch to tree-based termination for improved scalability]),
-  [case "${enableval}" in
-   yes) AC_DEFINE(USE_TREETERM, 1, [tree-based termination for improved scalability])
-        x_ac_libcircle_treeterm=yes ;;
-   no)  x_ac_libcircle_treeterm=no ;;
-   *) AC_MSG_ERROR([bad value ${enableval} for --enable-treeterm]) ;;
-   esac],
-  [x_ac_libcircle_treeterm=no]
-)
-
 # Check for MPI
 LX_FIND_MPI
 test "x$have_C_mpi" = xyes || \
@@ -71,7 +59,6 @@ echo
 echo "Build Options:"
 echo "  Unit tests ..................................... $x_ac_libcircle_check"
 echo "  Doxygen ........................................ $x_ac_libcircle_doxygen"
-echo "  Tree termination ............................... $x_ac_libcircle_treeterm"
 echo "========================================================"
 echo
 
