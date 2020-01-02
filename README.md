@@ -4,7 +4,8 @@ libcircle is an API for distributing embarrassingly parallel workloads using sel
 
 Dependencies
 ------------
-* Open MPI  <http://www.open-mpi.org/>
+* MPI <https://www.mpi-forum.org/>
+* e.g., Open MPI  <http://www.open-mpi.org/>
 
 Compile and install
 -------------------
@@ -110,75 +111,84 @@ CIRCLE_finalize();
 To use the optional reduction:
 
 1. Define and register three callback functions with libcircle:
- * CIRCLE_cb_reduce_init - this function is called once on each process for each reduction invocation to capture the initial contribution from that process to the reduction.
- * CIRCLE_cb_reduce_op - this function is called each time libcircle needs to combine two reduction values.
- * CIRCLE_cb_reduce_fini - this function is called once on the root process to output the final reduction result.
+ * CIRCLE_cb_reduce_init - This function is called once on each process for each reduction invocation to capture the initial contribution from that process to the reduction.
+ * CIRCLE_cb_reduce_op - This function is called each time libcircle needs to combine two reduction values.  It defines the reduction operation.
+ * CIRCLE_cb_reduce_fini - This function is called once on the root process to output the final reduction result.
 2. Update the value of reduction variable(s) within the CIRCLE_cb_process callback as work items are dequeued and processed by libcircle.
-3. Enable reductions by specifying the period between reductions with a call to CIRCLE_set_reduce_period.
+3. Specify the time period between consecutive reductions with a call to CIRCLE_set_reduce_period to enable them.
 
 When enabled, libcircle periodically executes a global reduction.
 The first reduction is started after the reduction period has expired.
 If libcircle completes execution before the first reduction period has
 expired, no reduction will be executed.
 
-The example below shows how to count the number of items processed.
+The example below shows how to use reductions to periodically print
+the number of items processed.
 Each process counts the number of items it has processed locally.
 The reducton computes the global sum across processes,
-and it prints the sum along with the average rate.
+and it prints the global sum along with the average rate.
 
 ```C
 /*
- * a global variable to capture start time of reduction,
- * not necessary, but useful so we can compute an average rate
+ * a global variable to capture start time
+ * so that we can compute an average rate
  */
-static double reduce_start;
+double reduce_start;
 
 /*
  * a global variable to count number of items processed
  * on the local process
  */
-static uint64_t reduce_count;
+uint64_t reduce_count;
 
 /*
- * The reduce_init callback provides the memory address and size of the variable(s)
- * to use as input on each process to the reduction operation.
- * One can specify an arbitrary block of data as input.  When a new
- * reduction is started, libcircle invokes this callback on each
- * process to snapshot the memory block specified in the call to CIRCLE_reduce.
- * The library makes a memcpy of the memory block given to CIRCLE_reduce.
+ * The reduce_init callback provides the memory address and size of the
+ * variable(s) to use as input on each process to the reduction
+ * operation.  One can specify an arbitrary block of data as input.
+ * When a new reduction is started, libcircle invokes this callback on
+ * each process to snapshot the memory block specified in the call to
+ * CIRCLE_reduce.  The library makes a memcpy of the memory block, so
+ * its contents can be safely changed or go out of scope after the call
+ * to CIRCLE_reduce returns.
  */
-static void reduce_init(void)
+void reduce_init(void)
 {
     /*
      * We give the starting memory address and size of a memory
-     * block we want libcircle to capture on this process when
+     * block that we want libcircle to capture on this process when
      * it starts a new reduction operation.
      *
-     * In this example, we capture a single uint64_t value.
+     * In this example, we capture a single uint64_t value,
+     * which is the global reduce_count variable.
      */
     CIRCLE_reduce(&reduce_count, sizeof(uint64_t));
 }
 
 /*
  * On intermediate nodes of the reduction tree, libcircle invokes the
- * reduce_exec callback to reduce two data buffers.  The starting
- * address and size of each data buffer are provided as input parameters
- * to the callback function.  An arbitrary reduction operation can
- * be executed.  Then libcircle snapshots the memory block specified
- * in the call to CIRCLE_reduce to capture the partial result.
- * The library makes a memcpy of this memory block.
+ * reduce_op callback to reduce two data buffers.  The starting
+ * address and size of each data buffer are provided as input
+ * parameters to the callback function.  An arbitrary reduction
+ * operation can be executed.  Then libcircle snapshots the memory
+ * block specified in the call to CIRCLE_reduce to capture the partial
+ * result.  The library makes a memcpy of the memory block, so its
+ * contents can be safely changed or go out of scope after the call to
+ * CIRCLE_reduce returns.
  *
- * Note that the sizes of the input buffers do not have to be the same.
- * The output buffer does not need to be the same size as either input
- * buffer.  For example, one could contentate buffers so that the
- * reduction operates more like a gather.
+ * Note that the sizes of the input buffers do not have to be the same,
+ * and the output buffer does not need to be the same size as either
+ * input buffer.  For example, one could concatentate buffers so that
+ * the reduction actually performs a gather operation.
  */
-static void reduce_exec(const void* buf1, size_t size1, const void* buf2, size_t size2)
+void reduce_op(const void* buf1, size_t size1, const void* buf2, size_t size2)
 {
     /*
-     * Here we are given the starting address and size of two input buffers.
-     * These could be the intial memory blocks captured in reduce_init,
-     * or they could be intermediate results captured from a reduce_exec call.
+     * Here we are given the starting address and size of two input
+     * buffers.  These could be the initial memory blocks copied during
+     * reduce_init, or they could be intermediate results copied from a
+     * reduce_op call.  We can execute an arbitrary operation on these
+     * input buffers and then we save the partial result to a call
+     * to CIRCLE_reduce.
      *
      * In this example, we sum two input uint64_t values and
      * libcircle makes a copy of the result when we call CIRCLE_reduce.
@@ -194,11 +204,12 @@ static void reduce_exec(const void* buf1, size_t size1, const void* buf2, size_t
  * provides a buffer holding the final reduction result as in input
  * parameter. Typically, one might print the result in this callback.
  */
-static void reduce_fini(const void* buf, size_t size)
+void reduce_fini(const void* buf, size_t size)
 {
     /*
-     * In this example, we compute the average processing rate,
-     * and we print the rate and global count of items processed.
+     * In this example, we get the reduced sum from the input buffer,
+     * and we compute the average processing rate.  We then print
+     * the count, time, and rate of items processed.
      */
 
     // get result of reduction
@@ -214,7 +225,7 @@ static void reduce_fini(const void* buf, size_t size)
         rate = (double)count / secs;
     }
 
-    // print status to stdout
+    // print current count, time, and rate to stdout
     printf("Processed %llu items in %f secs (%f items/sec) ...\n",
         (unsigned long long)count, secs, rate);
     fflush(stdout);
@@ -231,7 +242,7 @@ void my_process_some_work(CIRCLE_handle *handle)
     // Do stuff with my_data ...
 
     /*
-     * Update the variable we use to count the number of
+     * Update the variable that we use to count the number of
      * items we have processed.  libcircle will periodically
      * snapshot this variable as input to a reduction operation
      * due to our reduce_init callback that provides the memory
@@ -250,12 +261,12 @@ reduce_count = 0; // set our count to 0
  * Register our 3 reduction callback functions.
  */
 CIRCLE_cb_reduce_init(&reduce_init);
-CIRCLE_cb_reduce_op(&reduce_exec);
+CIRCLE_cb_reduce_op(&reduce_op);
 CIRCLE_cb_reduce_fini(&reduce_fini);
 
 /*
- * Specify period between reductions.
- * Here we set a time of 10 seconds.
+ * Specify time period between consecutive reductions.
+ * Here we set a time period of 10 seconds.
  */
 CIRCLE_set_reduce_period(10);
 
