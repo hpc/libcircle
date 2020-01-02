@@ -35,12 +35,27 @@ AC_C_INLINE
 AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
 AC_FUNC_MALLOC
 
-# Define the library version.
+# Define the library version for libtool -version-info.
+#
 # https://autotools.io/libtool/version.html
+# To set the version of the library, libtool provides the -version-info parameter,
+# which accepts three numbers, separated by colons, that are called respectively,
+# current, revision and age.
+# The rules of thumb, when dealing with these values are:
+# - Always increase the revision value.
+# - Increase the current value whenever an interface has been added, removed or changed.
+# - Increase the age value only if the changes made to the ABI are backward compatible.
 AC_SUBST([LIBCIRCLE_SO_VERSION], [3:1:1])
 
-# semantic versioning on API
+# Use Semantic Versioning for API
+#
 # https://semver.org
+# Given a version number MAJOR.MINOR.PATCH, increment the:
+# - MAJOR version when you make incompatible API changes,
+# - MINOR version when you add functionality in a backwards compatible manner, and
+# - PATCH version when you make backwards compatible bug fixes.
+# Additional labels for pre-release and build metadata are available as
+# extensions to the MAJOR.MINOR.PATCH format.
 AC_SUBST([LIBCIRCLE_API_VERSION], [0.3.0])
 
 # Check for MPI
