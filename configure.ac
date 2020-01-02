@@ -1,4 +1,4 @@
-AC_INIT([LibCircle],[0.2.2],[github-hpc@lanl.gov],[libcircle],[http://github.com/hpc/libcircle])
+AC_INIT([LibCircle],[0.3.0],[github-hpc@lanl.gov],[libcircle],[http://github.com/hpc/libcircle])
 
 # Keep artifacts in directories as much as possible.
 AC_CONFIG_AUX_DIR(auxdir)
@@ -36,8 +36,12 @@ AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
 AC_FUNC_MALLOC
 
 # Define the library version.
-AC_SUBST([LIBCIRCLE_SO_VERSION], [2:0:0])
-AC_SUBST([LIBCIRCLE_API_VERSION], [0.2.2])
+# https://autotools.io/libtool/version.html
+AC_SUBST([LIBCIRCLE_SO_VERSION], [3:1:1])
+
+# semantic versioning on API
+# https://semver.org
+AC_SUBST([LIBCIRCLE_API_VERSION], [0.3.0])
 
 # Allow user to switch to tree-based termination
 AC_ARG_ENABLE([treeterm],
