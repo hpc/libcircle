@@ -53,6 +53,11 @@ void my_create_some_work(CIRCLE_handle *handle)
      *
      * This should be a small amount of work. For example, only enqueue the
      * filenames from a single directory.
+     *
+     * By default, the create callback is only executed on the root
+     * process, i.e., the process whose call to CIRCLE_init returns 0.
+     * If the CIRCLE_CREATE_GLOBAL option flag is specified, the create
+     * callback is invoked on all processes.
      */
     while((data_to_process = readdir(...)) != NULL)
     {
@@ -82,7 +87,7 @@ void my_process_some_work(CIRCLE_handle *handle)
  * argv is the argument vector. The return value is the MPI rank of the current
  * process.
  */
-int rank = CIRCLE_init(&argc, argv);
+int rank = CIRCLE_init(&argc, argv, CIRCLE_DEFAULT_FLAGS);
 
 /*
  * Processing and creating work is done through callbacks. Here's how we tell
@@ -108,6 +113,22 @@ CIRCLE_begin();
 CIRCLE_finalize();
 ```
 
+Options
+-------
+The following bit flags can be OR'ed together and passed as the third
+parameter to CIRCLE_init or at anytime through CIRCLE_set_options before
+calling CIRCLE_begin:
+
+* CIRCLE_SPLIT_RANDOM - randomly divide items among processes requesting work
+* CIRCLE_SPLIT_EQUAL - equally divide items among processes requesting work
+* CIRCLE_CREATE_GLOBAL - invoke create callback on all processes, instead of just the rank 0 process
+* CIRCLE_TERM_TREE - use tree-based termination detection, instead of ring-based token passing
+
+Reductions
+----------
+When enabled, libcircle periodically executes a global,
+user-defined reduction operation based on a time specified by the user.
+A final reduction executes after the work loop terminates.
 To use the optional reduction:
 
 1. Define and register three callback functions with libcircle:
@@ -116,10 +137,6 @@ To use the optional reduction:
  * CIRCLE_cb_reduce_fini - This function is called once on the root process to output the final reduction result.
 2. Update the value of reduction variable(s) within the CIRCLE_cb_process callback as work items are dequeued and processed by libcircle.
 3. Specify the time period between consecutive reductions with a call to CIRCLE_set_reduce_period to enable them.
-
-When enabled, libcircle periodically executes a global reduction based
-on a time period that is specified by the user.
-A final reduction always executes after the work loop terminates.
 
 The example below shows how to use reductions to periodically print
 the number of items processed.
@@ -276,5 +293,4 @@ CIRCLE_cb_create(&my_create_some_work);
 CIRCLE_cb_process(&my_process_some_work);
 CIRCLE_begin();
 CIRCLE_finalize();
-
 ```
