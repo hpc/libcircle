@@ -117,10 +117,9 @@ To use the optional reduction:
 2. Update the value of reduction variable(s) within the CIRCLE_cb_process callback as work items are dequeued and processed by libcircle.
 3. Specify the time period between consecutive reductions with a call to CIRCLE_set_reduce_period to enable them.
 
-When enabled, libcircle periodically executes a global reduction.
-The first reduction is started after the reduction period has expired.
-If libcircle completes execution before the first reduction period has
-expired, no reduction will be executed.
+When enabled, libcircle periodically executes a global reduction based
+on a time period that is specified by the user.
+A final reduction always executes after the work loop terminates.
 
 The example below shows how to use reductions to periodically print
 the number of items processed.

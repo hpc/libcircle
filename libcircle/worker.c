@@ -419,6 +419,12 @@ static void CIRCLE_work_loop(CIRCLE_state_st* sptr, CIRCLE_handle* q_handle)
         }
     }
 
+    /* execute final, synchronous reduction if enabled, this ensures
+     * that we fire at least one reduce and one with the final result */
+    if(sptr->reduce_enabled) {
+        CIRCLE_reduce_sync(sptr, sptr->local_objects_processed);
+    }
+
     /* if any process is in the abort state,
      * set all to be in the abort state */
     CIRCLE_abort_reduce(sptr);

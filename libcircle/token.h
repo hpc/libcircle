@@ -121,6 +121,9 @@ void CIRCLE_tree_free(CIRCLE_tree_state_st* t);
 /* initiate and execute reduction in background */
 void CIRCLE_reduce_check(CIRCLE_state_st* st, int count, int cleanup);
 
+/* execute synchronous reduction */
+void CIRCLE_reduce_sync(CIRCLE_state_st* st, int count);
+
 /* start non-blocking barrier */
 void CIRCLE_barrier_start(CIRCLE_state_st* st);
 

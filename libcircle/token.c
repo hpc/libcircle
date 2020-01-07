@@ -293,6 +293,108 @@ void CIRCLE_reduce_check(CIRCLE_state_st* st, int count, int cleanup)
     return;
 }
 
+/* executes synchronous reduction with user reduce callbacks */
+void CIRCLE_reduce_sync(CIRCLE_state_st* st, int count)
+{
+    int i;
+    MPI_Status status;
+
+    /* get our communicator */
+    MPI_Comm comm = st->comm;
+
+    /* get info about tree */
+    int  parent_rank = st->tree.parent_rank;
+    int  children    = st->tree.children;
+    int* child_ranks = st->tree.child_ranks;
+
+    /* initialize state for a fresh reduction */
+    st->reduce_buf[0] = MSG_VALID;
+    st->reduce_buf[1] = (long long int) count;
+    st->reduce_buf[2] = 0; /* initialize byte count */
+
+    /* invoke callback to get input data,
+     * it will be stored in CIRCLE_INPUT_ST after user
+     * calls CIRCLE_reduce which should be done in callback */
+    if(CIRCLE_INPUT_ST.reduce_init_cb != NULL) {
+        (*(CIRCLE_INPUT_ST.reduce_init_cb))();
+    }
+
+    /* wait for messages from our children */
+    for(i = 0; i < children; i++) {
+        /* pick a child */
+        int child = child_ranks[i];
+
+        /* receive message form child, first int contains
+         * flag indicating whether message is valid,
+         * second int is number of completed libcircle work
+         * elements, third int is number of bytes of user data */
+        long long int recvbuf[3];
+        MPI_Recv(recvbuf, 3, MPI_LONG_LONG, child,
+                 CIRCLE_TAG_REDUCE, comm, &status);
+
+        /* combine child's count with ours */
+        st->reduce_buf[1] += recvbuf[1];
+
+        /* get incoming user data if we have any */
+        void* inbuf = NULL;
+        size_t insize = (size_t) recvbuf[2];
+
+        if(insize > 0) {
+            /* allocate space to hold data */
+            inbuf = malloc(insize);
+
+            if(inbuf == NULL) {
+            }
+
+            /* receive data */
+            int bytes = (int) recvbuf[2];
+            MPI_Recv(inbuf, bytes, MPI_BYTE, child,
+                     CIRCLE_TAG_REDUCE, comm, &status);
+        }
+
+        /* invoke user's callback to reduce user data */
+        if(CIRCLE_INPUT_ST.reduce_op_cb != NULL) {
+            void* currbuf   = CIRCLE_INPUT_ST.reduce_buf;
+            size_t currsize = CIRCLE_INPUT_ST.reduce_buf_size;
+            (*(CIRCLE_INPUT_ST.reduce_op_cb))(currbuf, currsize, inbuf, insize);
+        }
+
+        /* free temporary buffer holding incoming user data */
+        CIRCLE_free(&inbuf);
+    }
+
+    /* send message to parent if we have one */
+    if(parent_rank != MPI_PROC_NULL) {
+        /* get size of user data */
+        int bytes = (int) CIRCLE_INPUT_ST.reduce_buf_size;
+        st->reduce_buf[2] = (long long int) bytes;
+
+        /* send partial result to parent */
+        MPI_Send(st->reduce_buf, 3, MPI_LONG_LONG, parent_rank,
+                 CIRCLE_TAG_REDUCE, comm);
+
+        /* also send along user data if any */
+        if(bytes > 0) {
+            void* currbuf = CIRCLE_INPUT_ST.reduce_buf;
+            MPI_Send(currbuf, bytes, MPI_BYTE, parent_rank,
+                     CIRCLE_TAG_REDUCE, comm);
+        }
+    }
+    else {
+        /* we're the root, print the results if we have valid data */
+        LOG(CIRCLE_LOG_INFO, "Objects processed: %lld (done)", st->reduce_buf[1]);
+
+        /* invoke callback on root to deliver final result */
+        if(CIRCLE_INPUT_ST.reduce_fini_cb != NULL) {
+            void* resultbuf   = CIRCLE_INPUT_ST.reduce_buf;
+            size_t resultsize = CIRCLE_INPUT_ST.reduce_buf_size;
+            (*(CIRCLE_INPUT_ST.reduce_fini_cb))(resultbuf, resultsize);
+        }
+    }
+
+    return;
+}
+
 /* marks our state as ready for the barrier */
 void CIRCLE_barrier_start(CIRCLE_state_st* st)
 {
