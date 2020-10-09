@@ -123,10 +123,18 @@ AC_DEFUN([LX_QUERY_MPI_COMPILER],
      # and link lines.  After this part of the macro, we'll have a valid
      # lx_mpi_command_line
      echo -n "Checking whether $$1 responds to '-showme:compile'... "
-     lx_mpi_compile_line=`$$1 -showme:compile 2>/dev/null`
+     if [[ "$(echo $MPICC | grep -o cc)" = "cc" ]]; then
+	lx_mpi_compile_line=`$$1 --cray-print-opts=cflags 2>/dev/null`
+     else 
+ 	lx_mpi_compile_line=`$$1 -showme:compile 2>/dev/null`
+     fi
      if [[ "$?" -eq 0 ]]; then
          echo yes
-         lx_mpi_link_line=`$$1 -showme:link 2>/dev/null`
+         if [[ "$(echo $MPICC | grep -o cc)" = "cc" ]]; then
+         	lx_mpi_link_line=`$$1 --cray-print-opts=libs 2>/dev/null`
+         else
+		lx_mpi_link_line=`$$1 -showme:link 2>/dev/null`
+	 fi
      else
          echo no
          echo -n "Checking whether $$1 responds to '-showme'... "
