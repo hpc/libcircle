@@ -1545,7 +1545,7 @@ static int CIRCLE_send_work(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st, \
     if(len > INT32_MAX) {
         LOG(CIRCLE_LOG_ERR,
             "Single work item too large to send (%zu bytes).", len);
-        CIRCLE_send_no_work(dest);
+        CIRCLE_send_no_work(st, dest);
         return -1;
     }
 
@@ -1677,6 +1677,10 @@ static void CIRCLE_send_work_to_many(CIRCLE_internal_queue_t* qp, \
  */
 void CIRCLE_workreceipt_check(CIRCLE_internal_queue_t* qp, CIRCLE_state_st* st)
 {
+    /* qp is unused in this function, kept for API symmetry with
+     * CIRCLE_workreq_check() */
+    (void) qp;
+
     /* get MPI communicator */
     MPI_Comm comm = st->comm;
 
