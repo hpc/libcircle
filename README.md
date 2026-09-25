@@ -9,7 +9,7 @@ Dependencies
 
 Compile and install
 -------------------
-The current build status is: [![Build Status](https://travis-ci.org/hpc/libcircle.png?branch=master)](https://travis-ci.org/hpc/libcircle)
+The current build status is: [![build](https://github.com/hpc/libcircle/actions/workflows/build.yml/badge.svg)](https://github.com/hpc/libcircle/actions/workflows/build.yml)
 
 ```
 ./configure

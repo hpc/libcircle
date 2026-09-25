@@ -1,0 +1,89 @@
+name: build
+
+on:
+  push:
+    branches:
+      - master
+      - 'ci/**'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.mpi }}, ${{ matrix.cc }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mpi: [openmpi, mpich]
+        cc: [gcc, clang]
+    env:
+      CC: ${{ matrix.cc }}
+      MPI: ${{ matrix.mpi }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: install dependencies
+        run: |
+          case "$MPI" in
+            openmpi) mpi_packages="openmpi-bin libopenmpi-dev" ;;
+            mpich)   mpi_packages="mpich libmpich-dev" ;;
+          esac
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+              autoconf automake libtool pkg-config check \
+              "$CC" $mpi_packages
+
+      - name: autogen
+        run: ./autogen.sh
+
+      - name: configure
+        run: ./configure --enable-tests || { cat config.log; exit 1; }
+
+      - name: make
+        run: make -j"$(nproc)"
+
+      # Ubuntu's MPICH links against PMIx while its hydra launcher hands out
+      # PMI-1, so every rank falls back to singleton init and a multi-rank
+      # job is not possible.  Those legs are compile coverage only.
+      - name: make check
+        if: matrix.mpi == 'openmpi'
+        run: make check VERBOSE=1 || { cat tests/test-suite.log; exit 1; }
+
+      - name: test logs
+        if: failure()
+        run: |
+          for log in tests/*.log; do
+            [ -f "$log" ] || continue
+            echo "===== $log ====="
+            cat "$log"
+          done
+
+  distcheck:
+    name: distcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+              autoconf automake libtool pkg-config check \
+              gcc openmpi-bin libopenmpi-dev
+
+      - name: autogen
+        run: ./autogen.sh
+
+      - name: configure
+        run: ./configure --enable-tests || { cat config.log; exit 1; }
+
+      - name: make distcheck
+        run: make distcheck DISTCHECK_CONFIGURE_FLAGS="--enable-tests"

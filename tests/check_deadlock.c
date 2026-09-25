@@ -118,6 +118,21 @@ int main(int argc, char* argv[])
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &ranks);
 
+    /* One rank shares no work, so the test would pass without exercising
+     * anything it is meant to cover.  Launchers do land us here: Ubuntu's
+     * MPICH links against PMIx while its hydra hands out PMI-1, so every
+     * rank falls back to singleton init and "mpirun -n 16" quietly becomes
+     * 16 separate one-rank jobs. */
+    if(ranks < 2) {
+        if(rank == 0) {
+            fprintf(stderr, "SKIP: need at least 2 ranks to share work, got %d\n",
+                    ranks);
+        }
+
+        MPI_Finalize();
+        return 77;
+    }
+
     /* the flags mpifileutils uses */
     CIRCLE_init(argc, argv, CIRCLE_SPLIT_EQUAL | CIRCLE_TERM_TREE);
     CIRCLE_enable_logging(CIRCLE_LOG_ERR);

@@ -12,10 +12,12 @@ START_TEST
     CIRCLE_init(0, NULL, CIRCLE_DEFAULT_FLAGS);
 
     q = CIRCLE_internal_queue_init();
-    fail_if(q == NULL, "Initializing a queue failed.");
+    /* the queue must initialize */
+    ck_assert_ptr_ne(q, NULL);
 
     free_result = CIRCLE_internal_queue_free(q);
-    fail_unless(free_result >= 0, "Queue was not null after free.");
+    /* freeing the queue must succeed */
+    ck_assert_int_ge(free_result, 0);
 
     CIRCLE_finalize();
 }
@@ -33,14 +35,16 @@ START_TEST
     CIRCLE_init(0, NULL, CIRCLE_DEFAULT_FLAGS);
 
     q = CIRCLE_internal_queue_init();
-    fail_if(q == NULL, "Initializing a queue failed.");
+    /* the queue must initialize */
+    ck_assert_ptr_ne(q, NULL);
 
     CIRCLE_internal_queue_pop(q, result);
-    fail_if(strlen(result) > 0, \
-            "Something was poped from an empty queue.");
+    /* an empty queue must pop nothing */
+    ck_assert_uint_eq(strlen(result), 0);
 
     free_result = CIRCLE_internal_queue_free(q);
-    fail_unless(free_result, "Circle context was not null after free.");
+    /* freeing the queue must succeed */
+    ck_assert_int_ne(free_result, 0);
 
     CIRCLE_finalize();
 }
@@ -57,21 +61,23 @@ START_TEST
     CIRCLE_init(0, NULL, CIRCLE_DEFAULT_FLAGS);
 
     q = CIRCLE_internal_queue_init();
-    fail_if(q == NULL, "Initializing a queue failed.");
+    /* the queue must initialize */
+    ck_assert_ptr_ne(q, NULL);
 
     CIRCLE_internal_queue_push(q, test_string);
-    fail_unless(q->count == 1, \
-                "Queue count was not correct after a single push.");
+    /* a single push must leave one item queued */
+    ck_assert_int_eq(q->count, 1);
 
     CIRCLE_internal_queue_pop(q, result);
-    fail_unless(q->count == 0, \
-                "Queue count was not correct after poping the last element.");
+    /* popping the last element must empty the queue */
+    ck_assert_int_eq(q->count, 0);
 
-    fail_unless(strcmp(test_string, result) == 0, \
-                "Result poped from the queue does not match original.");
+    /* what comes out must match what went in */
+    ck_assert_str_eq(test_string, result);
 
     free_result = CIRCLE_internal_queue_free(q);
-    fail_unless(free_result, "Circle context was not null after free.");
+    /* freeing the queue must succeed */
+    ck_assert_int_ne(free_result, 0);
 
     CIRCLE_finalize();
 }
@@ -99,7 +105,8 @@ START_TEST
     CIRCLE_init(0, NULL, CIRCLE_DEFAULT_FLAGS);
 
     q = CIRCLE_internal_queue_init();
-    fail_unless(q != NULL, "Initializing a queue failed.");
+    /* the queue must initialize */
+    ck_assert_ptr_ne(q, NULL);
 
     /* Warm it up a bit */
     CIRCLE_internal_queue_push(q, test_strings[0]);
@@ -107,11 +114,11 @@ START_TEST
     CIRCLE_internal_queue_push(q, test_strings[1]);
     CIRCLE_internal_queue_pop(q, result);
 
-    fail_unless(strcmp(test_strings[1], result) == 0, \
-                "The queue pop was not the expected result.");
+    /* the pop must return the expected string */
+    ck_assert_str_eq(test_strings[1], result);
 
-    fail_unless(q->count == 0, \
-                "Queue count was not correct after two pushes and two pops.");
+    /* two pushes and two pops must leave the queue empty */
+    ck_assert_int_eq(q->count, 0);
 
     /* Now lets try multiple ones */
     CIRCLE_internal_queue_push(q, test_strings[2]);
@@ -133,11 +140,11 @@ START_TEST
     CIRCLE_internal_queue_pop(q, result);
     CIRCLE_internal_queue_pop(q, result); // count = 0
 
-    fail_unless(strcmp(test_strings[2], result) == 0, \
-                "The queue pop was not the expected result.");
+    /* the pop must return the expected string */
+    ck_assert_str_eq(test_strings[2], result);
 
-    fail_unless(q->count == 0, \
-                "Queue count was not correct after several operations.");
+    /* the sequence above must leave the queue empty */
+    ck_assert_int_eq(q->count, 0);
 
     /* Lets just try a few randomly */
     CIRCLE_internal_queue_push(q, test_strings[1]);
@@ -150,14 +157,15 @@ START_TEST
     CIRCLE_internal_queue_push(q, test_strings[5]); // count = 3
     CIRCLE_internal_queue_pop(q, result); // count = 2
 
-    fail_unless(strcmp(test_strings[5], result) == 0, \
-                "The queue pop was not the expected result.");
+    /* the pop must return the expected string */
+    ck_assert_str_eq(test_strings[5], result);
 
-    fail_unless(q->count == 2, \
-                "Queue count was not correct after several operations.");
+    /* the sequence above must leave two items queued */
+    ck_assert_int_eq(q->count, 2);
 
     free_result = CIRCLE_internal_queue_free(q);
-    fail_unless(free_result, "Circle context was not null after free.");
+    /* freeing the queue must succeed */
+    ck_assert_int_ne(free_result, 0);
 
     CIRCLE_finalize();
 }
